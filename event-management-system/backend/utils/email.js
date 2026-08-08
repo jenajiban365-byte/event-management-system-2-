@@ -1,19 +1,23 @@
-const nodemailer = require('nodemailer');
+// Sends transactional email via Brevo's HTTPS API (https://api.brevo.com).
+//
+// Why not SMTP/nodemailer? Render's FREE tier blocks all outbound SMTP ports
+// (25, 465, 587) at the network level as an anti-spam measure — this is a
+// platform policy, not a bug in this code, and it means Gmail SMTP can never
+// work reliably from a free Render service. Brevo's API runs over normal
+// HTTPS (port 443), which is never blocked, so it works everywhere: locally,
+// on Render's free tier, or anywhere else.
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD
-  }
-});
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 const sendWelcomeEmail = async (name, email) => {
-  await transporter.sendMail({
-    from: `"EventHub" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: 'Welcome to EventHub',
-    html: `
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error('BREVO_API_KEY is not set — cannot send welcome email.');
+  }
+  if (!process.env.EMAIL_FROM) {
+    throw new Error('EMAIL_FROM is not set — cannot send welcome email.');
+  }
+
+  const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -125,8 +129,27 @@ const sendWelcomeEmail = async (name, email) => {
 
       </body>
       </html>
-    `
+  `;
+
+  const response = await fetch(BREVO_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'api-key': process.env.BREVO_API_KEY
+    },
+    body: JSON.stringify({
+      sender: { name: 'EventHub', email: process.env.EMAIL_FROM },
+      to: [{ email, name }],
+      subject: 'Welcome to EventHub',
+      htmlContent
+    })
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Brevo API error (${response.status}): ${errorBody}`);
+  }
 };
 
 module.exports = { sendWelcomeEmail };
