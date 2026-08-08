@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EventHub - Discover & Book Events</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="auth-wrapper" style="flex-direction:column; text-align:center; gap:20px;">
+  <div>
+    <h1 style="font-size:2.2rem; margin-bottom:8px;">Discover & Book Amazing Events</h1>
+    <p style="color:var(--text-muted); max-width:520px; margin:0 auto 24px;">
+      Browse conferences, workshops, concerts and more. Register in seconds and manage all your bookings in one place.
+    </p>
+    <a href="events.html" class="btn btn-primary">Browse Events</a>
+  </div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('home');
+</script>
+</body>
+</html>

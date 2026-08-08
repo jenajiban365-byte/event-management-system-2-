@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Bookings - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>My Bookings</h1>
+      <p>All the events you've registered for.</p>
+    </div>
+  </div>
+
+  <div id="alertBox"></div>
+  <div id="bookingsList" class="grid grid-2"></div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  requireAuth();
+  renderNavbar('bookings');
+
+  const bookingsList = document.getElementById('bookingsList');
+  const alertBox = document.getElementById('alertBox');
+
+  function statusBadge(status) {
+    const map = {
+      confirmed: 'badge-success',
+      pending: 'badge-warning',
+      cancelled: 'badge-muted',
+      rejected: 'badge-danger'
+    };
+    return `<span class="badge ${map[status] || 'badge-muted'}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+  }
+
+  function renderBookings(bookings) {
+    if (!bookings.length) {
+      bookingsList.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="icon">🎟️</div>
+        <h3>No bookings yet</h3>
+        <p>Browse events and book your first one.</p>
+        <a href="events.html" class="btn btn-primary" style="margin-top:12px;">Browse Events</a>
+      </div>`;
+      return;
+    }
+
+    bookingsList.innerHTML = bookings.map((b) => {
+      const event = b.event;
+      if (!event) {
+        return `<div class="card"><p>Event no longer available.</p> ${statusBadge(b.status)}</div>`;
+      }
+      const canCancel = b.status === 'confirmed' || b.status === 'pending';
+      return `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div>
+              <span class="badge badge-primary">${escapeHtml(event.category)}</span>
+              <h3 style="margin:8px 0 4px;">${escapeHtml(event.title)}</h3>
+              <div style="color:var(--text-muted); font-size:0.88rem;">
+                📅 ${formatDate(event.date)} at ${escapeHtml(event.time)}<br/>
+                📍 ${escapeHtml(event.location)}
+              </div>
+            </div>
+            ${statusBadge(b.status)}
+          </div>
+          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="event-details.html?id=${event.id}" class="btn btn-outline btn-sm">View Event</a>
+            ${canCancel ? `<button class="btn btn-danger btn-sm" data-cancel="${b.id}">Cancel Booking</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('[data-cancel]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Cancel this booking?')) return;
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+        try {
+          await Api.cancelBooking(btn.getAttribute('data-cancel'));
+          load();
+        } catch (err) {
+          showAlert(alertBox, err.message);
+          btn.disabled = false;
+          btn.textContent = 'Cancel Booking';
+        }
+      });
+    });
+  }
+
+  async function load() {
+    try {
+      clearAlert(alertBox);
+      const { bookings } = await Api.getMyBookings();
+      renderBookings(bookings);
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

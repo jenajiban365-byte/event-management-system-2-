@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="auth-wrapper">
+  <div class="card auth-card">
+    <h1>Welcome back</h1>
+    <p style="color:var(--text-muted); margin-top:-8px; margin-bottom:20px;">Login to book events or manage your account.</p>
+    <div id="alertBox"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Your password" required />
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Login</button>
+    </form>
+    <p class="switch">Don't have an account? <a href="register.html">Register here</a></p>
+    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:10px;">
+      Admin demo login: admin@events.com / Admin@123
+    </p>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('login');
+  redirectIfLoggedIn();
+
+  const form = document.getElementById('loginForm');
+  const alertBox = document.getElementById('alertBox');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(alertBox);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Logging in...';
+
+    try {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const data = await Api.login({ email, password });
+      Session.setSession(data.token, data.user);
+      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Login';
+    }
+  });
+</script>
+</body>
+</html>

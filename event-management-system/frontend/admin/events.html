@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manage Events - EventHub Admin</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Manage Events</h1>
+      <p>Add, edit, or remove events.</p>
+    </div>
+    <button class="btn btn-primary" id="addEventBtn">+ Add New Event</button>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Bookings</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="eventsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add/Edit Event Modal -->
+<div class="modal-overlay hidden" id="eventModal">
+  <div class="modal-box">
+    <h2 id="modalTitle">Add New Event</h2>
+    <div id="modalAlertBox"></div>
+    <form id="eventForm">
+      <input type="hidden" id="eventId" />
+      <div class="form-group">
+        <label for="title">Event Title</label>
+        <input type="text" id="title" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" class="form-control" required></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label for="capacity">Capacity</label>
+          <input type="number" id="capacity" class="form-control" min="1" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="date">Date</label>
+          <input type="date" id="date" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label for="time">Time</label>
+          <input type="time" id="time" class="form-control" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="location">Location</label>
+        <input type="text" id="location" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select id="status" class="form-control">
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+      <div class="action-row" style="justify-content:flex-end; margin-top:20px;">
+        <button type="button" class="btn btn-outline" id="cancelModalBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveEventBtn">Save Event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script>
+  requireAdmin();
+  renderAdminNavbar('events');
+
+  const alertBox = document.getElementById('alertBox');
+  const eventsBody = document.getElementById('eventsBody');
+  const eventModal = document.getElementById('eventModal');
+  const eventForm = document.getElementById('eventForm');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalAlertBox = document.getElementById('modalAlertBox');
+  const categorySelect = document.getElementById('category');
+
+  let categoriesCache = [];
+
+  function openModal(event = null) {
+    eventForm.reset();
+    clearAlert(modalAlertBox);
+    if (event) {
+      modalTitle.textContent = 'Edit Event';
+      document.getElementById('eventId').value = event.id;
+      document.getElementById('title').value = event.title;
+      document.getElementById('description').value = event.description;
+      document.getElementById('category').value = event.category;
+      document.getElementById('capacity').value = event.capacity;
+      document.getElementById('date').value = event.date;
+      document.getElementById('time').value = event.time;
+      document.getElementById('location').value = event.location;
+      document.getElementById('status').value = event.status;
+    } else {
+      modalTitle.textContent = 'Add New Event';
+      document.getElementById('eventId').value = '';
+      document.getElementById('status').value = 'published';
+    }
+    eventModal.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    eventModal.classList.add('hidden');
+  }
+
+  document.getElementById('addEventBtn').addEventListener('click', () => openModal());
+  document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+
+  async function loadCategories() {
+    const { categories } = await Api.getCategories();
+    categoriesCache = categories;
+    categorySelect.innerHTML = categories.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+  }
+
+  function statusBadge(status) {
+    return status === 'published'
+      ? '<span class="badge badge-success">Published</span>'
+      : '<span class="badge badge-muted">Draft</span>';
+  }
+
+  let eventsCache = [];
+
+  function renderEvents() {
+    if (!eventsCache.length) {
+      eventsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No events yet. Click "Add New Event" to create one.</td></tr>`;
+      return;
+    }
+    eventsBody.innerHTML = eventsCache.map((e) => `
+      <tr>
+        <td>${escapeHtml(e.title)}</td>
+        <td>${escapeHtml(e.category)}</td>
+        <td>${formatDate(e.date)}</td>
+        <td>${escapeHtml(e.location)}</td>
+        <td>${e.bookedCount}/${e.capacity}</td>
+        <td>${statusBadge(e.status)}</td>
+        <td>
+          <div class="action-row">
+            <button class="btn btn-outline btn-sm" data-edit="${e.id}">Edit</button>
+            <button class="btn btn-danger btn-sm" data-delete="${e.id}">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    document.querySelectorAll('[data-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const event = eventsCache.find((e) => e.id === btn.getAttribute('data-edit'));
+        openModal(event);
+      });
+    });
+    document.querySelectorAll('[data-delete]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this event? This will also cancel related bookings.')) return;
+        try {
+          await Api.deleteEvent(btn.getAttribute('data-delete'));
+          loadEvents();
+        } catch (err) {
+          showAlert(alertBox, err.message);
+        }
+      });
+    });
+  }
+
+  async function loadEvents() {
+    try {
+      clearAlert(alertBox);
+      const { events } = await Api.getAllEventsAdmin();
+      eventsCache = events.sort((a, b) => (a.date > b.date ? 1 : -1));
+      renderEvents();
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  eventForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(modalAlertBox);
+
+    const payload = {
+      title: document.getElementById('title').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value,
+      capacity: document.getElementById('capacity').value,
+      date: document.getElementById('date').value,
+      time: document.getElementById('time').value,
+      location: document.getElementById('location').value.trim(),
+      status: document.getElementById('status').value
+    };
+    const eventId = document.getElementById('eventId').value;
+
+    const saveBtn = document.getElementById('saveEventBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      if (eventId) {
+        await Api.updateEvent(eventId, payload);
+      } else {
+        await Api.createEvent(payload);
+      }
+      closeModal();
+      loadEvents();
+    } catch (err) {
+      showAlert(modalAlertBox, err.message);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Event';
+    }
+  });
+
+  (async function init() {
+    await loadCategories();
+    await loadEvents();
+  })();
+</script>
+</body>
+</html>

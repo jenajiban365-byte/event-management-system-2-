@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard - EventHub</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Overview of your events, users and bookings.</p>
+    </div>
+  </div>
+
+  <div id="alertBox"></div>
+  <div id="statsGrid" class="grid grid-3" style="margin-bottom:32px;"></div>
+
+  <div class="section-title">Recent Bookings</div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>User</th><th>Event</th><th>Status</th><th>Booked On</th></tr>
+      </thead>
+      <tbody id="recentBookingsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script>
+  requireAdmin();
+  renderAdminNavbar('dashboard');
+
+  const alertBox = document.getElementById('alertBox');
+  const statsGrid = document.getElementById('statsGrid');
+  const recentBookingsBody = document.getElementById('recentBookingsBody');
+
+  function statusBadge(status) {
+    const map = { confirmed: 'badge-success', pending: 'badge-warning', cancelled: 'badge-muted', rejected: 'badge-danger' };
+    return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
+  }
+
+  async function load() {
+    try {
+      clearAlert(alertBox);
+      const { totals, recentBookings } = await Api.getDashboard();
+
+      statsGrid.innerHTML = `
+        <div class="stat-card"><div class="label">Total Events</div><div class="value">${totals.totalEvents}</div></div>
+        <div class="stat-card"><div class="label">Upcoming Events</div><div class="value">${totals.upcomingEvents}</div></div>
+        <div class="stat-card"><div class="label">Total Users</div><div class="value">${totals.totalUsers}</div></div>
+        <div class="stat-card"><div class="label">Total Bookings</div><div class="value">${totals.totalBookings}</div></div>
+        <div class="stat-card"><div class="label">Active Bookings</div><div class="value">${totals.activeBookings}</div></div>
+      `;
+
+      recentBookingsBody.innerHTML = recentBookings.length
+        ? recentBookings.map((b) => `
+            <tr>
+              <td>${escapeHtml(b.userName)}</td>
+              <td>${escapeHtml(b.eventTitle)}</td>
+              <td>${statusBadge(b.status)}</td>
+              <td>${formatDateTime(b.createdAt)}</td>
+            </tr>
+          `).join('')
+        : `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No bookings yet.</td></tr>`;
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

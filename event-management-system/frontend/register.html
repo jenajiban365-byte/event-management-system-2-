@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="auth-wrapper">
+  <div class="card auth-card">
+    <h1>Create your account</h1>
+    <p style="color:var(--text-muted); margin-top:-8px; margin-bottom:20px;">Sign up to start booking events.</p>
+    <div id="alertBox"></div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" class="form-control" placeholder="Jane Doe" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="At least 6 characters" required minlength="6" />
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter password" required minlength="6" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create Account</button>
+    </form>
+    <p class="switch">Already have an account? <a href="login.html">Login here</a></p>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('register');
+  redirectIfLoggedIn();
+
+  const form = document.getElementById('registerForm');
+  const alertBox = document.getElementById('alertBox');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(alertBox);
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (password !== confirmPassword) {
+      showAlert(alertBox, 'Passwords do not match.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+
+    try {
+      const data = await Api.register({ name, email, password });
+      Session.setSession(data.token, data.user);
+      window.location.href = 'events.html';
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+    }
+  });
+</script>
+</body>
+</html>

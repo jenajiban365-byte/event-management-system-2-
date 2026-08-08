@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Upcoming Events - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Upcoming Events</h1>
+      <p>Browse and find events that interest you.</p>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <input type="text" id="searchInput" class="form-control" placeholder="Search events by name or location..." />
+    <select id="categoryFilter" class="form-control">
+      <option value="">All Categories</option>
+    </select>
+    <input type="date" id="dateFilter" class="form-control" />
+    <button class="btn btn-outline" id="clearFiltersBtn">Clear</button>
+  </div>
+
+  <div id="alertBox"></div>
+  <div id="eventsGrid" class="grid grid-3"></div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('events');
+
+  const eventsGrid = document.getElementById('eventsGrid');
+  const alertBox = document.getElementById('alertBox');
+  const searchInput = document.getElementById('searchInput');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const dateFilter = document.getElementById('dateFilter');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+  let debounceTimer = null;
+
+  async function loadCategories() {
+    try {
+      const { categories } = await Api.getCategories();
+      categories.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        categoryFilter.appendChild(opt);
+      });
+    } catch (err) {
+      // Non-critical; ignore silently
+    }
+  }
+
+  function buildQuery() {
+    const params = new URLSearchParams();
+    params.set('upcoming', 'true');
+    if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
+    if (categoryFilter.value) params.set('category', categoryFilter.value);
+    if (dateFilter.value) params.set('date', dateFilter.value);
+    return `?${params.toString()}`;
+  }
+
+  function renderEvents(events) {
+    if (!events.length) {
+      eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        <div class="icon">🔍</div>
+        <h3>No events found</h3>
+        <p>Try adjusting your search or filters.</p>
+      </div>`;
+      return;
+    }
+
+    eventsGrid.innerHTML = events.map((e) => {
+      const spotsLeft = e.capacity - e.bookedCount;
+      const full = spotsLeft <= 0;
+      return `
+        <a href="event-details.html?id=${e.id}" class="event-card">
+          <div class="thumb">${escapeHtml(e.category.charAt(0))}</div>
+          <div class="body">
+            <span class="badge badge-primary">${escapeHtml(e.category)}</span>
+            <h3>${escapeHtml(e.title)}</h3>
+            <div class="meta">
+              <span>📅 ${formatDate(e.date)} at ${escapeHtml(e.time)}</span>
+              <span>📍 ${escapeHtml(e.location)}</span>
+            </div>
+          </div>
+          <div class="footer">
+            <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
+            <span class="btn btn-sm btn-outline">View Details</span>
+          </div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  async function loadEvents() {
+    try {
+      clearAlert(alertBox);
+      eventsGrid.innerHTML = `<p style="color:var(--text-muted);">Loading events...</p>`;
+      const { events } = await Api.getEvents(buildQuery());
+      renderEvents(events);
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      eventsGrid.innerHTML = '';
+    }
+  }
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadEvents, 350);
+  });
+  categoryFilter.addEventListener('change', loadEvents);
+  dateFilter.addEventListener('change', loadEvents);
+  clearFiltersBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    categoryFilter.value = '';
+    dateFilter.value = '';
+    loadEvents();
+  });
+
+  loadCategories();
+  loadEvents();
+</script>
+</body>
+</html>

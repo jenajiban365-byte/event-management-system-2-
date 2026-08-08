@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Event Details - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container" style="max-width:760px;">
+  <a href="events.html" style="color:var(--text-muted); font-size:0.9rem;">&larr; Back to Events</a>
+  <div id="alertBox" style="margin-top:16px;"></div>
+  <div id="content"></div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('events');
+
+  const content = document.getElementById('content');
+  const alertBox = document.getElementById('alertBox');
+  const params = new URLSearchParams(window.location.search);
+  const eventId = params.get('id');
+
+  async function loadEvent() {
+    if (!eventId) {
+      showAlert(alertBox, 'No event specified.');
+      return;
+    }
+    try {
+      const { event } = await Api.getEvent(eventId);
+      renderEvent(event);
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  function renderEvent(event) {
+    const spotsLeft = event.capacity - event.bookedCount;
+    const full = spotsLeft <= 0;
+    const loggedIn = Session.isLoggedIn();
+
+    content.innerHTML = `
+      <div class="card" style="margin-top:16px;">
+        <div class="thumb" style="height:160px; border-radius:8px; margin-bottom:20px; background:linear-gradient(135deg, var(--primary), #818cf8); display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;">
+          ${escapeHtml(event.category.charAt(0))}
+        </div>
+        <span class="badge badge-primary">${escapeHtml(event.category)}</span>
+        <h1 style="margin:10px 0 6px;">${escapeHtml(event.title)}</h1>
+        <div style="display:flex; flex-wrap:wrap; gap:16px; color:var(--text-muted); font-size:0.92rem; margin-bottom:20px;">
+          <span>📅 ${formatDate(event.date)} at ${escapeHtml(event.time)}</span>
+          <span>📍 ${escapeHtml(event.location)}</span>
+          <span>👥 ${event.bookedCount}/${event.capacity} booked</span>
+        </div>
+        <p style="white-space:pre-line;">${escapeHtml(event.description)}</p>
+        <div style="margin-top:24px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
+          <button id="bookBtn" class="btn btn-primary" ${full ? 'disabled' : ''}>
+            ${full ? 'Fully Booked' : (loggedIn ? 'Book This Event' : 'Login to Book')}
+          </button>
+        </div>
+      </div>
+    `;
+
+    const bookBtn = document.getElementById('bookBtn');
+    if (bookBtn && !full) {
+      bookBtn.addEventListener('click', async () => {
+        if (!loggedIn) {
+          window.location.href = `login.html?redirect=event-details.html?id=${event.id}`;
+          return;
+        }
+        bookBtn.disabled = true;
+        bookBtn.textContent = 'Booking...';
+        try {
+          await Api.createBooking(event.id);
+          showAlert(alertBox, 'Booking confirmed! View it under "My Bookings".', 'success');
+          loadEvent();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+          showAlert(alertBox, err.message);
+          bookBtn.disabled = false;
+          bookBtn.textContent = 'Book This Event';
+        }
+      });
+    }
+  }
+
+  loadEvent();
+</script>
+</body>
+</html>

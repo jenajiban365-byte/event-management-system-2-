@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Profile - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container" style="max-width:560px;">
+  <div class="page-header">
+    <div>
+      <h1>My Profile</h1>
+      <p>Update your account details.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="alertBox"></div>
+    <form id="profileForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" class="form-control" required />
+      </div>
+
+      <div class="section-title" style="font-size:1rem; margin:24px 0 12px;">Change Password (optional)</div>
+      <div class="form-group">
+        <label for="currentPassword">Current Password</label>
+        <input type="password" id="currentPassword" class="form-control" placeholder="Required only to change password" />
+      </div>
+      <div class="form-group">
+        <label for="newPassword">New Password</label>
+        <input type="password" id="newPassword" class="form-control" placeholder="Leave blank to keep current password" minlength="6" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  requireAuth();
+  renderNavbar('profile');
+
+  const alertBox = document.getElementById('alertBox');
+  const form = document.getElementById('profileForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  async function loadProfile() {
+    try {
+      const { user } = await Api.getProfile();
+      document.getElementById('name').value = user.name;
+      document.getElementById('email').value = user.email;
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(alertBox);
+
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      email: document.getElementById('email').value.trim()
+    };
+    const newPassword = document.getElementById('newPassword').value;
+    const currentPassword = document.getElementById('currentPassword').value;
+    if (newPassword) {
+      payload.password = newPassword;
+      payload.currentPassword = currentPassword;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+      const { user } = await Api.updateProfile(payload);
+      const token = Session.getToken();
+      Session.setSession(token, { ...Session.getUser(), name: user.name, email: user.email });
+      showAlert(alertBox, 'Profile updated successfully.', 'success');
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      renderNavbar('profile');
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>
