@@ -4,6 +4,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { generateToken } = require('../utils/auth');
 const { protect } = require('../middleware/authMiddleware');
+const { sendWelcomeEmail } = require('../utils/email');
 
 const router = express.Router();
 const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
@@ -32,6 +33,7 @@ router.post('/register', async (req, res) => {
       role: 'user',
       status: 'active'
     });
+    await sendWelcomeEmail(name, email);
 
     const token = generateToken(newUser);
     res.status(201).json({
@@ -40,8 +42,9 @@ router.post('/register', async (req, res) => {
       user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error during registration.', error: err.message });
-  }
+  console.error('REGISTRATION ERROR:', err);
+  res.status(500).json({ message: 'Server error during registration.' });
+}
 });
 
 // @route  POST /api/auth/login
