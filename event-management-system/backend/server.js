@@ -31,6 +31,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Event Management API is running.' });
 });
 
+// Public, non-secret config the frontend needs (Google Client IDs are meant to be public)
+app.get('/api/config', (req, res) => {
+  res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID || null });
+});
+
 // Serve the frontend (static files) so the whole app can run from one server
 const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));

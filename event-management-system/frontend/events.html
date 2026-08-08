@@ -84,7 +84,10 @@
       const full = spotsLeft <= 0;
       return `
         <a href="event-details.html?id=${e.id}" class="event-card">
-          <div class="thumb">${escapeHtml(e.category.charAt(0))}</div>
+          <div class="thumb">
+            <span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>
+            <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
+          </div>
           <div class="body">
             <span class="badge badge-primary">${escapeHtml(e.category)}</span>
             <h3>${escapeHtml(e.title)}</h3>
@@ -94,7 +97,7 @@
             </div>
           </div>
           <div class="footer">
-            <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
+            <span class="badge badge-muted">${e.bookedCount}/${e.capacity} booked</span>
             <span class="btn btn-sm btn-outline">View Details</span>
           </div>
         </a>

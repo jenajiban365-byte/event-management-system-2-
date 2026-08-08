@@ -63,7 +63,9 @@ const Api = {
   // Auth
   register: (payload) => apiRequest('/auth/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => apiRequest('/auth/login', { method: 'POST', body: payload, auth: false }),
+  googleLogin: (credential) => apiRequest('/auth/google', { method: 'POST', body: { credential }, auth: false }),
   me: () => apiRequest('/auth/me'),
+  getPublicConfig: () => apiRequest('/config', { auth: false }),
 
   // Events
   getEvents: (query = '') => apiRequest(`/events${query}`, { auth: false }),
@@ -140,5 +142,52 @@ function requireAdmin() {
 function redirectIfLoggedIn() {
   if (Session.isLoggedIn()) {
     window.location.href = Session.isAdmin() ? 'admin/dashboard.html' : 'events.html';
+  }
+}
+
+// ---------- Google Sign-In ----------
+// Loads the Google Identity Services script (if needed), then renders a
+// "Continue with Google" button into the given container element.
+// onSuccess receives the parsed { token, user } response from our backend.
+async function initGoogleSignIn(containerId, onSuccess, onError) {
+  try {
+    const { googleClientId } = await Api.getPublicConfig();
+    if (!googleClientId) return; // Google Sign-In not configured on the server; just skip it
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    function render() {
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          try {
+            const data = await Api.googleLogin(response.credential);
+            onSuccess(data);
+          } catch (err) {
+            onError && onError(err);
+          }
+        }
+      });
+      window.google.accounts.id.renderButton(container, {
+        theme: 'filled_black',
+        size: 'large',
+        width: 360,
+        shape: 'rectangular'
+      });
+    }
+
+    if (window.google && window.google.accounts) {
+      render();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = render;
+      document.head.appendChild(script);
+    }
+  } catch (err) {
+    // Silently skip Google Sign-In if the config request fails (e.g. offline)
   }
 }

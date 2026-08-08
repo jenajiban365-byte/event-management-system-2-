@@ -3,30 +3,42 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Login - EventHub</title>
+<title>Sign In - EventHub</title>
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
 
 <div class="auth-wrapper">
-  <div class="card auth-card">
-    <h1>Welcome back</h1>
-    <p style="color:var(--text-muted); margin-top:-8px; margin-bottom:20px;">Login to book events or manage your account.</p>
-    <div id="alertBox"></div>
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+  <div class="auth-card">
+    <div class="auth-icon">🎫</div>
+    <h1>EventHub</h1>
+    <p class="tagline">Book seats at the events you actually want to attend.</p>
+
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <a href="login.html" class="active">Sign in</a>
+        <a href="register.html">Create account</a>
       </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" class="form-control" placeholder="Your password" required />
-      </div>
-      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Login</button>
-    </form>
-    <p class="switch">Don't have an account? <a href="register.html">Register here</a></p>
-    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:10px;">
+
+      <div id="alertBox"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" class="form-control" placeholder="Your password" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Sign in</button>
+      </form>
+
+      <div class="auth-divider">or</div>
+      <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
+    </div>
+
+    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:14px;">
       Admin demo login: admin@events.com / Admin@123
     </p>
   </div>
@@ -46,7 +58,7 @@
     e.preventDefault();
     clearAlert(alertBox);
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Logging in...';
+    submitBtn.textContent = 'Signing in...';
 
     try {
       const email = document.getElementById('email').value.trim();
@@ -57,9 +69,18 @@
     } catch (err) {
       showAlert(alertBox, err.message);
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Login';
+      submitBtn.textContent = 'Sign in';
     }
   });
+
+  initGoogleSignIn(
+    'googleSignInBtn',
+    (data) => {
+      Session.setSession(data.token, data.user);
+      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
+    },
+    (err) => showAlert(alertBox, err.message)
+  );
 </script>
 </body>
 </html>

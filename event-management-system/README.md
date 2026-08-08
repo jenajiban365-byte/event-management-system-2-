@@ -153,6 +153,28 @@ to the full backend URL, e.g.:
 const API_BASE = 'http://localhost:5000/api';
 ```
 
+## Setting up "Sign in with Google" (optional)
+
+Google Sign-In is optional — if you skip this, the site works exactly the same, it just won't
+show the Google button. To enable it:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a new project (or use an existing one).
+2. Go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in an app name and your email, and save (you can leave it in "Testing" mode for personal use).
+3. Go to **APIs & Services → Credentials**. Click **Create Credentials → OAuth client ID**.
+4. Choose **Web application**. Under **Authorized JavaScript origins**, add every URL your site runs on, for example:
+   - `http://localhost:5000` (for local testing)
+   - `https://your-app-name.onrender.com` (your live Render URL)
+5. Click **Create**. Copy the **Client ID** shown (looks like `123456-abc.apps.googleusercontent.com`).
+6. Add it to your `.env` file (and to Render's Environment Variables, if deployed):
+   ```
+   GOOGLE_CLIENT_ID=123456-abc.apps.googleusercontent.com
+   ```
+7. Restart the server (`npm start`, or redeploy on Render). The "Continue with Google" button will
+   now appear automatically on the Login and Register pages.
+
+If someone signs in with Google using an email that already has a normal password account, the
+two get linked automatically — they can then log in either way.
+
 ## Deploying so it's live 24/7 (e.g. on Render)
 
 1. Push this project to a GitHub repository (GitHub Desktop is the easiest way if you're new to Git).
