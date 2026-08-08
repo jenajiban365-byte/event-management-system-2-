@@ -33,8 +33,9 @@ router.post('/register', async (req, res) => {
       role: 'user',
       status: 'active'
     });
-    await sendWelcomeEmail(name, email);
-
+    sendWelcomeEmail(name, email).catch(err => {
+  console.error('WELCOME EMAIL ERROR:', err);
+});
     const token = generateToken(newUser);
     res.status(201).json({
       message: 'Registration successful.',
