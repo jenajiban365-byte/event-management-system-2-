@@ -10,23 +10,31 @@
 <div id="navbar" class="navbar"></div>
 
 <div class="container">
-  <div class="page-header">
+  <div class="events-intro">
     <div>
+      <div class="eyebrow">DISCOVER WHAT'S NEXT</div>
       <h1>Upcoming Events</h1>
-      <p>Browse and find events that interest you.</p>
+      <p>Find experiences worth leaving the house for.</p>
     </div>
   </div>
 
-  <div class="filters-bar">
-    <input type="text" id="searchInput" class="form-control" placeholder="Search events by name or location..." />
-    <select id="categoryFilter" class="form-control">
-      <option value="">All Categories</option>
-    </select>
-    <input type="date" id="dateFilter" class="form-control" />
-    <button class="btn btn-outline" id="clearFiltersBtn">Clear</button>
+  <div class="filters-shell">
+    <div class="filters-bar">
+      <input type="text" id="searchInput" class="form-control filter-search" placeholder="🔎  Search by event or location..." aria-label="Search events" />
+      <select id="categoryFilter" class="form-control filter-control" aria-label="Filter by category">
+        <option value="">All Categories</option>
+      </select>
+      <input type="date" id="dateFilter" class="form-control filter-control" aria-label="Filter by date" />
+      <select id="sortFilter" class="form-control filter-control" aria-label="Sort events">
+        <option value="soonest">Sort: Soonest</option>
+        <option value="popular">Sort: Most Popular</option>
+      </select>
+      <button class="btn btn-outline" id="clearFiltersBtn">Clear filters</button>
+    </div>
   </div>
 
   <div id="alertBox"></div>
+  <div id="featuredEvent"></div>
   <div id="eventsGrid" class="grid grid-3"></div>
 </div>
 
@@ -38,10 +46,12 @@
   renderNavbar('events');
 
   const eventsGrid = document.getElementById('eventsGrid');
+  const featuredEvent = document.getElementById('featuredEvent');
   const alertBox = document.getElementById('alertBox');
   const searchInput = document.getElementById('searchInput');
   const categoryFilter = document.getElementById('categoryFilter');
   const dateFilter = document.getElementById('dateFilter');
+  const sortFilter = document.getElementById('sortFilter');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
   let debounceTimer = null;
@@ -55,9 +65,7 @@
         opt.textContent = c.name;
         categoryFilter.appendChild(opt);
       });
-    } catch (err) {
-      // Non-critical; ignore silently
-    }
+    } catch (err) {}
   }
 
   function buildQuery() {
@@ -66,11 +74,46 @@
     if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
     if (categoryFilter.value) params.set('category', categoryFilter.value);
     if (dateFilter.value) params.set('date', dateFilter.value);
+    if (sortFilter.value) params.set('sort', sortFilter.value);
     return `?${params.toString()}`;
+  }
+
+  function renderFeatured(event) {
+    if (!event) {
+      featuredEvent.innerHTML = '';
+      return;
+    }
+    const spotsLeft = event.capacity - event.bookedCount;
+    const full = spotsLeft <= 0;
+    const image = event.imageUrl
+      ? `<img src="${event.imageUrl.replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" />`
+      : `<div style="height:100%;display:grid;place-items:center;font-size:4rem;">${escapeHtml(event.category.charAt(0))}</div>`;
+
+    featuredEvent.innerHTML = `
+      <article class="featured-event">
+        <a class="featured-event-media" href="event-details.html?id=${event.id}" aria-label="View ${escapeHtml(event.title)}">
+          ${image}
+        </a>
+        <div class="featured-event-content">
+          <div class="featured-kicker">Featured event</div>
+          <div style="margin-top:8px;"><span class="badge badge-primary">${escapeHtml(event.category)}</span></div>
+          <h2>${escapeHtml(event.title)}</h2>
+          <p>${escapeHtml(event.description || 'A great event is waiting for you.')}</p>
+          <div class="featured-meta">
+            <span>📅 ${formatDate(event.date)}</span>
+            <span>🕒 ${escapeHtml(event.time)}</span>
+            <span>📍 ${escapeHtml(event.location)}</span>
+            <span class="${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully booked' : spotsLeft + ' spots left'}</span>
+          </div>
+          <a class="btn btn-primary" href="event-details.html?id=${event.id}">View event <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+    `;
   }
 
   function renderEvents(events) {
     if (!events.length) {
+      featuredEvent.innerHTML = '';
       eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
         <div class="icon">🔍</div>
         <h3>No events found</h3>
@@ -79,43 +122,72 @@
       return;
     }
 
-    eventsGrid.innerHTML = events.map((e) => {
+    renderFeatured(events[0]);
+    const gridEvents = events.slice(1);
+    if (!gridEvents.length) {
+      eventsGrid.innerHTML = '';
+      return;
+    }
+
+    eventsGrid.innerHTML = gridEvents.map((e) => {
       const spotsLeft = e.capacity - e.bookedCount;
       const full = spotsLeft <= 0;
       const safeImg = e.imageUrl ? e.imageUrl.replace(/"/g, '&quot;') : '';
+      const date = new Date(e.date);
       return `
         <a href="event-details.html?id=${e.id}" class="event-card">
           <div class="thumb">
             ${e.imageUrl
               ? `<img src="${safeImg}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />`
               : `<span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>`}
+            <div class="event-date-chip" aria-label="Event date">
+              <strong>${date.toLocaleDateString(undefined, { day: '2-digit' })}</strong>
+              <span>${date.toLocaleDateString(undefined, { month: 'short' })}</span>
+            </div>
             <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
           </div>
           <div class="body">
-            <span class="badge badge-primary">${escapeHtml(e.category)}</span>
+            <div class="event-card-topline">
+              <span class="badge badge-primary">${escapeHtml(e.category)}</span>
+              <span class="event-time">${escapeHtml(e.time)}</span>
+            </div>
             <h3>${escapeHtml(e.title)}</h3>
             <div class="meta">
-              <span>📅 ${formatDate(e.date)} at ${escapeHtml(e.time)}</span>
+              <span>📅 ${formatDate(e.date)}</span>
               <span>📍 ${escapeHtml(e.location)}</span>
             </div>
           </div>
           <div class="footer">
             <span class="badge badge-muted">${e.bookedCount}/${e.capacity} booked</span>
-            <span class="btn btn-sm btn-outline">View Details</span>
+            <span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span>
           </div>
         </a>
       `;
     }).join('');
   }
 
+  function renderSkeletons(count = 6) {
+    const skeleton = `
+      <div class="skeleton-card">
+        <div class="skeleton-thumb"></div>
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line long"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    `;
+    eventsGrid.innerHTML = skeleton.repeat(count);
+  }
+
   async function loadEvents() {
     try {
       clearAlert(alertBox);
-      eventsGrid.innerHTML = `<p style="color:var(--text-muted);">Loading events...</p>`;
+      featuredEvent.innerHTML = '';
+      renderSkeletons();
       const { events } = await Api.getEvents(buildQuery());
       renderEvents(events);
     } catch (err) {
       showAlert(alertBox, err.message);
+      featuredEvent.innerHTML = '';
       eventsGrid.innerHTML = '';
     }
   }
@@ -126,10 +198,12 @@
   });
   categoryFilter.addEventListener('change', loadEvents);
   dateFilter.addEventListener('change', loadEvents);
+  sortFilter.addEventListener('change', loadEvents);
   clearFiltersBtn.addEventListener('click', () => {
     searchInput.value = '';
     categoryFilter.value = '';
     dateFilter.value = '';
+    sortFilter.value = 'soonest';
     loadEvents();
   });
 

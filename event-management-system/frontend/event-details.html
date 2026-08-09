@@ -9,10 +9,11 @@
 <body>
 <div id="navbar" class="navbar"></div>
 
-<div class="container" style="max-width:760px;">
+<div class="container event-details-page" style="max-width:860px;">
   <a href="events.html" style="color:var(--text-muted); font-size:0.9rem;">&larr; Back to Events</a>
   <div id="alertBox" style="margin-top:16px;"></div>
   <div id="content"></div>
+  <div id="similarEvents"></div>
 </div>
 
 <footer class="site-footer">EventHub &mdash; Event Management System</footer>
@@ -24,6 +25,7 @@
 
   const content = document.getElementById('content');
   const alertBox = document.getElementById('alertBox');
+  const similarEventsEl = document.getElementById('similarEvents');
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get('id');
 
@@ -35,8 +37,54 @@
     try {
       const { event } = await Api.getEvent(eventId);
       renderEvent(event);
+      loadSimilarEvents(event);
     } catch (err) {
       showAlert(alertBox, err.message);
+    }
+  }
+
+  async function loadSimilarEvents(event) {
+    try {
+      const query = `?category=${encodeURIComponent(event.category)}&excludeId=${event.id}&upcoming=true&limit=3`;
+      const { events } = await Api.getEvents(query);
+      if (!events.length) {
+        similarEventsEl.innerHTML = '';
+        return;
+      }
+      similarEventsEl.innerHTML = `
+        <div class="section-title">You might also like</div>
+        <div class="grid grid-3">
+          ${events.map((e) => {
+            const spotsLeft = e.capacity - e.bookedCount;
+            const full = spotsLeft <= 0;
+            const safeImg = e.imageUrl ? e.imageUrl.replace(/"/g, '&quot;') : '';
+            return `
+              <a href="event-details.html?id=${e.id}" class="event-card">
+                <div class="thumb">
+                  ${e.imageUrl
+                    ? `<img src="${safeImg}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />`
+                    : `<span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>`}
+                  <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
+                </div>
+                <div class="body">
+                  <span class="badge badge-primary">${escapeHtml(e.category)}</span>
+                  <h3>${escapeHtml(e.title)}</h3>
+                  <div class="meta">
+                    <span>📅 ${formatDate(e.date)} at ${escapeHtml(e.time)}</span>
+                    <span>📍 ${escapeHtml(e.location)}</span>
+                  </div>
+                </div>
+                <div class="footer">
+                  <span class="badge badge-muted">${e.bookedCount}/${e.capacity} booked</span>
+                  <span class="btn btn-sm btn-outline">View Details</span>
+                </div>
+              </a>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } catch (err) {
+      similarEventsEl.innerHTML = ''; // non-critical — fail silently, don't disrupt the main page
     }
   }
 
@@ -46,8 +94,8 @@
     const loggedIn = Session.isLoggedIn();
 
     content.innerHTML = `
-      <div class="card" style="margin-top:16px;">
-        <div style="height:220px; border-radius:var(--radius-sm); margin-bottom:20px; overflow:hidden; position:relative; ${event.imageUrl ? '' : 'background:linear-gradient(135deg, #2a2110, #1b2a24); display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;'}">
+      <div class="card event-detail-card" style="margin-top:16px;">
+        <div class="event-detail-hero" style="height:220px; border-radius:var(--radius-sm); margin-bottom:20px; overflow:hidden; position:relative; ${event.imageUrl ? '' : 'background:linear-gradient(135deg, #2a2110, #1b2a24); display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;'}">
           ${event.imageUrl
             ? `<img src="${event.imageUrl.replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover; display:block;" />`
             : escapeHtml(event.category.charAt(0))}

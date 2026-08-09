@@ -9,7 +9,7 @@ const router = express.Router();
 // @desc   Public: list published events with optional search/filter
 router.get('/', async (req, res) => {
   try {
-    const { search, category, upcoming, date } = req.query;
+    const { search, category, upcoming, date, sort, excludeId, limit } = req.query;
     const query = { status: 'published' };
 
     if (search) {
@@ -23,8 +23,14 @@ router.get('/', async (req, res) => {
       const today = new Date().toISOString().split('T')[0];
       query.date = { ...(query.date ? { $eq: query.date } : {}), $gte: today };
     }
+    if (excludeId) query._id = { $ne: excludeId };
 
-    const events = await Event.find(query).sort({ date: 1 });
+    const sortOption = sort === 'popular' ? { bookedCount: -1 } : { date: 1 };
+
+    let eventsQuery = Event.find(query).sort(sortOption);
+    if (limit) eventsQuery = eventsQuery.limit(Math.min(Number(limit) || 20, 50));
+
+    const events = await eventsQuery;
     res.json({ events });
   } catch (err) {
     res.status(500).json({ message: 'Server error fetching events.', error: err.message });
