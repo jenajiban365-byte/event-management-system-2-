@@ -1,6 +1,8 @@
 # EventHub – Event Management System
 
-A full-stack Event Management System with a user-facing site and an admin panel, built with:
+A full-stack Event Management System with a user-facing site and an admin panel,
+now enhanced with calendar invites, native sharing, installable PWA support,
+atomic booking capacity protection, and production-oriented security headers.
 
 - **Backend:** Node.js + Express, JWT authentication, bcrypt password hashing, **MongoDB (via Mongoose)** for real, persistent data storage
 - **Frontend:** Plain HTML, CSS, and vanilla JavaScript (no build step, no framework required)
@@ -231,3 +233,9 @@ free Render instance itself sleeps after inactivity and "wakes up" on the next v
   rather than simple numbers — the frontend already handles this correctly.
 - If you ever want to reset your data, you can either drop the collections in MongoDB Atlas's
   web UI, or delete the whole database and let `utils/seed.js` recreate the defaults on next start.
+
+## Portfolio handoff
+
+See [`PORTFOLIO_GUIDE.md`](PORTFOLIO_GUIDE.md) for the implemented improvements,
+resume-ready bullet points, deployment checklist, and a prioritized roadmap for
+adding automated tests, CI/CD, QR check-in, payments, and observability.

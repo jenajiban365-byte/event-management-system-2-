@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Upcoming Events - EventHub</title>
+<meta name="description" content="Discover and book upcoming conferences, concerts, races, and workshops on EventHub." />
+<meta property="og:title" content="Upcoming Events - EventHub" />
+<meta property="og:description" content="Find experiences worth leaving the house for." />
+<meta property="og:type" content="website" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0b0d12" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -35,7 +41,11 @@
 
   <div id="alertBox"></div>
   <div id="featuredEvent"></div>
-  <div id="eventsGrid" class="grid grid-3"></div>
+  <div class="results-toolbar">
+    <span id="resultsSummary" aria-live="polite">Loading events...</span>
+    <button class="text-button" id="resetSavedFiltersBtn" type="button">Reset saved filters</button>
+  </div>
+  <div id="eventsGrid" class="grid grid-3" aria-live="polite"></div>
 </div>
 
 <footer class="site-footer">EventHub &mdash; Event Management System</footer>
@@ -55,6 +65,31 @@
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
   let debounceTimer = null;
+  const FILTER_STORAGE_KEY = 'eventhub_event_filters';
+  const resultsSummary = document.getElementById('resultsSummary');
+  const resetSavedFiltersBtn = document.getElementById('resetSavedFiltersBtn');
+
+  function saveFilters() {
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+      search: searchInput.value,
+      category: categoryFilter.value,
+      date: dateFilter.value,
+      sort: sortFilter.value
+    }));
+  }
+
+  function restoreFilters() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) || 'null');
+      if (!saved) return;
+      searchInput.value = saved.search || '';
+      categoryFilter.value = saved.category || '';
+      dateFilter.value = saved.date || '';
+      sortFilter.value = saved.sort || 'soonest';
+    } catch (err) {
+      localStorage.removeItem(FILTER_STORAGE_KEY);
+    }
+  }
 
   async function loadCategories() {
     try {
@@ -184,8 +219,11 @@
       featuredEvent.innerHTML = '';
       renderSkeletons();
       const { events } = await Api.getEvents(buildQuery());
+      saveFilters();
+      resultsSummary.textContent = `${events.length} event${events.length === 1 ? '' : 's'} found`;
       renderEvents(events);
     } catch (err) {
+      resultsSummary.textContent = 'Could not load events';
       showAlert(alertBox, err.message);
       featuredEvent.innerHTML = '';
       eventsGrid.innerHTML = '';
@@ -206,9 +244,15 @@
     sortFilter.value = 'soonest';
     loadEvents();
   });
+  resetSavedFiltersBtn.addEventListener('click', () => {
+    localStorage.removeItem(FILTER_STORAGE_KEY);
+    clearFiltersBtn.click();
+  });
 
-  loadCategories();
-  loadEvents();
+  loadCategories().then(() => {
+    restoreFilters();
+    loadEvents();
+  });
 </script>
 </body>
 </html>

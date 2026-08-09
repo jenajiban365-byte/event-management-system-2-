@@ -149,6 +149,89 @@ function optimizedImageUrl(url, width = 700) {
   return url;
 }
 
+function eventShareUrl(eventId) {
+  const url = new URL('event-details.html', window.location.href);
+  url.searchParams.set('id', eventId);
+  return url.href;
+}
+
+function calendarText(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+function calendarDate(date, time = '00:00') {
+  const [year, month, day] = String(date).split('-').map(Number);
+  const [hours, minutes] = String(time).split(':').map(Number);
+  const local = new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0);
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}T${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}00`;
+}
+
+function downloadCalendarEvent(event) {
+  const start = calendarDate(event.date, event.time);
+  const endDate = new Date(`${event.date}T${event.time || '00:00'}:00`);
+  endDate.setHours(endDate.getHours() + 2);
+  const pad = (part) => String(part).padStart(2, '0');
+  const end = `${endDate.getUTCFullYear()}${pad(endDate.getUTCMonth() + 1)}${pad(endDate.getUTCDate())}T${pad(endDate.getUTCHours())}${pad(endDate.getUTCMinutes())}00`;
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//EventHub//Event Calendar//EN',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:eventhub-${event.id}@eventhub`,
+    `DTSTAMP:${calendarDate(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${calendarText(event.title)}`,
+    `DESCRIPTION:${calendarText(event.description)}`,
+    `LOCATION:${calendarText(event.location)}`,
+    `URL:${eventShareUrl(event.id)}`,
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${String(event.title || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'event'}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+async function shareEvent(event) {
+  const shareData = {
+    title: event.title,
+    text: `Join me at ${event.title} on ${formatDate(event.date)}.`,
+    url: eventShareUrl(event.id)
+  };
+  if (navigator.share) {
+    await navigator.share(shareData);
+    return 'shared';
+  }
+  await navigator.clipboard.writeText(shareData.url);
+  return 'copied';
+}
+
+function showToast(message, type = 'success') {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `toast toast-${type} toast-visible`;
+  clearTimeout(window.__eventHubToastTimer);
+  window.__eventHubToastTimer = setTimeout(() => toast.classList.remove('toast-visible'), 2800);
+}
+
 function requireAuth() {
   if (!Session.isLoggedIn()) {
     window.location.href = 'login.html';

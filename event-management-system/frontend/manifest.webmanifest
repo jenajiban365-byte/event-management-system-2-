@@ -1,0 +1,9 @@
+{
+  "name": "EventHub — Discover & Book Events",
+  "short_name": "EventHub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "description": "Discover, book, and manage memorable events in one simple experience."
+}

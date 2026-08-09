@@ -17,10 +17,6 @@ router.post('/', protect, async (req, res) => {
     if (event.status !== 'published') {
       return res.status(400).json({ message: 'This event is not open for booking.' });
     }
-    if (event.bookedCount >= event.capacity) {
-      return res.status(400).json({ message: 'This event is fully booked.' });
-    }
-
     const existing = await Booking.findOne({
       event: eventId,
       user: req.user.id,
@@ -30,16 +26,36 @@ router.post('/', protect, async (req, res) => {
       return res.status(409).json({ message: 'You have already booked this event.' });
     }
 
-    const booking = await Booking.create({
-      user: req.user.id,
-      event: eventId,
-      status: 'confirmed'
-    });
+    // Claim a seat atomically so two simultaneous requests cannot push the
+    // event over capacity. This matters in production when many people book
+    // a popular event at the same time.
+    const claimedEvent = await Event.findOneAndUpdate(
+      { _id: eventId, status: 'published', $expr: { $lt: ['$bookedCount', '$capacity'] } },
+      { $inc: { bookedCount: 1 } },
+      { new: true }
+    );
 
-    event.bookedCount += 1;
-    await event.save();
+    if (!claimedEvent) {
+      return res.status(400).json({ message: 'This event is fully booked.' });
+    }
 
-    res.status(201).json({ message: 'Booking confirmed.', booking });
+    try {
+      const booking = await Booking.create({
+        user: req.user.id,
+        event: eventId,
+        status: 'confirmed'
+      });
+
+      res.status(201).json({ message: 'Booking confirmed.', booking });
+    } catch (bookingError) {
+      // Release the claimed seat if creating the booking fails (for example,
+      // a second request for the same attendee wins the unique index race).
+      await Event.updateOne({ _id: eventId, bookedCount: { $gt: 0 } }, { $inc: { bookedCount: -1 } });
+      if (bookingError.code === 11000) {
+        return res.status(409).json({ message: 'You have already booked this event.' });
+      }
+      throw bookingError;
+    }
   } catch (err) {
     res.status(500).json({ message: 'Server error creating booking.', error: err.message });
   }

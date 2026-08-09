@@ -20,9 +20,21 @@ const PORT = process.env.PORT || 5000;
 // the X-Forwarded-For header so rate limiting and logging see the real visitor IP,
 // not the proxy's IP for every request.
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
 app.use(cors());
 app.use(express.json());
+
+// Lightweight security headers without adding a runtime dependency. These
+// protect the public app while keeping Google Sign-In and remote event images
+// compatible with the existing frontend.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 // API routes
 app.use('/api/auth', authRoutes);
