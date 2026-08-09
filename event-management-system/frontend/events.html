@@ -82,10 +82,13 @@
     eventsGrid.innerHTML = events.map((e) => {
       const spotsLeft = e.capacity - e.bookedCount;
       const full = spotsLeft <= 0;
+      const thumbStyle = e.imageUrl
+        ? `background-image:url('${e.imageUrl.replace(/'/g, "%27")}'); background-size:cover; background-position:center;`
+        : '';
       return `
         <a href="event-details.html?id=${e.id}" class="event-card">
-          <div class="thumb">
-            <span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>
+          <div class="thumb" style="${thumbStyle}">
+            ${e.imageUrl ? '' : `<span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>`}
             <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
           </div>
           <div class="body">

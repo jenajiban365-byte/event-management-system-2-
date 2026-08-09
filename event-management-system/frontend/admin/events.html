@@ -70,6 +70,10 @@
         <input type="text" id="location" class="form-control" required />
       </div>
       <div class="form-group">
+        <label for="imageUrl">Image URL <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+        <input type="url" id="imageUrl" class="form-control" placeholder="https://images.unsplash.com/photo-..." />
+      </div>
+      <div class="form-group">
         <label for="status">Status</label>
         <select id="status" class="form-control">
           <option value="published">Published</option>
@@ -113,6 +117,7 @@
       document.getElementById('date').value = event.date;
       document.getElementById('time').value = event.time;
       document.getElementById('location').value = event.location;
+      document.getElementById('imageUrl').value = event.imageUrl || '';
       document.getElementById('status').value = event.status;
     } else {
       modalTitle.textContent = 'Add New Event';
@@ -207,6 +212,7 @@
       date: document.getElementById('date').value,
       time: document.getElementById('time').value,
       location: document.getElementById('location').value.trim(),
+      imageUrl: document.getElementById('imageUrl').value.trim(),
       status: document.getElementById('status').value
     };
     const eventId = document.getElementById('eventId').value;

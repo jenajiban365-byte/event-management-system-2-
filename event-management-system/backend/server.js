@@ -16,6 +16,11 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Render (and most hosts) sit behind a reverse proxy — this tells Express to trust
+// the X-Forwarded-For header so rate limiting and logging see the real visitor IP,
+// not the proxy's IP for every request.
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 

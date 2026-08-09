@@ -5,12 +5,13 @@ const User = require('../models/User');
 const { generateToken } = require('../utils/auth');
 const { protect } = require('../middleware/authMiddleware');
 const { sendWelcomeEmail } = require('../utils/email');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
 
 // @route  POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -49,7 +50,7 @@ router.post('/register', async (req, res) => {
 });
 
 // @route  POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -83,7 +84,7 @@ router.post('/login', async (req, res) => {
 
 // @route  POST /api/auth/google
 // @desc   Sign in (or auto-register) using a Google ID token from Google Identity Services
-router.post('/google', async (req, res) => {
+router.post('/google', authLimiter, async (req, res) => {
   try {
     if (!googleClient) {
       return res.status(500).json({ message: 'Google Sign-In is not configured on this server.' });

@@ -45,10 +45,14 @@
     const full = spotsLeft <= 0;
     const loggedIn = Session.isLoggedIn();
 
+    const thumbBg = event.imageUrl
+      ? `background-image:url('${event.imageUrl.replace(/'/g, "%27")}'); background-size:cover; background-position:center;`
+      : `background:linear-gradient(135deg, #2a2110, #1b2a24);`;
+
     content.innerHTML = `
       <div class="card" style="margin-top:16px;">
-        <div class="thumb" style="height:160px; border-radius:var(--radius-sm); margin-bottom:20px; background:linear-gradient(135deg, #2a2110, #1b2a24); display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;">
-          ${escapeHtml(event.category.charAt(0))}
+        <div class="thumb" style="height:220px; border-radius:var(--radius-sm); margin-bottom:20px; ${thumbBg} display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;">
+          ${event.imageUrl ? '' : escapeHtml(event.category.charAt(0))}
         </div>
         <span class="badge badge-primary">${escapeHtml(event.category)}</span>
         <h1 style="margin:10px 0 6px;">${escapeHtml(event.title)}</h1>
