@@ -20,6 +20,9 @@
   <div id="alertBox"></div>
   <div id="statsGrid" class="grid grid-3" style="margin-bottom:32px;"></div>
 
+  <div class="section-title">Bookings — Last 14 Days</div>
+  <div class="card" style="margin-bottom:28px;overflow:auto;"><div id="bookingChart" style="min-width:620px;height:240px;"></div></div>
+
   <div class="section-title">Recent Bookings</div>
   <div class="table-wrap">
     <table class="data-table">
@@ -41,6 +44,13 @@
   const statsGrid = document.getElementById('statsGrid');
   const recentBookingsBody = document.getElementById('recentBookingsBody');
 
+  function renderChart(trend) {
+    const max = Math.max(1, ...trend.map((d) => d.count));
+    const width = 760, height = 220, pad = 28;
+    const points = trend.map((d, i) => { const x = pad + i * ((width - pad * 2) / Math.max(1, trend.length - 1)); const y = height - pad - (d.count / max) * (height - pad * 2); return `${x},${y}`; }).join(' ');
+    document.getElementById('bookingChart').innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="220" role="img" aria-label="Bookings over the last 14 days"><line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="currentColor" opacity=".2"/><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${trend.map((d,i)=>{const x=pad+i*((width-pad*2)/Math.max(1,trend.length-1));const y=height-pad-(d.count/max)*(height-pad*2);return `<circle cx="${x}" cy="${y}" r="4" fill="currentColor"><title>${escapeHtml(d.date)}: ${d.count} bookings</title></circle>`}).join('')}</svg>`;
+  }
+
   function statusBadge(status) {
     const map = { confirmed: 'badge-success', pending: 'badge-warning', cancelled: 'badge-muted', rejected: 'badge-danger' };
     return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
@@ -49,7 +59,8 @@
   async function load() {
     try {
       clearAlert(alertBox);
-      const { totals, recentBookings } = await Api.getDashboard();
+      const { totals, recentBookings, bookingTrend } = await Api.getDashboard();
+      renderChart(bookingTrend || []);
 
       statsGrid.innerHTML = `
         <div class="stat-card"><div class="label">Total Events</div><div class="value">${totals.totalEvents}</div></div>

@@ -33,6 +33,8 @@
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Sign in</button>
       </form>
+      <p style="text-align:right;margin:10px 0 0;font-size:.85rem"><a href="forgot-password.html">Forgot password?</a></p>
+      <div id="verificationActions" style="display:none;margin-top:14px"></div>
 
       <div class="auth-divider">or</div>
       <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
@@ -53,6 +55,7 @@
   const form = document.getElementById('loginForm');
   const alertBox = document.getElementById('alertBox');
   const submitBtn = document.getElementById('submitBtn');
+  const verificationActions = document.getElementById('verificationActions');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -68,6 +71,17 @@
       window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
     } catch (err) {
       showAlert(alertBox, err.message);
+      if (err.status === 403 && err.message.toLowerCase().includes('verify')) {
+        const email = document.getElementById('email').value.trim();
+        verificationActions.style.display = 'block';
+        verificationActions.innerHTML = `<button type="button" class="btn btn-outline btn-block" id="resendBtn">Resend verification email</button>`;
+        document.getElementById('resendBtn').addEventListener('click', async () => {
+          const btn = document.getElementById('resendBtn'); btn.disabled = true;
+          try { const result = await Api.resendVerification(email); showAlert(alertBox, result.message, 'success'); }
+          catch (e) { showAlert(alertBox, e.message); }
+          finally { btn.disabled = false; }
+        });
+      }
       submitBtn.disabled = false;
       submitBtn.textContent = 'Sign in';
     }

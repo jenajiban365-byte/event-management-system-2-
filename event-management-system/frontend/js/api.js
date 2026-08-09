@@ -63,6 +63,10 @@ const Api = {
   // Auth
   register: (payload) => apiRequest('/auth/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => apiRequest('/auth/login', { method: 'POST', body: payload, auth: false }),
+  verifyEmail: (token) => apiRequest(`/auth/verify-email?token=${encodeURIComponent(token)}`, { auth: false }),
+  resendVerification: (email) => apiRequest('/auth/resend-verification', { method: 'POST', body: { email }, auth: false }),
+  forgotPassword: (email) => apiRequest('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  resetPassword: (token, password) => apiRequest('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
   googleLogin: (credential) => apiRequest('/auth/google', { method: 'POST', body: { credential }, auth: false }),
   me: () => apiRequest('/auth/me'),
   getPublicConfig: () => apiRequest('/config', { auth: false }),
@@ -87,6 +91,11 @@ const Api = {
   cancelBooking: (id) => apiRequest(`/bookings/${id}/cancel`, { method: 'PUT' }),
   getAllBookings: () => apiRequest('/bookings'),
   updateBookingStatus: (id, status) => apiRequest(`/bookings/${id}/status`, { method: 'PUT', body: { status } }),
+
+  // Waitlist
+  getWaitlistStatus: (eventId) => apiRequest(`/waitlist/status/${encodeURIComponent(eventId)}`),
+  joinWaitlist: (eventId) => apiRequest('/waitlist', { method: 'POST', body: { eventId } }),
+  leaveWaitlist: (eventId) => apiRequest(`/waitlist/${encodeURIComponent(eventId)}`, { method: 'DELETE' }),
 
   // Users / profile
   getProfile: () => apiRequest('/users/me'),
@@ -163,45 +172,45 @@ function calendarText(value) {
     .replace(/\r?\n/g, '\\n');
 }
 
-function calendarDate(date, time = '00:00') {
+function localEventDate(date, time = '00:00') {
   const [year, month, day] = String(date).split('-').map(Number);
   const [hours, minutes] = String(time).split(':').map(Number);
-  const local = new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0);
+  return new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0, 0);
+}
+
+function calendarDate(date, time = '00:00') {
+  const d = date instanceof Date ? date : localEventDate(date, time);
   const pad = (part) => String(part).padStart(2, '0');
-  return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}T${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}00`;
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+}
+
+function googleCalendarUrl(event) {
+  const startDate = localEventDate(event.date, event.time);
+  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title || 'EventHub event',
+    dates: `${calendarDate(startDate)}/${calendarDate(endDate)}`,
+    details: event.description || '',
+    location: event.location || '',
+    sf: 'true',
+    output: 'xml'
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 function downloadCalendarEvent(event) {
-  const start = calendarDate(event.date, event.time);
-  const endDate = new Date(`${event.date}T${event.time || '00:00'}:00`);
-  endDate.setHours(endDate.getHours() + 2);
-  const pad = (part) => String(part).padStart(2, '0');
-  const end = `${endDate.getUTCFullYear()}${pad(endDate.getUTCMonth() + 1)}${pad(endDate.getUTCDate())}T${pad(endDate.getUTCHours())}${pad(endDate.getUTCMinutes())}00`;
+  const startDate = localEventDate(event.date, event.time);
+  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
   const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//EventHub//Event Calendar//EN',
-    'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    `UID:eventhub-${event.id}@eventhub`,
-    `DTSTAMP:${calendarDate(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}`,
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
-    `SUMMARY:${calendarText(event.title)}`,
-    `DESCRIPTION:${calendarText(event.description)}`,
-    `LOCATION:${calendarText(event.location)}`,
-    `URL:${eventShareUrl(event.id)}`,
-    'END:VEVENT',
-    'END:VCALENDAR'
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EventHub//Event Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+    `UID:eventhub-${event.id}@eventhub`, `DTSTAMP:${calendarDate(new Date())}`, `DTSTART:${calendarDate(startDate)}`, `DTEND:${calendarDate(endDate)}`,
+    `SUMMARY:${calendarText(event.title)}`, `DESCRIPTION:${calendarText(event.description)}`, `LOCATION:${calendarText(event.location)}`, `URL:${eventShareUrl(event.id)}`,
+    'END:VEVENT', 'END:VCALENDAR'
   ].join('\r\n');
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${String(event.title || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'event'}.ics`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${String(event.title || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'event'}.ics`;
+  document.body.appendChild(link); link.click(); link.remove(); const url = link.href; setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function shareEvent(event) {

@@ -120,16 +120,18 @@
         </div>
         <div class="event-detail-actions">
           <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
-          <button id="bookBtn" class="btn btn-primary" ${full ? 'disabled' : ''}>
-            ${full ? 'Fully Booked' : (loggedIn ? 'Book This Event' : 'Login to Book')}
-          </button>
-          <button id="calendarBtn" class="btn btn-outline" type="button">Add to calendar</button>
+          ${full ? `<button id="waitlistBtn" class="btn btn-primary" type="button">${loggedIn ? 'Join Waitlist' : 'Login to Join Waitlist'}</button>` : `<button id="bookBtn" class="btn btn-primary">${loggedIn ? 'Book This Event' : 'Login to Book'}</button>`}
+          <a id="googleCalendarBtn" class="btn btn-outline" href="${escapeHtml(googleCalendarUrl(event))}" target="_blank" rel="noopener">Google Calendar</a>
+          <button id="calendarBtn" class="btn btn-outline" type="button">Download .ics</button>
           <button id="shareBtn" class="btn btn-outline" type="button">Share event</button>
         </div>
+        ${full && loggedIn ? `<div id="waitlistStatus" style="margin-top:12px;color:var(--text-muted)"></div>` : ''}
       </div>
     `;
 
     const bookBtn = document.getElementById('bookBtn');
+    const waitlistBtn = document.getElementById('waitlistBtn');
+    const waitlistStatus = document.getElementById('waitlistStatus');
     const calendarBtn = document.getElementById('calendarBtn');
     const shareBtn = document.getElementById('shareBtn');
     calendarBtn.addEventListener('click', () => downloadCalendarEvent(event));
@@ -141,6 +143,30 @@
         if (err.name !== 'AbortError') showToast('Unable to share this event.', 'error');
       }
     });
+
+    if (waitlistBtn) {
+      const refreshWaitlist = async () => {
+        try {
+          const status = await Api.getWaitlistStatus(event.id);
+          waitlistBtn.textContent = status.joined ? 'Leave Waitlist' : 'Join Waitlist';
+          waitlistBtn.classList.toggle('btn-danger', status.joined);
+          waitlistBtn.classList.toggle('btn-primary', !status.joined);
+          if (waitlistStatus) waitlistStatus.textContent = status.joined ? `You are #${status.position} in line (${status.count} waiting).` : `${status.count} people currently waiting.`;
+        } catch (err) { if (err.status === 401) waitlistBtn.textContent = 'Login to Join Waitlist'; }
+      };
+      refreshWaitlist();
+      waitlistBtn.addEventListener('click', async () => {
+        if (!loggedIn) { window.location.href = `login.html?redirect=event-details.html?id=${encodeURIComponent(event.id)}`; return; }
+        waitlistBtn.disabled = true;
+        try {
+          const status = await Api.getWaitlistStatus(event.id);
+          if (status.joined) { await Api.leaveWaitlist(event.id); showAlert(alertBox, 'You left the waitlist.', 'success'); }
+          else { await Api.joinWaitlist(event.id); showAlert(alertBox, 'You joined the waitlist.', 'success'); }
+          await loadEvent();
+        } catch (err) { showAlert(alertBox, err.message); waitlistBtn.disabled = false; }
+      });
+    }
+
     if (bookBtn && !full) {
       bookBtn.addEventListener('click', async () => {
         if (!loggedIn) {

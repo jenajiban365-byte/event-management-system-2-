@@ -1,3 +1,12 @@
+function avatarHtml(user, extraClass = '') {
+  const initial = escapeHtml((user?.name || 'U').charAt(0).toUpperCase());
+
+  const avatar = user && user.avatarUrl
+    ? `<img class="profile-avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="" />`
+    : initial;
+
+  return `<span class="profile-avatar ${extraClass}" aria-hidden="true">${avatar}</span>`;
+}
 function createMobileToggle() {
   return `
     <button class="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="siteNavLinks">
@@ -72,13 +81,13 @@ function renderNavbar(activePage) {
     ? `
       <div class="nav-profile">
         <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
-          <span class="profile-avatar" aria-hidden="true">${escapeHtml((user.name || 'U').charAt(0).toUpperCase())}</span>
+          ${avatarHtml(user)}
           <span class="profile-name">${escapeHtml((user.name || 'User').split(' ')[0])}</span>
           <span class="profile-chevron" aria-hidden="true">⌄</span>
         </button>
         <div class="profile-menu" role="menu">
           <div class="profile-menu-head">
-            <span class="profile-avatar profile-avatar-lg" aria-hidden="true">${escapeHtml((user.name || 'U').charAt(0).toUpperCase())}</span>
+            ${avatarHtml(user, 'profile-avatar-lg')}
             <div>
               <strong>${escapeHtml(user.name || 'User')}</strong>
               <span>${escapeHtml(user.email || '')}</span>
@@ -111,7 +120,7 @@ function renderNavbar(activePage) {
       ${loggedIn ? `
         <a href="profile.html" class="${activePage === 'profile' ? 'active' : ''}">Profile</a>
         <div class="mobile-user-card">
-          <span class="profile-avatar" aria-hidden="true">${escapeHtml((user.name || 'U').charAt(0).toUpperCase())}</span>
+          ${avatarHtml(user)}
           <div><strong>${escapeHtml(user.name || 'User')}</strong><span>${escapeHtml(user.email || '')}</span></div>
         </div>
         <button id="mobileLogoutBtn" type="button" class="mobile-logout">Logout</button>
@@ -162,9 +171,9 @@ function renderAdminNavbar(activePage) {
         <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
         <a class="nav-admin-site" href="../events.html">View Site</a>
         <div class="nav-profile">
-          <button class="profile-trigger" type="button"><span class="profile-avatar" aria-hidden="true">${escapeHtml((user?.name || 'A').charAt(0).toUpperCase())}</span><span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Admin')}</span><span class="profile-chevron">⌄</span></button>
+          <button class="profile-trigger" type="button">${avatarHtml(user || {name:'A'})}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Admin')}</span><span class="profile-chevron">⌄</span></button>
           <div class="profile-menu">
-            <div class="profile-menu-head"><span class="profile-avatar profile-avatar-lg">${escapeHtml((user?.name || 'A').charAt(0).toUpperCase())}</span><div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+            <div class="profile-menu-head">${avatarHtml(user || {name:'A'}, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
             <a href="../events.html">View Site</a>
             <button id="logoutBtn" type="button">Logout</button>
           </div>
@@ -175,7 +184,7 @@ function renderAdminNavbar(activePage) {
     <div class="mobile-nav-links" id="siteNavLinks">
       ${linksHtml}
       <a href="../events.html">View Site</a>
-      <div class="mobile-user-card"><span class="profile-avatar">${escapeHtml((user?.name || 'A').charAt(0).toUpperCase())}</span><div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+      <div class="mobile-user-card">${avatarHtml(user || {name:'A'})}<div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
       <button id="mobileLogoutBtn" type="button" class="mobile-logout">Logout</button>
     </div>
   `;

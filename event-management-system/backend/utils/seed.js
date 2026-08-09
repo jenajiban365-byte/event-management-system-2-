@@ -12,7 +12,8 @@ async function seedDatabase() {
       email: 'admin@events.com',
       password: passwordHash,
       role: 'admin',
-      status: 'active'
+      status: 'active',
+      emailVerified: true
     });
     console.log('Seeded default admin account (admin@events.com / Admin@123).');
   }

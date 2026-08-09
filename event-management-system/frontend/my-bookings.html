@@ -75,10 +75,16 @@
           <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
             <a href="event-details.html?id=${event.id}" class="btn btn-outline btn-sm">View Event</a>
             ${canCancel ? `<button class="btn btn-danger btn-sm" data-cancel="${b.id}">Cancel Booking</button>` : ''}
+            ${b.status === 'confirmed' ? `<a class="btn btn-outline btn-sm" target="_blank" rel="noopener" href="${escapeHtml(googleCalendarUrl(event))}">Google Calendar</a><button class="btn btn-outline btn-sm" data-calendar="${b.id}">Download .ics</button>` : ''}
           </div>
         </div>
       `;
     }).join('');
+
+    document.querySelectorAll('[data-calendar]').forEach((btn) => {
+      const booking = bookings.find((item) => item.id === btn.getAttribute('data-calendar'));
+      if (booking && booking.event) btn.addEventListener('click', () => downloadCalendarEvent(booking.event));
+    });
 
     document.querySelectorAll('[data-cancel]').forEach((btn) => {
       btn.addEventListener('click', async () => {

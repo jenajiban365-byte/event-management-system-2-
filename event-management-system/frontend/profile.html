@@ -19,6 +19,10 @@
 
   <div class="card">
     <div id="alertBox"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div id="avatarPreview" class="profile-avatar profile-avatar-lg" style="width:72px;height:72px;font-size:1.5rem;overflow:hidden;"></div>
+      <div style="flex:1"><label for="avatarFile">Profile picture</label><input id="avatarFile" class="form-control" type="file" accept="image/png,image/jpeg,image/webp"/><small style="color:var(--text-muted)">PNG, JPG or WebP. Max 2 MB.</small></div>
+    </div>
     <form id="profileForm">
       <div class="form-group">
         <label for="name">Full Name</label>
@@ -55,12 +59,22 @@
   const alertBox = document.getElementById('alertBox');
   const form = document.getElementById('profileForm');
   const submitBtn = document.getElementById('submitBtn');
+  const avatarFile = document.getElementById('avatarFile');
+  const avatarPreview = document.getElementById('avatarPreview');
+  let avatarUrl = '';
+
+  function renderAvatar(user) {
+    const value = user.avatarUrl || '';
+    avatarPreview.innerHTML = value ? `<img src="${escapeHtml(value)}" alt="Profile picture" style="width:100%;height:100%;object-fit:cover" />` : escapeHtml((user.name || 'U').charAt(0).toUpperCase());
+  }
 
   async function loadProfile() {
     try {
       const { user } = await Api.getProfile();
       document.getElementById('name').value = user.name;
       document.getElementById('email').value = user.email;
+      avatarUrl = user.avatarUrl || '';
+      renderAvatar(user);
     } catch (err) {
       showAlert(alertBox, err.message);
     }
@@ -71,6 +85,7 @@
     clearAlert(alertBox);
 
     const payload = {
+      avatarUrl,
       name: document.getElementById('name').value.trim(),
       email: document.getElementById('email').value.trim()
     };
@@ -87,7 +102,7 @@
     try {
       const { user } = await Api.updateProfile(payload);
       const token = Session.getToken();
-      Session.setSession(token, { ...Session.getUser(), name: user.name, email: user.email });
+      Session.setSession(token, { ...Session.getUser(), name: user.name, email: user.email, avatarUrl: user.avatarUrl || '' });
       showAlert(alertBox, 'Profile updated successfully.', 'success');
       document.getElementById('currentPassword').value = '';
       document.getElementById('newPassword').value = '';
@@ -98,6 +113,17 @@
       submitBtn.disabled = false;
       submitBtn.textContent = 'Save Changes';
     }
+  });
+
+  avatarFile.addEventListener('change', () => {
+    const file = avatarFile.files && avatarFile.files[0];
+    if (!file) return;
+    if (!['image/png','image/jpeg','image/webp'].includes(file.type) ||  (file.size > 2 * 1024 * 1024) ) {
+      avatarFile.value = ''; showAlert(alertBox, 'Choose a PNG, JPG or WebP image smaller than 2MB.'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => { avatarUrl = reader.result; renderAvatar({ name: document.getElementById('name').value, avatarUrl }); };
+    reader.readAsDataURL(file);
   });
 
   loadProfile();

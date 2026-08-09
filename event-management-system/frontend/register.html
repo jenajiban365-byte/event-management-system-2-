@@ -22,6 +22,7 @@
       </div>
 
       <div id="alertBox"></div>
+      <div id="verificationBox" style="display:none;" class="card" aria-live="polite"></div>
       <form id="registerForm">
         <div class="form-group">
           <label for="name">Full Name</label>
@@ -57,6 +58,7 @@
   const form = document.getElementById('registerForm');
   const alertBox = document.getElementById('alertBox');
   const submitBtn = document.getElementById('submitBtn');
+  const verificationBox = document.getElementById('verificationBox');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -77,6 +79,22 @@
 
     try {
       const data = await Api.register({ name, email, password });
+      if (data.requiresVerification) {
+        form.style.display = 'none';
+        document.querySelector('.auth-divider').style.display = 'none';
+        document.getElementById('googleSignInBtn').style.display = 'none';
+        verificationBox.style.display = 'block';
+        verificationBox.innerHTML = `<strong>Check your inbox.</strong><p style="margin:8px 0 14px;color:var(--text-muted)">${escapeHtml(data.message)}</p><button type="button" class="btn btn-outline btn-block" id="resendVerificationBtn">Resend verification email</button>`;
+        document.getElementById('resendVerificationBtn').addEventListener('click', async () => {
+          const btn = document.getElementById('resendVerificationBtn'); btn.disabled = true;
+          try { const result = await Api.resendVerification(email); showAlert(alertBox, result.message, 'success'); }
+          catch (err) { showAlert(alertBox, err.message); }
+          finally { btn.disabled = false; }
+        });
+        showAlert(alertBox, data.message, 'success');
+        submitBtn.disabled = false; submitBtn.textContent = 'Create Account';
+        return;
+      }
       Session.setSession(data.token, data.user);
       window.location.href = 'events.html';
     } catch (err) {
