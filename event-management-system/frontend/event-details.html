@@ -57,7 +57,7 @@
           ${events.map((e) => {
             const spotsLeft = e.capacity - e.bookedCount;
             const full = spotsLeft <= 0;
-            const safeImg = e.imageUrl ? e.imageUrl.replace(/"/g, '&quot;') : '';
+            const safeImg = e.imageUrl ? optimizedImageUrl(e.imageUrl, 500).replace(/"/g, '&quot;') : '';
             return `
               <a href="event-details.html?id=${e.id}" class="event-card">
                 <div class="thumb">
@@ -97,7 +97,7 @@
       <div class="card event-detail-card" style="margin-top:16px;">
         <div class="event-detail-hero" style="height:220px; border-radius:var(--radius-sm); margin-bottom:20px; overflow:hidden; position:relative; ${event.imageUrl ? '' : 'background:linear-gradient(135deg, #2a2110, #1b2a24); display:flex; align-items:center; justify-content:center; color:white; font-size:2.6rem; font-weight:700;'}">
           ${event.imageUrl
-            ? `<img src="${event.imageUrl.replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover; display:block;" />`
+            ? `<img src="${optimizedImageUrl(event.imageUrl, 900).replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover; display:block;" />`
             : escapeHtml(event.category.charAt(0))}
         </div>
         <span class="badge badge-primary">${escapeHtml(event.category)}</span>

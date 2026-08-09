@@ -127,6 +127,28 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// Requests a smaller, web-appropriate size from Unsplash's CDN instead of the
+// full original photo (which can be several MB). This is the #1 fix for
+// scroll jank/black-flash on mobile when many event photos are on screen —
+// decoding several full-resolution images at once is heavy on phone GPUs.
+// Falls through unchanged for any non-Unsplash image URL.
+function optimizedImageUrl(url, width = 700) {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'images.unsplash.com') {
+      u.searchParams.set('auto', 'format');
+      u.searchParams.set('fit', 'crop');
+      u.searchParams.set('w', String(width));
+      u.searchParams.set('q', '70');
+      return u.toString();
+    }
+  } catch (e) {
+    // Not a valid absolute URL — just return it as-is
+  }
+  return url;
+}
+
 function requireAuth() {
   if (!Session.isLoggedIn()) {
     window.location.href = 'login.html';
