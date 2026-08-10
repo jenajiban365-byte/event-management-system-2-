@@ -128,60 +128,15 @@
     return `<span class="badge badge-location">📍 ${prefix}${formatDistance(event.distanceKm)}</span>`;
   }
 
-  function eventPrice(event) {
-    return event && Number.isFinite(Number(event.price)) && Number(event.price) > 0 ? `₹${Number(event.price)}` : 'Free';
-  }
-
-  function getSavedEvents() {
-    try { return JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]'); }
-    catch (err) { return []; }
-  }
-
-  function renderEventCard(event) {
-    const spotsLeft = Number(event.capacity || 0) - Number(event.bookedCount || 0);
-    const full = spotsLeft <= 0;
-    const safeImg = event.imageUrl ? optimizedImageUrl(event.imageUrl, 500).replace(/"/g, '&quot;') : '';
-    const date = new Date(event.date);
-    const saved = new Set(getSavedEvents()).has(event.id);
-
-    return `<article class="event-card">
-      <button type="button" class="save-heart ${saved ? 'saved' : ''}" data-save-event="${escapeHtml(event.id)}" aria-label="${saved ? 'Remove saved event' : 'Save event'}">
-        <span class="heart-icon" aria-hidden="true">${saved ? '♥' : '♡'}</span>
-      </button>
-      <a href="event-details.html?id=${event.id}" class="event-card-link">
-        <div class="thumb">
-          ${event.imageUrl ? `<img src="${safeImg}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" class="thumb-img" />` : `<span class="cat-badge">${escapeHtml((event.category || 'E').charAt(0))}</span>`}
-          <div class="event-date-chip" aria-label="Event date"><strong>${date.toLocaleDateString(undefined, { day: '2-digit' })}</strong><span>${date.toLocaleDateString(undefined, { month: 'short' })}</span></div>
-          <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
-        </div>
-        <div class="body">
-          <div class="event-card-topline"><span class="badge badge-primary">${escapeHtml(event.category || 'Event')}</span><span class="event-time">${escapeHtml(event.time || '')}</span></div>
-          <h3>${escapeHtml(event.title)}</h3>
-          <div class="meta"><span>📅 ${formatDate(event.date)}</span><span>📍 ${escapeHtml(event.location)}</span>${distanceBadge(event)}</div>
-          <div class="premium-meta"><span class="event-price">${escapeHtml(eventPrice(event))}</span><span class="badge badge-muted">${event.bookedCount || 0}/${event.capacity || 0} booked</span></div>
-        </div>
-        <div class="footer"><span class="event-card-footnote">${full ? 'Join the waitlist from details' : 'Seats available'}</span><span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span></div>
-      </a>
-    </article>`;
-  }
-
   function bindSaveButtons() {
     document.querySelectorAll('[data-save-event]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
         event.preventDefault(); event.stopPropagation();
-        const id = btn.getAttribute('data-save-event');
-        const current = new Set(getSavedEvents());
-        if (current.has(id)) { current.delete(id); showToast('Removed from saved events'); }
-        else { current.add(id); showToast('Saved event'); }
-        localStorage.setItem('eventhub_saved_events', JSON.stringify(Array.from(current)));
+        const saved = SavedEvents.toggle(btn.getAttribute('data-save-event'));
+        showToast(saved ? 'Saved event' : 'Removed from saved events');
         loadEvents();
       });
     });
-  }
-
-  function renderSkeletons(count = 6) {
-    const skeleton = `<div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div></div>`;
-    eventsGrid.innerHTML = skeleton.repeat(count);
   }
 
   function renderEvents(events) {
@@ -192,7 +147,7 @@
       return;
     }
     resultsSummary.textContent = `${events.length} event${events.length === 1 ? '' : 's'} found`;
-    eventsGrid.innerHTML = events.map(renderEventCard).join('');
+    eventsGrid.innerHTML = events.map((event) => renderEventCard(event, { extraMeta: distanceBadge(event) })).join('');
     bindSaveButtons();
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -201,7 +156,7 @@
     try {
       clearAlert(alertBox);
       resultsSection.classList.remove('hidden-results');
-      renderSkeletons();
+      renderCardSkeletons(eventsGrid);
       const response = await Api.getEvents(buildQuery());
       const events = enrichWithDistance(response.events || []);
       renderEvents(events);

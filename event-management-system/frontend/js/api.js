@@ -457,6 +457,97 @@ function showToast(message, type = 'success') {
   window.__eventHubToastTimer = setTimeout(() => toast.classList.remove('toast-visible'), 2800);
 }
 
+// ---------- Saved events (locally stored list shared by every page) ----------
+const SAVED_EVENTS_KEY = 'eventhub_saved_events';
+
+const SavedEvents = {
+  ids() {
+    try {
+      const ids = JSON.parse(localStorage.getItem(SAVED_EVENTS_KEY) || '[]');
+      return new Set(Array.isArray(ids) ? ids.map(String) : []);
+    } catch (err) {
+      return new Set();
+    }
+  },
+  has(id) {
+    return SavedEvents.ids().has(String(id));
+  },
+  save(ids) {
+    localStorage.setItem(SAVED_EVENTS_KEY, JSON.stringify([...ids]));
+  },
+  remove(id) {
+    const ids = SavedEvents.ids();
+    ids.delete(String(id));
+    SavedEvents.save(ids);
+  },
+  // Adds or removes the event and returns true when it is now saved.
+  toggle(id) {
+    const ids = SavedEvents.ids();
+    const key = String(id);
+    const saved = !ids.has(key);
+    if (saved) ids.add(key); else ids.delete(key);
+    SavedEvents.save(ids);
+    return saved;
+  }
+};
+
+// ---------- Shared event rendering ----------
+function eventPrice(event) {
+  const price = Number(event && event.price);
+  return Number.isFinite(price) && price > 0 ? `₹${price}` : 'Free';
+}
+
+const BOOKING_STATUS_BADGES = {
+  confirmed: 'badge-success',
+  pending: 'badge-warning',
+  cancelled: 'badge-muted',
+  rejected: 'badge-danger'
+};
+
+function bookingStatusBadge(status) {
+  const label = String(status || '');
+  return `<span class="badge ${BOOKING_STATUS_BADGES[label] || 'badge-muted'}">${escapeHtml(label.charAt(0).toUpperCase() + label.slice(1))}</span>`;
+}
+
+// The event tile used on the discover, saved-events and similar-events lists.
+// removable renders the heart as a "remove from saved list" control instead of a toggle.
+function renderEventCard(event, { imageWidth = 500, cardClass = '', removable = false, footnote = null, extraMeta = '' } = {}) {
+  const spotsLeft = Number(event.capacity || 0) - Number(event.bookedCount || 0);
+  const full = spotsLeft <= 0;
+  const saved = removable || SavedEvents.has(event.id);
+  const date = new Date(event.date);
+  const image = event.imageUrl
+    ? `<img src="${optimizedImageUrl(event.imageUrl, imageWidth).replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" class="thumb-img" />`
+    : `<span class="cat-badge">${escapeHtml((event.category || 'E').charAt(0))}</span>`;
+  const heart = removable
+    ? `<button type="button" class="save-heart saved" data-remove-saved="${escapeHtml(event.id)}" aria-label="Remove ${escapeHtml(event.title)} from saved events"><span class="heart-icon" aria-hidden="true">♥</span></button>`
+    : `<button type="button" class="save-heart ${saved ? 'saved' : ''}" data-save-event="${escapeHtml(event.id)}" aria-label="${saved ? 'Remove saved event' : 'Save event'}"><span class="heart-icon" aria-hidden="true">${saved ? '♥' : '♡'}</span></button>`;
+
+  return `<article class="event-card ${cardClass}">
+      ${heart}
+      <a href="event-details.html?id=${encodeURIComponent(event.id)}" class="event-card-link">
+        <div class="thumb">
+          ${image}
+          <div class="event-date-chip" aria-label="Event date"><strong>${date.toLocaleDateString(undefined, { day: '2-digit' })}</strong><span>${date.toLocaleDateString(undefined, { month: 'short' })}</span></div>
+          <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
+        </div>
+        <div class="body">
+          <div class="event-card-topline"><span class="badge badge-primary">${escapeHtml(event.category || 'Event')}</span><span class="event-time">${escapeHtml(event.time || '')}</span></div>
+          <h3>${escapeHtml(event.title)}</h3>
+          <div class="meta"><span>📅 ${formatDate(event.date)}</span><span>📍 ${escapeHtml(event.location || 'Location TBA')}</span>${extraMeta}</div>
+          <div class="premium-meta"><span class="event-price">${escapeHtml(eventPrice(event))}</span><span class="badge badge-muted">${event.bookedCount || 0}/${event.capacity || 0} booked</span></div>
+        </div>
+        <div class="footer"><span class="event-card-footnote">${escapeHtml(footnote || (full ? 'Join the waitlist from details' : 'Seats available'))}</span><span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span></div>
+      </a>
+    </article>`;
+}
+
+function renderCardSkeletons(container, count = 6) {
+  if (!container) return;
+  const skeleton = `<div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div></div>`;
+  container.innerHTML = skeleton.repeat(count);
+}
+
 function requireAuth() {
   if (!Session.isLoggedIn()) {
     window.location.href = 'login.html';

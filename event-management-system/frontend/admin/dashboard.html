@@ -51,11 +51,6 @@
     document.getElementById('bookingChart').innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="220" role="img" aria-label="Bookings over the last 14 days"><line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="currentColor" opacity=".2"/><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${trend.map((d,i)=>{const x=pad+i*((width-pad*2)/Math.max(1,trend.length-1));const y=height-pad-(d.count/max)*(height-pad*2);return `<circle cx="${x}" cy="${y}" r="4" fill="currentColor"><title>${escapeHtml(d.date)}: ${d.count} bookings</title></circle>`}).join('')}</svg>`;
   }
 
-  function statusBadge(status) {
-    const map = { confirmed: 'badge-success', pending: 'badge-warning', cancelled: 'badge-muted', rejected: 'badge-danger' };
-    return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
-  }
-
   async function load() {
     try {
       clearAlert(alertBox);
@@ -75,7 +70,7 @@
             <tr>
               <td>${escapeHtml(b.userName)}</td>
               <td>${escapeHtml(b.eventTitle)}</td>
-              <td>${statusBadge(b.status)}</td>
+              <td>${bookingStatusBadge(b.status)}</td>
               <td>${formatDateTime(b.createdAt)}</td>
             </tr>
           `).join('')
