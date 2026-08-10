@@ -14,6 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const waitlistRoutes = require('./routes/waitlistRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const geocodeRoutes = require('./routes/geocodeRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,7 +35,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
   next();
 });
 
@@ -47,6 +48,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/geocode', geocodeRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Event Management API is running.' });

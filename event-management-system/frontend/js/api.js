@@ -106,8 +106,116 @@ const Api = {
   deleteUser: (id) => apiRequest(`/users/${id}`, { method: 'DELETE' }),
 
   // Admin dashboard
-  getDashboard: () => apiRequest('/admin/dashboard')
+  getDashboard: () => apiRequest('/admin/dashboard'),
+  geocodeAddress: (address) => apiRequest(`/geocode?address=${encodeURIComponent(address)}`)
 };
+
+
+// ---------- Location helpers ----------
+// Uses the browser's built-in Geolocation API. No Google Maps API or AI is needed.
+const GEOLOCATION_EXCELLENT_ACCURACY_METERS = 250;
+const GEOLOCATION_MODERATE_ACCURACY_METERS = 5000;
+const GEOLOCATION_POOR_ACCURACY_METERS = 25000;
+
+function getLocationAccuracyQuality(accuracy) {
+  const numeric = Number(accuracy);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return { level: 'poor', label: 'unreliable', approximate: true, sortable: false };
+  }
+
+  if (numeric <= GEOLOCATION_EXCELLENT_ACCURACY_METERS) {
+    return { level: 'excellent', label: 'excellent', approximate: false, sortable: true };
+  }
+
+  if (numeric <= GEOLOCATION_MODERATE_ACCURACY_METERS) {
+    return { level: 'moderate', label: 'moderate', approximate: true, sortable: true };
+  }
+
+  if (numeric <= GEOLOCATION_POOR_ACCURACY_METERS) {
+    return { level: 'poor', label: 'low', approximate: true, sortable: false };
+  }
+
+  return { level: 'poor', label: 'unreliable', approximate: true, sortable: false };
+}
+
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Location is not supported by this browser.'));
+      return;
+    }
+
+    const timeoutMs = 15000;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = Number(position.coords.latitude);
+        const longitude = Number(position.coords.longitude);
+        const accuracy = Number(position.coords.accuracy);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(accuracy) || accuracy < 0) {
+          reject(new Error('The browser returned an invalid location result. Please try again.'));
+          return;
+        }
+
+        resolve({
+          latitude,
+          longitude,
+          accuracy,
+          quality: getLocationAccuracyQuality(accuracy)
+        });
+      },
+      (error) => {
+        const messages = {
+          1: 'Location permission was denied. Please allow location access and try again.',
+          2: 'Your location could not be determined. Please try again.',
+          3: 'Location request timed out. Please try again.'
+        };
+        reject(new Error(messages[error.code] || 'Could not get your location.'));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: timeoutMs,
+        maximumAge: 0
+      }
+    );
+  });
+}
+
+function isValidCoordinatePair(latitude, longitude) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (lat < -90 || lat > 90) return false;
+  if (lon < -180 || lon > 180) return false;
+  if (lat === 0 && lon === 0) return false;
+  return true;
+}
+
+// Haversine formula: returns straight-line distance in kilometres.
+function distanceInKm(lat1, lon1, lat2, lon2) {
+  const values = [lat1, lon1, lat2, lon2].map(Number);
+  if (values.some((value) => !Number.isFinite(value))) return null;
+  if (!isValidCoordinatePair(values[0], values[1])) return null;
+  if (!isValidCoordinatePair(values[2], values[3])) return null;
+
+  const toRadians = (degrees) => degrees * Math.PI / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(values[2] - values[0]);
+  const dLon = toRadians(values[3] - values[1]);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(values[0])) *
+    Math.cos(toRadians(values[2])) *
+    Math.sin(dLon / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km) {
+  if (!Number.isFinite(km) || km === null || km === undefined) return '';
+  if (km < 1) return `${Math.round(km * 1000)} m away`;
+  if (km < 10) return `${km.toFixed(1)} km away`;
+  return `${Math.round(km)} km away`;
+}
 
 // ---------- Small UI helpers ----------
 function formatDate(dateStr) {

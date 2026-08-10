@@ -54,9 +54,14 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { title, description, category, date, time, location, capacity, imageUrl } = req.body;
+    const { title, description, category, date, time, location, capacity, imageUrl, latitude, longitude } = req.body;
     if (!title || !description || !category || !date || !time || !location || !capacity) return res.status(400).json({ message: 'All fields are required.' });
-    const newEvent = await Event.create({ title, description, category, date, time, location, capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published' });
+    const newEvent = await Event.create({
+      title, description, category, date, time, location,
+      latitude: latitude === '' || latitude === null || latitude === undefined ? null : Number(latitude),
+      longitude: longitude === '' || longitude === null || longitude === undefined ? null : Number(longitude),
+      capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published'
+    });
     res.status(201).json({ message: 'Event created.', event: newEvent });
   } catch (err) { res.status(500).json({ message: 'Server error creating event.', error: err.message }); }
 });
@@ -65,8 +70,14 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found.' });
-    ['title', 'description', 'category', 'date', 'time', 'location', 'capacity', 'imageUrl', 'status'].forEach((field) => {
-      if (req.body[field] !== undefined) event[field] = field === 'capacity' ? Number(req.body[field]) : req.body[field];
+    ['title', 'description', 'category', 'date', 'time', 'location', 'latitude', 'longitude', 'capacity', 'imageUrl', 'status'].forEach((field) => {
+      if (req.body[field] !== undefined) {
+        if (field === 'capacity' || field === 'latitude' || field === 'longitude') {
+          event[field] = req.body[field] === '' || req.body[field] === null ? null : Number(req.body[field]);
+        } else {
+          event[field] = req.body[field];
+        }
+      }
     });
     if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
     await event.save();

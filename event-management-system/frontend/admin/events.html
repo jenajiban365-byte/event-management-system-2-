@@ -23,7 +23,7 @@
   <div class="table-wrap">
     <table class="data-table">
       <thead>
-        <tr><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Bookings</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Coordinates</th><th>Bookings</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody id="eventsBody"></tbody>
     </table>
@@ -67,8 +67,26 @@
       </div>
       <div class="form-group">
         <label for="location">Location</label>
-        <input type="text" id="location" class="form-control" required />
+        <input type="text" id="location" class="form-control" required placeholder="e.g. Kalinga Stadium, Bhubaneswar, Odisha" />
+        <div class="location-tools">
+          <button type="button" class="btn btn-outline btn-sm" id="geocodeBtn">📍 Find Coordinates</button>
+          <span id="geocodeStatus" class="geocode-status" aria-live="polite"></span>
+        </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="latitude">Latitude <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <input type="number" id="latitude" class="form-control" min="-90" max="90" step="any" placeholder="Auto-filled" />
+        </div>
+        <div class="form-group">
+          <label for="longitude">Longitude <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <input type="number" id="longitude" class="form-control" min="-180" max="180" step="any" placeholder="Auto-filled" />
+        </div>
+      </div>
+      <p style="margin:-6px 0 14px; color:var(--text-muted); font-size:.88rem;">
+        Coordinates are filled automatically from the location when possible. You can still enter latitude/longitude manually if the place cannot be found.
+        <br><span class="map-attribution">Geocoding by OpenStreetMap contributors.</span>
+      </p>
       <div class="form-group">
         <label for="imageUrl">Image URL <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
         <input type="url" id="imageUrl" class="form-control" placeholder="https://images.unsplash.com/photo-..." />
@@ -103,10 +121,52 @@
   const categorySelect = document.getElementById('category');
 
   let categoriesCache = [];
+  const locationInput = document.getElementById('location');
+  const latitudeInput = document.getElementById('latitude');
+  const longitudeInput = document.getElementById('longitude');
+  const geocodeBtn = document.getElementById('geocodeBtn');
+  const geocodeStatus = document.getElementById('geocodeStatus');
+  let lastGeocodedLocation = '';
+
+  function setGeocodeStatus(message, type = '') {
+    geocodeStatus.textContent = message;
+    geocodeStatus.className = `geocode-status ${type}`.trim();
+  }
+
+  async function geocodeLocation({ silent = false } = {}) {
+    const address = locationInput.value.trim();
+    if (!address) {
+      if (!silent) setGeocodeStatus('Enter a location first.', 'error');
+      return false;
+    }
+
+    if (!silent) setGeocodeStatus('Finding location…');
+    geocodeBtn.disabled = true;
+    const oldText = geocodeBtn.textContent;
+    geocodeBtn.textContent = '📍 Finding…';
+
+    try {
+      const result = await Api.geocodeAddress(address);
+      latitudeInput.value = result.latitude;
+      longitudeInput.value = result.longitude;
+      lastGeocodedLocation = address;
+      setGeocodeStatus('Coordinates found automatically.', 'success');
+      return true;
+    } catch (err) {
+      if (!silent) setGeocodeStatus(err.message || 'Location not found.', 'error');
+      return false;
+    } finally {
+      geocodeBtn.disabled = false;
+      geocodeBtn.textContent = oldText;
+    }
+  }
+
 
   function openModal(event = null) {
     eventForm.reset();
     clearAlert(modalAlertBox);
+    lastGeocodedLocation = '';
+    setGeocodeStatus('');
     if (event) {
       modalTitle.textContent = 'Edit Event';
       document.getElementById('eventId').value = event.id;
@@ -117,6 +177,10 @@
       document.getElementById('date').value = event.date;
       document.getElementById('time').value = event.time;
       document.getElementById('location').value = event.location;
+      document.getElementById('latitude').value = event.latitude ?? '';
+      document.getElementById('longitude').value = event.longitude ?? '';
+      lastGeocodedLocation = event.latitude != null && event.longitude != null ? event.location : '';
+      setGeocodeStatus(event.latitude != null && event.longitude != null ? 'Coordinates already saved.' : '');
       document.getElementById('imageUrl').value = event.imageUrl || '';
       document.getElementById('status').value = event.status;
     } else {
@@ -132,6 +196,22 @@
   }
 
   document.getElementById('addEventBtn').addEventListener('click', () => openModal());
+
+  geocodeBtn.addEventListener('click', () => geocodeLocation());
+
+  locationInput.addEventListener('input', () => {
+    if (locationInput.value.trim() !== lastGeocodedLocation) {
+      setGeocodeStatus('Location changed — coordinates will be updated when needed.');
+    }
+  });
+
+  locationInput.addEventListener('blur', async () => {
+    const address = locationInput.value.trim();
+    if (address && address !== lastGeocodedLocation && (!latitudeInput.value.trim() || !longitudeInput.value.trim())) {
+      await geocodeLocation({ silent: true });
+    }
+  });
+
   document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
 
   async function loadCategories() {
@@ -150,7 +230,7 @@
 
   function renderEvents() {
     if (!eventsCache.length) {
-      eventsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No events yet. Click "Add New Event" to create one.</td></tr>`;
+      eventsBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No events yet. Click "Add New Event" to create one.</td></tr>`;
       return;
     }
     eventsBody.innerHTML = eventsCache.map((e) => `
@@ -159,6 +239,7 @@
         <td>${escapeHtml(e.category)}</td>
         <td>${formatDate(e.date)}</td>
         <td>${escapeHtml(e.location)}</td>
+        <td>${e.latitude != null && e.longitude != null ? '✓ Added' : '<span style="color:var(--text-muted)">Not set</span>'}</td>
         <td>${e.bookedCount}/${e.capacity}</td>
         <td>${statusBadge(e.status)}</td>
         <td>
@@ -212,10 +293,17 @@
       date: document.getElementById('date').value,
       time: document.getElementById('time').value,
       location: document.getElementById('location').value.trim(),
+      latitude: document.getElementById('latitude').value.trim(),
+      longitude: document.getElementById('longitude').value.trim(),
       imageUrl: document.getElementById('imageUrl').value.trim(),
       status: document.getElementById('status').value
     };
     const eventId = document.getElementById('eventId').value;
+
+    const currentLocation = locationInput.value.trim();
+    if (currentLocation && (currentLocation !== lastGeocodedLocation || !latitudeInput.value.trim() || !longitudeInput.value.trim())) {
+      await geocodeLocation({ silent: true });
+    }
 
     const saveBtn = document.getElementById('saveEventBtn');
     saveBtn.disabled = true;

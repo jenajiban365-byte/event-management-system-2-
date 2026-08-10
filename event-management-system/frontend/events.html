@@ -24,6 +24,18 @@
     </div>
   </div>
 
+  <section class="nearby-shell" aria-labelledby="nearbyTitle">
+    <div class="nearby-copy">
+      <div class="eyebrow">LOCATION-BASED DISCOVERY</div>
+      <h2 id="nearbyTitle">Find events near you</h2>
+      <p id="locationStatus">Use your current location to sort events by distance.</p>
+    </div>
+    <div class="nearby-actions">
+      <button class="btn btn-primary" id="nearMeBtn" type="button">📍 Near Me</button>
+      <button class="btn btn-outline hidden" id="clearLocationBtn" type="button">Clear location</button>
+    </div>
+  </section>
+
   <div class="filters-shell">
     <div class="filters-bar">
       <input type="text" id="searchInput" class="form-control filter-search" placeholder="🔎  Search by event or location..." aria-label="Search events" />
@@ -63,6 +75,13 @@
   const dateFilter = document.getElementById('dateFilter');
   const sortFilter = document.getElementById('sortFilter');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  const nearMeBtn = document.getElementById('nearMeBtn');
+  const clearLocationBtn = document.getElementById('clearLocationBtn');
+  const locationStatus = document.getElementById('locationStatus');
+
+  let userLocation = null;
+  let nearMeActive = false;
+  let nearMeRequestId = 0;
 
   let debounceTimer = null;
   const FILTER_STORAGE_KEY = 'eventhub_event_filters';
@@ -74,7 +93,8 @@
       search: searchInput.value,
       category: categoryFilter.value,
       date: dateFilter.value,
-      sort: sortFilter.value
+      sort: sortFilter.value,
+      nearMe: nearMeActive
     }));
   }
 
@@ -86,6 +106,7 @@
       categoryFilter.value = saved.category || '';
       dateFilter.value = saved.date || '';
       sortFilter.value = saved.sort || 'soonest';
+      nearMeActive = saved.nearMe === true;
     } catch (err) {
       localStorage.removeItem(FILTER_STORAGE_KEY);
     }
@@ -113,6 +134,46 @@
     return `?${params.toString()}`;
   }
 
+  function enrichWithDistance(events) {
+    const canSort = Boolean(
+      nearMeActive &&
+      userLocation &&
+      userLocation.quality &&
+      userLocation.quality.sortable &&
+      isValidCoordinatePair(userLocation.latitude, userLocation.longitude)
+    );
+
+    const enriched = events.map((event) => {
+      const hasEventCoordinates = isValidCoordinatePair(event.latitude, event.longitude);
+      const distance = canSort && hasEventCoordinates
+        ? distanceInKm(userLocation.latitude, userLocation.longitude, event.latitude, event.longitude)
+        : null;
+
+      return {
+        ...event,
+        distanceKm: distance,
+        distanceApproximate: Boolean(userLocation && userLocation.quality && userLocation.quality.approximate && canSort)
+      };
+    });
+
+    if (!canSort) {
+      return enriched;
+    }
+
+    return enriched.sort((a, b) => {
+      if (a.distanceKm == null && b.distanceKm == null) return 0;
+      if (a.distanceKm == null) return 1;
+      if (b.distanceKm == null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+  }
+
+  function distanceBadge(event) {
+    if (!Number.isFinite(event.distanceKm)) return '';
+    const prefix = event.distanceApproximate ? '≈ ' : '';
+    return `<span class="badge badge-location">📍 ${prefix}${formatDistance(event.distanceKm)}</span>`;
+  }
+
   function renderFeatured(event) {
     if (!event) {
       featuredEvent.innerHTML = '';
@@ -138,6 +199,7 @@
             <span>📅 ${formatDate(event.date)}</span>
             <span>🕒 ${escapeHtml(event.time)}</span>
             <span>📍 ${escapeHtml(event.location)}</span>
+            ${distanceBadge(event)}
             <span class="${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully booked' : spotsLeft + ' spots left'}</span>
           </div>
           <a class="btn btn-primary" href="event-details.html?id=${event.id}">View event <span aria-hidden="true">→</span></a>
@@ -190,6 +252,7 @@
             <div class="meta">
               <span>📅 ${formatDate(e.date)}</span>
               <span>📍 ${escapeHtml(e.location)}</span>
+              ${distanceBadge(e)}
             </div>
           </div>
           <div class="footer">
@@ -218,9 +281,13 @@
       clearAlert(alertBox);
       featuredEvent.innerHTML = '';
       renderSkeletons();
-      const { events } = await Api.getEvents(buildQuery());
+      const response = await Api.getEvents(buildQuery());
+      const events = enrichWithDistance(response.events);
       saveFilters();
-      resultsSummary.textContent = `${events.length} event${events.length === 1 ? '' : 's'} found`;
+      const nearbyCount = nearMeActive ? events.filter((event) => event.distanceKm != null).length : events.length;
+      resultsSummary.textContent = nearMeActive
+        ? `${nearbyCount} event${nearbyCount === 1 ? '' : 's'} with location data near you`
+        : `${events.length} event${events.length === 1 ? '' : 's'} found`;
       renderEvents(events);
     } catch (err) {
       resultsSummary.textContent = 'Could not load events';
@@ -229,6 +296,81 @@
       eventsGrid.innerHTML = '';
     }
   }
+
+
+  nearMeBtn.addEventListener('click', async () => {
+    if (!Session.isLoggedIn()) {
+      locationStatus.textContent = 'Please log in first to use Near Me.';
+      showAlert(alertBox, 'Please log in to use location-based event discovery.');
+      return;
+    }
+
+    const requestId = ++nearMeRequestId;
+
+    nearMeBtn.disabled = true;
+    nearMeBtn.textContent = '📍 Finding you...';
+    clearAlert(alertBox);
+
+    userLocation = null;
+    nearMeActive = false;
+    locationStatus.textContent = 'Requesting your current location...';
+    clearLocationBtn.classList.add('hidden');
+
+    try {
+      const location = await getCurrentPosition();
+
+      if (requestId !== nearMeRequestId) {
+        return;
+      }
+
+      userLocation = {
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+        accuracy: Number(location.accuracy),
+        quality: location.quality || getLocationAccuracyQuality(Number(location.accuracy))
+      };
+
+      nearMeActive = Boolean(userLocation && userLocation.quality && userLocation.quality.sortable);
+
+      const accuracyKm = Number(userLocation.accuracy) / 1000;
+      if (userLocation.quality && userLocation.quality.level === 'excellent') {
+        locationStatus.textContent = 'Location found. Showing events closest to you first.';
+      } else if (userLocation.quality && userLocation.quality.level === 'moderate') {
+        locationStatus.textContent = `Location found, but accuracy is moderate (about ±${Math.round(accuracyKm * 10) / 10} km). Distances are approximate.`;
+      } else {
+        locationStatus.textContent = `Location found, but accuracy is poor (about ±${Math.round(accuracyKm)} km). Nearby sorting is temporarily unavailable.`;
+        nearMeActive = false;
+      }
+
+      nearMeBtn.textContent = userLocation.quality && userLocation.quality.sortable ? '✓ Near Me is on' : '↻ Retry Near Me';
+      clearLocationBtn.classList.remove('hidden');
+      loadEvents();
+    } catch (err) {
+      if (requestId !== nearMeRequestId) {
+        return;
+      }
+
+      userLocation = null;
+      nearMeActive = false;
+      locationStatus.textContent = err.message;
+      showAlert(alertBox, err.message);
+      nearMeBtn.textContent = '📍 Retry Near Me';
+    } finally {
+      if (requestId === nearMeRequestId) {
+        nearMeBtn.disabled = false;
+      }
+    }
+  });
+
+  clearLocationBtn.addEventListener('click', () => {
+    nearMeRequestId += 1;
+    userLocation = null;
+    nearMeActive = false;
+    locationStatus.textContent = 'Use your current location to sort events by distance.';
+    nearMeBtn.textContent = '📍 Near Me';
+    clearLocationBtn.classList.add('hidden');
+    loadEvents();
+  });
 
   searchInput.addEventListener('input', () => {
     clearTimeout(debounceTimer);
@@ -251,6 +393,11 @@
 
   loadCategories().then(() => {
     restoreFilters();
+    if (nearMeActive) {
+      nearMeActive = false;
+      locationStatus.textContent = 'Location access needs to be enabled again on this visit.';
+      localStorage.removeItem(FILTER_STORAGE_KEY);
+    }
     loadEvents();
   });
 </script>

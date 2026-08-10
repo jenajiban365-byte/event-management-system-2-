@@ -9,6 +9,9 @@ const eventSchema = new mongoose.Schema(
     date: { type: String, required: true }, // stored as 'YYYY-MM-DD' to match <input type="date">
     time: { type: String, required: true }, // stored as 'HH:MM' to match <input type="time">
     location: { type: String, required: true },
+    // Optional coordinates used by the free browser-based "Near Me" feature.
+    latitude: { type: Number, min: -90, max: 90, default: null },
+    longitude: { type: Number, min: -180, max: 180, default: null },
     capacity: { type: Number, required: true, min: 1 },
     bookedCount: { type: Number, default: 0 },
     imageUrl: { type: String, default: '' },
