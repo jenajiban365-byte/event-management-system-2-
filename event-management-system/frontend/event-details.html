@@ -117,7 +117,6 @@
               <h1>${escapeHtml(event.title)}</h1>
             </div>
             <div class="detail-header-actions">
-              <button class="btn btn-outline btn-sm" id="saveDetailBtn" type="button">${saved ? 'Saved' : 'Save'} event</button>
               <a href="events.html" class="btn btn-outline btn-sm">← Back to events</a>
             </div>
           </div>
@@ -157,6 +156,7 @@
             ${full ? `<button id="waitlistBtn" class="btn btn-primary" type="button">${loggedIn ? 'Join Waitlist' : 'Login to Join Waitlist'}</button>` : `<button id="bookBtn" class="btn btn-primary">${loggedIn ? 'Book This Event' : 'Login to Book'}</button>`}
             <a id="googleCalendarBtn" class="btn btn-outline" href="${escapeHtml(googleCalendarUrl(event))}" target="_blank" rel="noopener">Google Calendar</a>
             <button id="calendarBtn" class="btn btn-outline" type="button">Download .ics</button>
+            <button id="saveDetailBtn" class="btn btn-outline save-detail-action" type="button">${saved ? '♥ Saved' : '♡ Save event'}</button>
             <button id="shareBtn" class="btn btn-outline" type="button">Share event</button>
           </div>
           ${full && loggedIn ? `<div id="waitlistStatus" style="margin-top:12px;color:var(--text-muted)"></div>` : ''}

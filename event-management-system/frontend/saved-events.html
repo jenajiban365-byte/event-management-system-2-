@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saved Events - EventHub</title>
+<meta name="description" content="Your saved EventHub events." />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0b0d12" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+<main class="container saved-events-page">
+  <div class="page-header saved-page-header">
+    <div><div class="eyebrow">YOUR LIST</div><h1>Saved Events</h1><p>Keep the events you care about in one place.</p></div>
+    <a class="btn btn-outline" href="events.html">← Discover more</a>
+  </div>
+  <div id="alertBox"></div>
+  <div id="savedSummary" class="saved-summary"></div>
+  <div id="savedGrid" class="grid grid-3" aria-live="polite"></div>
+</main>
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+renderNavbar('saved');
+const savedGrid = document.getElementById('savedGrid');
+const savedSummary = document.getElementById('savedSummary');
+const alertBox = document.getElementById('alertBox');
+function savedIds(){try{const ids=JSON.parse(localStorage.getItem('eventhub_saved_events')||'[]');return new Set(Array.isArray(ids)?ids.map(String):[])}catch(e){return new Set()}}
+function eventPrice(e){return Number(e.price)>0?`₹${Number(e.price)}`:'Free'}
+function card(e){
+ const spots=Number(e.capacity||0)-Number(e.bookedCount||0), full=spots<=0, date=new Date(e.date);
+ const img=e.imageUrl?`<img src="${optimizedImageUrl(e.imageUrl,600).replace(/"/g,'&quot;')}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />`:`<span class="cat-badge">${escapeHtml((e.category||'E').charAt(0))}</span>`;
+ return `<article class="event-card saved-event-card"><button class="save-heart saved" type="button" data-remove-saved="${escapeHtml(e.id)}" aria-label="Remove ${escapeHtml(e.title)} from saved events"><span class="heart-icon">♥</span></button><a href="event-details.html?id=${encodeURIComponent(e.id)}" class="event-card-link"><div class="thumb">${img}<div class="event-date-chip"><strong>${date.toLocaleDateString(undefined,{day:'2-digit'})}</strong><span>${date.toLocaleDateString(undefined,{month:'short'})}</span></div><span class="badge spots-badge ${full?'badge-danger':'badge-success'}">${full?'Full':spots+' left'}</span></div><div class="body"><div class="event-card-topline"><span class="badge badge-primary">${escapeHtml(e.category||'Event')}</span><span class="event-time">${escapeHtml(e.time||'')}</span></div><h3>${escapeHtml(e.title)}</h3><div class="meta"><span>📅 ${formatDate(e.date)}</span><span>📍 ${escapeHtml(e.location||'Location TBA')}</span></div><div class="premium-meta"><span class="event-price">${escapeHtml(eventPrice(e))}</span><span class="badge badge-muted">${e.bookedCount||0}/${e.capacity||0} booked</span></div></div><div class="footer"><span class="event-card-footnote">Saved for later</span><span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span></div></a></article>`;
+}
+async function loadSaved(){
+ const ids=savedIds();
+ if(!ids.size){savedSummary.textContent='0 saved events';savedGrid.innerHTML=`<div class="saved-empty" style="grid-column:1/-1"><div class="saved-empty-icon">♡</div><h2>Your saved list is empty</h2><p>Tap the heart on any event you want to keep for later.</p><a class="btn btn-primary" href="events.html">Explore events</a></div>`;return;}
+ try{const {events}=await Api.getEvents('?upcoming=true&sort=soonest');const saved=(events||[]).filter(e=>ids.has(String(e.id)));savedSummary.textContent=`${saved.length} saved event${saved.length===1?'':'s'}`;
+ if(!saved.length){savedGrid.innerHTML=`<div class="saved-empty" style="grid-column:1/-1"><div class="saved-empty-icon">♡</div><h2>No saved events are currently available</h2><p>The events may have ended or been removed.</p><a class="btn btn-primary" href="events.html">Discover upcoming events</a></div>`;return;}
+ savedGrid.innerHTML=saved.map(card).join('');savedGrid.querySelectorAll('[data-remove-saved]').forEach(btn=>btn.addEventListener('click',()=>{const next=savedIds();next.delete(String(btn.dataset.removeSaved));localStorage.setItem('eventhub_saved_events',JSON.stringify([...next]));showToast('Removed from saved events');loadSaved()}));
+ }catch(err){savedSummary.textContent='Unable to load saved events';showAlert(alertBox,err.message)}
+}
+loadSaved();
+</script>
+</body>
+</html>

@@ -22,7 +22,7 @@
     <p class="subtitle">Conferences, concerts, races and workshops — discover your next experience and lock in your spot in under a minute.</p>
     <div class="hero-actions">
       <a href="events.html" class="btn btn-primary">Browse Events <span aria-hidden="true">→</span></a>
-      <a href="register.html" class="btn btn-outline">Create an Account</a>
+      <a href="register.html" class="btn btn-outline" id="heroSecondaryAction">Create an Account</a>
     </div>
     <div class="hero-trust" aria-label="EventHub highlights">
       <span><strong>Fast</strong> booking</span>
@@ -55,9 +55,9 @@
         <span class="spotlight-icon">🧭</span>
         <div><span class="spotlight-label">FIND YOUR VIBE</span><h3>Search, filter, choose.</h3><p>Cut through the noise with simple event discovery.</p></div>
       </a>
-      <a href="register.html" class="spotlight-card">
+      <a href="register.html" class="spotlight-card" id="accountSpotlightCard">
         <span class="spotlight-icon">🔐</span>
-        <div><span class="spotlight-label">YOUR SPACE</span><h3>Keep every booking together.</h3><p>Create an account to manage your upcoming plans.</p></div>
+        <div><span class="spotlight-label">YOUR SPACE</span><h3 id="accountSpotlightTitle">Keep every booking together.</h3><p id="accountSpotlightText">Create an account to manage your upcoming plans.</p></div>
       </a>
     </div>
   </section>
@@ -115,6 +115,25 @@
 </script>
 <script>
   renderNavbar('home');
+
+  // A signed-in user should never be prompted to create another account.
+  (function personaliseHomeForUser() {
+    const secondary = document.getElementById('heroSecondaryAction');
+    const spotlight = document.getElementById('accountSpotlightCard');
+    const title = document.getElementById('accountSpotlightTitle');
+    const text = document.getElementById('accountSpotlightText');
+    if (typeof Session !== 'undefined' && Session.isLoggedIn()) {
+      if (secondary) {
+        secondary.href = 'my-bookings.html';
+        secondary.textContent = 'My Bookings';
+      }
+      if (spotlight) {
+        spotlight.href = 'saved-events.html';
+        if (title) title.textContent = 'Keep your saved events close.';
+        if (text) text.textContent = 'Save events you love and find them again anytime.';
+      }
+    }
+  })();
 
   (async function loadLiveCount() {
     const liveBadge = document.getElementById('liveBadge');

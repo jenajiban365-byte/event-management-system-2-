@@ -71,7 +71,7 @@ function renderNavbar(activePage) {
 
   const links = [
     { href: 'events.html', label: 'Discover', key: 'events' },
-    { href: 'events.html#saved', label: 'Saved Events', key: 'saved', authOnly: true },
+    { href: 'saved-events.html', label: 'Saved Events', key: 'saved', authOnly: true },
     { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
     { href: 'contact.html', label: 'Contact', key: 'contact' }
   ];
@@ -103,17 +103,9 @@ function renderNavbar(activePage) {
           </div>
           <div class="profile-menu-greeting">${greeting}</div>
           <a href="my-bookings.html" role="menuitem">My Bookings</a>
-          <a href="events.html#saved" role="menuitem">Saved Events</a>
+          <a href="saved-events.html" role="menuitem">Saved Events</a>
           <a href="profile.html" role="menuitem">Profile</a>
           <a href="profile.html#settings" role="menuitem">Settings</a>
-          <div class="theme-row">
-            <span class="theme-label">Theme</span>
-            <select id="themeSelect" class="theme-select" aria-label="Select theme">
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="system">System</option>
-            </select>
-          </div>
           <button id="logoutBtn" type="button" role="menuitem">Sign out</button>
         </div>
       </div>
@@ -130,8 +122,10 @@ function renderNavbar(activePage) {
       <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
       <div class="desktop-nav">
         <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
+        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
         ${rightHtml}
       </div>
+      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
       ${createMobileToggle(loggedIn ? user : null)}
     </div>
     <div class="mobile-nav-links" id="siteNavLinks">
@@ -142,17 +136,9 @@ function renderNavbar(activePage) {
           <div><strong>${escapeHtml(user.name || 'User')}</strong><span>${escapeHtml(user.email || '')}</span></div>
         </div>
         <a href="my-bookings.html" class="${activePage === 'bookings' ? 'active' : ''}">My Bookings</a>
-        <a href="events.html#saved" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>
+        <a href="saved-events.html" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>
         <a href="profile.html" class="${activePage === 'profile' ? 'active' : ''}">Profile</a>
         <a href="profile.html#settings" class="${activePage === 'settings' ? 'active' : ''}">Settings</a>
-        <div class="mobile-theme-row">
-          <span>Theme</span>
-          <select id="mobileThemeSelect" class="theme-select">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="system">System</option>
-          </select>
-        </div>
         <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
       ` : `
         <div class="mobile-auth-row">
@@ -173,26 +159,28 @@ function renderNavbar(activePage) {
   const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
 
-  const selectedTheme = localStorage.getItem('eventhub_theme') || 'system';
-  const themeControl = document.getElementById('themeSelect');
-  if (themeControl) {
-    themeControl.value = selectedTheme;
-    themeControl.addEventListener('change', () => {
-      const next = themeControl.value;
-      localStorage.setItem('eventhub_theme', next);
-      applyEventHubTheme(next);
+  function updateThemeQuickToggle() {
+    const selected = document.body?.dataset.theme === 'light' ? 'light' : 'dark';
+    const buttons = [document.getElementById('themeQuickToggle'), document.getElementById('themeQuickToggleMobile')];
+    buttons.forEach((button) => {
+      if (!button) return;
+      button.textContent = selected === 'dark' ? '☀️' : '🌙';
+      button.title = selected === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+      button.setAttribute('aria-label', button.title);
     });
   }
 
-  const mobileThemeControl = document.getElementById('mobileThemeSelect');
-  if (mobileThemeControl) {
-    mobileThemeControl.value = selectedTheme;
-    mobileThemeControl.addEventListener('change', () => {
-      const next = mobileThemeControl.value;
-      localStorage.setItem('eventhub_theme', next);
-      applyEventHubTheme(next);
-    });
-  }
+  const toggleTheme = () => {
+    const current = document.body?.dataset.theme === 'light' ? 'light' : 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('eventhub_theme', next);
+    applyEventHubTheme(next);
+    updateThemeQuickToggle();
+  };
+
+  document.getElementById('themeQuickToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('themeQuickToggleMobile')?.addEventListener('click', toggleTheme);
+  updateThemeQuickToggle();
 
   setupMobileNavbar();
 }
