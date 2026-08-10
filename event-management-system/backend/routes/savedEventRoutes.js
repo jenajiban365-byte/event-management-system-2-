@@ -10,12 +10,12 @@ router.get('/', protect, async (req, res) => {
       .populate({ path: 'event', populate: [{ path: 'club', select: 'name logoUrl' }, { path: 'organizer', select: 'name' }] })
       .sort({ createdAt: -1 });
     res.json({ savedEvents: saved.filter((item) => item.event && item.event.status === 'published') });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching saved events.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching saved events.' }); }
 });
 
 router.get('/ids', protect, async (req, res) => {
   try { const saved = await SavedEvent.find({ user: req.user.id }).select('event'); res.json({ eventIds: saved.map((item) => String(item.event)) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching saved events.' }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching saved events.' }); }
 });
 
 router.post('/:eventId', protect, async (req, res) => {
@@ -24,11 +24,11 @@ router.post('/:eventId', protect, async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     await SavedEvent.updateOne({ user: req.user.id, event: event.id }, { $setOnInsert: { user: req.user.id, event: event.id } }, { upsert: true });
     res.status(201).json({ message: 'Event saved.' });
-  } catch (err) { res.status(500).json({ message: 'Server error saving event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error saving event.' }); }
 });
 
 router.delete('/:eventId', protect, async (req, res) => {
   try { await SavedEvent.deleteOne({ user: req.user.id, event: req.params.eventId }); res.json({ message: 'Event removed from saved events.' }); }
-  catch (err) { res.status(500).json({ message: 'Server error removing saved event.' }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error removing saved event.' }); }
 });
 module.exports = router;

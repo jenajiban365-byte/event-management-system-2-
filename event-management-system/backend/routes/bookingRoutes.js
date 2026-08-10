@@ -37,7 +37,7 @@ async function promoteNextWaitlistEntry(eventId) {
 
 router.post('/', protect, async (req, res) => {
   try {
-    const { eventId } = req.body;
+    const eventId = typeof req.body.eventId === 'string' ? req.body.eventId : '';
     if (!eventId) return res.status(400).json({ message: 'eventId is required.' });
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: 'Event not found.' });
@@ -59,12 +59,12 @@ router.post('/', protect, async (req, res) => {
       if (bookingError.code === 11000) return res.status(409).json({ message: 'You have already booked this event.' });
       throw bookingError;
     }
-  } catch (err) { res.status(500).json({ message: 'Server error creating booking.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error creating booking.' }); }
 });
 
 router.get('/my', protect, async (req, res) => {
   try { res.json({ bookings: await Booking.find({ user: req.user.id }).populate('event').sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching bookings.', error: err.message }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching bookings.' }); }
 });
 
 router.put('/:id/cancel', protect, async (req, res) => {
@@ -86,17 +86,17 @@ router.put('/:id/cancel', protect, async (req, res) => {
       }
     }
     res.json({ message: 'Booking cancelled.' });
-  } catch (err) { res.status(500).json({ message: 'Server error cancelling booking.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error cancelling booking.' }); }
 });
 
 router.get('/', protect, adminOnly, async (req, res) => {
   try { res.json({ bookings: await Booking.find().populate('event').populate('user', 'name email').sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching bookings.', error: err.message }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching bookings.' }); }
 });
 
 router.put('/:id/status', protect, adminOnly, async (req, res) => {
   try {
-    const { status } = req.body;
+    const status = typeof req.body.status === 'string' ? req.body.status : '';
     const allowed = ['confirmed', 'rejected', 'pending', 'cancelled'];
     if (!allowed.includes(status)) return res.status(400).json({ message: `Status must be one of: ${allowed.join(', ')}` });
     const booking = await Booking.findById(req.params.id);
@@ -116,7 +116,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     booking.status = status;
     await booking.save();
     res.json({ message: 'Booking status updated.', booking });
-  } catch (err) { res.status(500).json({ message: 'Server error updating booking.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating booking.' }); }
 });
 
 module.exports = router;

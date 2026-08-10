@@ -27,7 +27,8 @@ router.post('/', contactLimiter, async (req, res) => {
     await sendContactFormEmail(name.trim(), email.trim(), subject.trim(), message.trim());
     res.json({ message: "Thanks for reaching out — we'll get back to you soon." });
   } catch (err) {
-    res.status(500).json({ message: 'Something went wrong sending your message. Please try again later.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Something went wrong sending your message. Please try again later.' });
   }
 });
 

@@ -10,12 +10,12 @@ router.get('/status/:eventId', protect, async (req, res) => {
     const entry = await Waitlist.findOne({ event: req.params.eventId, user: req.user.id, status: 'waiting' });
     const count = await Waitlist.countDocuments({ event: req.params.eventId, status: 'waiting' });
     res.json({ joined: !!entry, position: entry ? entry.position : null, count });
-  } catch (err) { res.status(500).json({ message: 'Server error checking waitlist.' }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error checking waitlist.' }); }
 });
 
 router.post('/', protect, async (req, res) => {
   try {
-    const event = await Event.findById(req.body.eventId);
+    const event = await Event.findById(typeof req.body.eventId === 'string' ? req.body.eventId : '');
     if (!event || event.status !== 'published') return res.status(404).json({ message: 'Event not found.' });
     if (event.bookedCount < event.capacity) return res.status(400).json({ message: 'This event still has available seats.' });
     const existingBooking = await Booking.findOne({ event: event.id, user: req.user.id, status: { $ne: 'cancelled' } });
@@ -37,6 +37,6 @@ router.delete('/:eventId', protect, async (req, res) => {
     if (!entry) return res.status(404).json({ message: 'Waitlist entry not found.' });
     await Waitlist.updateMany({ event: req.params.eventId, status: 'waiting', position: { $gt: entry.position } }, { $inc: { position: -1 } });
     res.json({ message: 'Removed from waitlist.' });
-  } catch (err) { res.status(500).json({ message: 'Server error leaving waitlist.' }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error leaving waitlist.' }); }
 });
 module.exports = router;

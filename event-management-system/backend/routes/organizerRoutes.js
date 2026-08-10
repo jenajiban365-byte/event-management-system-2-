@@ -22,7 +22,7 @@ router.get('/dashboard', protect, organizerOnly, async (req, res) => {
       Booking.countDocuments({ event: { $in: await Event.find({ club: { $in: clubIds } }).distinct('_id') }, status: { $in: ['confirmed', 'pending'] } })
     ]);
     res.json({ totals: { clubs: clubs.length, events, upcomingEvents: upcoming, registrations }, clubs });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching organizer dashboard.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching organizer dashboard.' }); }
 });
 
 router.get('/events', protect, organizerOnly, async (req, res) => {
@@ -30,7 +30,7 @@ router.get('/events', protect, organizerOnly, async (req, res) => {
     const clubs = await Club.find({ organizerIds: req.user.id }).select('_id');
     const events = await Event.find({ club: { $in: clubs.map((c) => c._id) }, organizer: req.user.id }).populate('club', 'name').sort({ date: 1, time: 1 });
     res.json({ events });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching organizer events.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching organizer events.' }); }
 });
 
 router.post('/events', protect, organizerOnly, async (req, res) => {
@@ -46,7 +46,7 @@ router.post('/events', protect, organizerOnly, async (req, res) => {
       status: 'pending_approval'
     });
     res.status(201).json({ message: 'Event submitted for admin approval.', event });
-  } catch (err) { res.status(500).json({ message: 'Server error creating organizer event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error creating organizer event.' }); }
 });
 
 router.put('/events/:id', protect, organizerOnly, async (req, res) => {
@@ -60,7 +60,7 @@ router.put('/events/:id', protect, organizerOnly, async (req, res) => {
     event.status = 'pending_approval';
     await event.save();
     res.json({ message: 'Event changes submitted for admin approval.', event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating organizer event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating organizer event.' }); }
 });
 
 router.get('/events/:id/registrations', protect, organizerOnly, async (req, res) => {
@@ -70,7 +70,7 @@ router.get('/events/:id/registrations', protect, organizerOnly, async (req, res)
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     const bookings = await Booking.find({ event: event.id, status: { $in: ['confirmed','pending'] } }).populate('user', 'name email studentId department');
     res.json({ event, bookings });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching registrations.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching registrations.' }); }
 });
 
 
@@ -96,7 +96,7 @@ router.post('/events/:id/announce', protect, organizerOnly, async (req, res) => 
     }
     if (recipientIds.size) await Notification.insertMany([...recipientIds].map((user) => ({ user, type: 'announcement', title, message, link: `event-details.html?id=${event.id}` })));
     res.json({ message: 'Announcement sent.', recipientCount: recipientIds.size });
-  } catch (err) { res.status(500).json({ message: 'Server error sending announcement.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error sending announcement.' }); }
 });
 
 router.put('/registrations/:id/status', protect, organizerOnly, async (req, res) => {
@@ -120,7 +120,7 @@ router.put('/registrations/:id/status', protect, organizerOnly, async (req, res)
     await booking.save();
     await Notification.create({ user: booking.user._id, type: 'booking', title: `Registration ${status}`, message: `Your registration for ${booking.event.title} is ${status}.`, link: `event-details.html?id=${booking.event.id}` });
     res.json({ message: `Registration ${status}.`, booking });
-  } catch (err) { res.status(500).json({ message: 'Server error updating registration.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating registration.' }); }
 });
 
 router.post('/check-in', protect, organizerOnly, async (req, res) => {
@@ -138,7 +138,7 @@ router.post('/check-in', protect, organizerOnly, async (req, res) => {
     await booking.save();
     await Notification.create({ user: booking.user._id, type: 'checkin', title: 'Checked in successfully', message: `You have been checked in for ${booking.event.title}.`, link: `event-details.html?id=${booking.event.id}` });
     res.json({ message: 'Check-in successful.', booking });
-  } catch (err) { res.status(500).json({ message: 'Server error during check-in.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error during check-in.' }); }
 });
 
 module.exports = router;

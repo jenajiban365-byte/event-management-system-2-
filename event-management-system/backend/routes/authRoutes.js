@@ -91,6 +91,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const token = generateToken(user);
     res.json({ message: 'Login successful.', token, user: publicUser(user) });
   } catch (err) {
+    console.error(req.method, req.originalUrl, err);
     res.status(500).json({ message: 'Server error during login.' });
   }
 });
@@ -130,7 +131,7 @@ router.post('/google', authLimiter, async (req, res) => {
     const token = generateToken(user);
     res.json({ message: 'Google sign-in successful.', token, user: publicUser(user) });
   } catch (err) {
-    res.status(401).json({ message: 'Google sign-in failed.', error: err.message });
+    res.status(401).json({ message: 'Google sign-in failed.' });
   }
 });
 
@@ -151,6 +152,7 @@ router.get('/verify-email', async (req, res) => {
     await user.save();
     res.json({ message: 'Email verified. You can now sign in.' });
   } catch (err) {
+    console.error(req.method, req.originalUrl, err);
     res.status(500).json({ message: 'Server error verifying email.' });
   }
 });
@@ -206,6 +208,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     await user.save();
     res.json({ message: 'Password reset successfully. You can now sign in.' });
   } catch (err) {
+    console.error(req.method, req.originalUrl, err);
     res.status(500).json({ message: 'Server error resetting password.' });
   }
 });

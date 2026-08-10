@@ -14,12 +14,15 @@ router.get('/me', protect, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
     res.json({ user });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching profile.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching profile.' }); }
 });
 
 router.put('/me', protect, async (req, res) => {
   try {
-    const { name, email, password, currentPassword, avatarUrl } = req.body;
+    const { name, avatarUrl } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    const currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
     if (name !== undefined) {
@@ -50,12 +53,12 @@ router.put('/me', protect, async (req, res) => {
     }
     await user.save();
     res.json({ message: 'Profile updated.', user });
-  } catch (err) { res.status(500).json({ message: 'Server error updating profile.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating profile.' }); }
 });
 
 router.get('/', protect, adminOnly, async (req, res) => {
   try { res.json({ users: await User.find().sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching users.', error: err.message }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching users.' }); }
 });
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
@@ -64,13 +67,13 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (role && ['user', 'organizer', 'admin'].includes(role)) target.role = role;
     if (status && ['active', 'blocked'].includes(status)) target.status = status;
     await target.save(); res.json({ message: 'User updated.', user: target });
-  } catch (err) { res.status(500).json({ message: 'Server error updating user.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating user.' }); }
 });
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const target = await User.findById(req.params.id); if (!target) return res.status(404).json({ message: 'User not found.' });
     if (target.id === req.user.id) return res.status(400).json({ message: 'You cannot delete your own account.' });
     await target.deleteOne(); res.json({ message: 'User deleted.' });
-  } catch (err) { res.status(500).json({ message: 'Server error deleting user.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error deleting user.' }); }
 });
 module.exports = router;
