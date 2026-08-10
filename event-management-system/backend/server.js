@@ -5,6 +5,7 @@ const path = require('path');
 
 const connectDB = require('./config/db');
 const seedDatabase = require('./utils/seed');
+const { logError } = require('./utils/errors');
 
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/eventRoutes');
@@ -80,8 +81,21 @@ app.use('/api', (req, res) => {
 
 // Generic error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong on the server.' });
+  logError(`${req.method} ${req.originalUrl}`, err);
+  if (res.headersSent) return next(err);
+  res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 500)
+    .json({ message: 'Something went wrong on the server.' });
+});
+
+// Anything that escapes a request handler or a background task must still be
+// visible instead of dying quietly inside the event loop.
+process.on('unhandledRejection', (reason) => {
+  logError('unhandledRejection', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  logError('uncaughtException', err);
+  process.exit(1);
 });
 
 async function start() {
@@ -95,4 +109,7 @@ async function start() {
   });
 }
 
-start();
+start().catch((err) => {
+  logError('startup', err);
+  process.exit(1);
+});

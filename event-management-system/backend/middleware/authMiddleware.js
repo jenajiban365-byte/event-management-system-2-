@@ -1,5 +1,8 @@
 const { verifyToken } = require('../utils/auth');
 const User = require('../models/User');
+const { sendError } = require('../utils/errors');
+
+const TOKEN_ERROR_NAMES = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'];
 
 async function protect(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -21,7 +24,12 @@ async function protect(req, res, next) {
     req.user = { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl || '', emailVerified: user.emailVerified !== false };
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token.' });
+    // Only reject as unauthorized when the token itself is the problem; a failed
+    // user lookup is a server fault and must not masquerade as a bad token.
+    if (TOKEN_ERROR_NAMES.includes(err.name)) {
+      return res.status(401).json({ message: 'Invalid or expired token.' });
+    }
+    return sendError(res, 'auth middleware', err, 'Could not verify your session right now.');
   }
 }
 

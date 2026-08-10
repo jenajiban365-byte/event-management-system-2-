@@ -1,6 +1,7 @@
 const express = require('express');
 const Category = require('../models/Category');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { sendError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get('/', async (req, res) => {
     const categories = await Category.find().sort({ name: 1 });
     res.json({ categories });
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching categories.', error: err.message });
+    sendError(res, 'GET /api/categories', err, 'Server error fetching categories.');
   }
 });
 
@@ -28,7 +29,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const category = await Category.create({ name: name.trim() });
     res.status(201).json({ message: 'Category created.', category });
   } catch (err) {
-    res.status(500).json({ message: 'Server error creating category.', error: err.message });
+    sendError(res, 'POST /api/categories', err, 'Server error creating category.');
   }
 });
 
@@ -46,7 +47,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     await category.save();
     res.json({ message: 'Category updated.', category });
   } catch (err) {
-    res.status(500).json({ message: 'Server error updating category.', error: err.message });
+    sendError(res, 'PUT /api/categories/:id', err, 'Server error updating category.');
   }
 });
 
@@ -58,7 +59,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     await category.deleteOne();
     res.json({ message: 'Category deleted.' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error deleting category.', error: err.message });
+    sendError(res, 'DELETE /api/categories/:id', err, 'Server error deleting category.');
   }
 });
 

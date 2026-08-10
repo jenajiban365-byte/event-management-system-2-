@@ -1,6 +1,7 @@
 const express = require('express');
 const { sendContactFormEmail } = require('../utils/email');
 const { contactLimiter } = require('../middleware/rateLimiter');
+const { sendError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.post('/', contactLimiter, async (req, res) => {
     await sendContactFormEmail(name.trim(), email.trim(), subject.trim(), message.trim());
     res.json({ message: "Thanks for reaching out — we'll get back to you soon." });
   } catch (err) {
-    res.status(500).json({ message: 'Something went wrong sending your message. Please try again later.', error: err.message });
+    sendError(res, 'POST /api/contact', err, 'Something went wrong sending your message. Please try again later.');
   }
 });
 

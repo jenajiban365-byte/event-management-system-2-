@@ -28,7 +28,7 @@ renderNavbar('saved');
 const savedGrid = document.getElementById('savedGrid');
 const savedSummary = document.getElementById('savedSummary');
 const alertBox = document.getElementById('alertBox');
-function savedIds(){try{const ids=JSON.parse(localStorage.getItem('eventhub_saved_events')||'[]');return new Set(Array.isArray(ids)?ids.map(String):[])}catch(e){return new Set()}}
+function savedIds(){try{const ids=JSON.parse(localStorage.getItem('eventhub_saved_events')||'[]');return new Set(Array.isArray(ids)?ids.map(String):[])}catch(e){console.error('Saved events in local storage are corrupted; ignoring them.',e);return new Set()}}
 function eventPrice(e){return Number(e.price)>0?`₹${Number(e.price)}`:'Free'}
 function card(e){
  const spots=Number(e.capacity||0)-Number(e.bookedCount||0), full=spots<=0, date=new Date(e.date);

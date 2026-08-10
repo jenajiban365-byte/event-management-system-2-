@@ -1,5 +1,6 @@
 const express = require('express');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { logError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -81,7 +82,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error('Geocoding error:', err.message);
+    logError('GET /api/geocode', err);
     res.status(502).json({ message: 'Could not look up this location right now.' });
   }
 });

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { sendError } = require('../utils/errors');
 const router = express.Router();
 
 function validAvatar(value) {
@@ -14,7 +15,7 @@ router.get('/me', protect, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
     res.json({ user });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching profile.', error: err.message }); }
+  } catch (err) { sendError(res, 'GET /api/users/me', err, 'Server error fetching profile.'); }
 });
 
 router.put('/me', protect, async (req, res) => {
@@ -50,12 +51,12 @@ router.put('/me', protect, async (req, res) => {
     }
     await user.save();
     res.json({ message: 'Profile updated.', user });
-  } catch (err) { res.status(500).json({ message: 'Server error updating profile.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/users/me', err, 'Server error updating profile.'); }
 });
 
 router.get('/', protect, adminOnly, async (req, res) => {
   try { res.json({ users: await User.find().sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching users.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/users', err, 'Server error fetching users.'); }
 });
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
@@ -64,13 +65,13 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (role && ['user', 'organizer', 'admin'].includes(role)) target.role = role;
     if (status && ['active', 'blocked'].includes(status)) target.status = status;
     await target.save(); res.json({ message: 'User updated.', user: target });
-  } catch (err) { res.status(500).json({ message: 'Server error updating user.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/users/:id', err, 'Server error updating user.'); }
 });
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const target = await User.findById(req.params.id); if (!target) return res.status(404).json({ message: 'User not found.' });
     if (target.id === req.user.id) return res.status(400).json({ message: 'You cannot delete your own account.' });
     await target.deleteOne(); res.json({ message: 'User deleted.' });
-  } catch (err) { res.status(500).json({ message: 'Server error deleting user.', error: err.message }); }
+  } catch (err) { sendError(res, 'DELETE /api/users/:id', err, 'Server error deleting user.'); }
 });
 module.exports = router;

@@ -110,7 +110,7 @@
 <script src="js/nav.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').catch((err) => console.error('Service worker registration failed.', err));
   }
 </script>
 <script>
@@ -141,6 +141,7 @@
       const { events } = await Api.getEvents('?upcoming=true');
       liveBadge.textContent = `✨ ${events.length} event${events.length === 1 ? '' : 's'} live right now`;
     } catch (err) {
+      console.error('Could not load the live event count.', err);
       liveBadge.textContent = '✨ Discover upcoming events';
     }
   })();

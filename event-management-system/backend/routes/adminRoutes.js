@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Booking = require('../models/Booking');
 const Club = require('../models/Club');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { sendError } = require('../utils/errors');
 const router = express.Router();
 
 router.get('/dashboard', protect, adminOnly, async (req, res) => {
@@ -35,16 +36,16 @@ router.get('/dashboard', protect, adminOnly, async (req, res) => {
     }
     const recentBookings = recentBookingsRaw.map((b) => ({ id: b.id, status: b.status, createdAt: b.createdAt, userName: b.user ? b.user.name : 'Unknown', eventTitle: b.event ? b.event.title : 'Unknown' }));
     res.json({ totals: { totalEvents, upcomingEvents, totalUsers, totalBookings, activeBookings, totalClubs, pendingClubs, pendingEvents }, recentBookings, bookingTrend });
-  } catch (err) { res.status(500).json({ message: 'Server error fetching dashboard.', error: err.message }); }
+  } catch (err) { sendError(res, 'GET /api/admin/dashboard', err, 'Server error fetching dashboard.'); }
 });
 router.get('/pending-events', protect, adminOnly, async (req, res) => {
   try { const events = await Event.find({ status: 'pending_approval' }).populate('club', 'name').populate('organizer', 'name email').sort({ createdAt: -1 }); res.json({ events }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching pending events.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/admin/pending-events', err, 'Server error fetching pending events.'); }
 });
 
 router.get('/clubs', protect, adminOnly, async (req, res) => {
   try { const clubs = await Club.find().populate('createdBy', 'name email').populate('organizerIds', 'name email').sort({ createdAt: -1 }); res.json({ clubs }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching clubs.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/admin/clubs', err, 'Server error fetching clubs.'); }
 });
 
 module.exports = router;
