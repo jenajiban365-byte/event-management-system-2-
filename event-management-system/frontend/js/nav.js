@@ -81,13 +81,8 @@ function renderNavbar(activePage) {
   ];
 
   const linksHtml = links
-    .filter((l) => (!l.authOnly || loggedIn) && (!l.organizerOnly || Session.isOrganizer()))
-    .map((l) => {
-      const badge = l.key === 'notifications'
-        ? `<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>`
-        : '';
-      return `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${badge}</a>`;
-    })
+    .filter((l) => !l.authOnly || loggedIn)
+    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
     .join('');
 
   const greeting = loggedIn && user && user.name
@@ -283,6 +278,61 @@ function renderOrganizerNavbar(activePage) {
 
   setupMobileNavbar();
   refreshNotificationBadge();
+}
+
+function renderOrganizerNavbar(activePage) {
+  const navContainer = document.getElementById('navbar');
+  if (!navContainer) return;
+
+  const user = Session.getUser();
+
+  const links = [
+    { href: 'dashboard.html', label: 'Organizer Hub', key: 'dashboard' },
+    { href: 'events.html', label: 'Events', key: 'events' },
+    { href: 'registrations.html', label: 'Registrations', key: 'registrations' },
+    { href: 'check-in.html', label: 'Check-in', key: 'check-in' }
+  ];
+
+  const linksHtml = links
+    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
+    .join('');
+
+  navContainer.innerHTML = `
+    <div class="navbar-inner">
+      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎪</span> EventHub Organizer</a>
+      <div class="desktop-nav">
+        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
+        <a class="nav-admin-site" href="../events.html">View Site</a>
+        <div class="nav-profile">
+          <button class="profile-trigger" type="button">${avatarHtml(user || { name: 'O' })}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Organizer')}</span><span class="profile-chevron">⌄</span></button>
+          <div class="profile-menu">
+            <div class="profile-menu-head">${avatarHtml(user || { name: 'O' }, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+            <a href="../events.html">View Site</a>
+            <a href="../profile.html">Profile</a>
+            <button id="logoutBtn" type="button">Sign out</button>
+          </div>
+        </div>
+      </div>
+      ${createMobileToggle(user || { name: 'O' })}
+    </div>
+    <div class="mobile-nav-links" id="siteNavLinks">
+      ${linksHtml}
+      <a href="../events.html">View Site</a>
+      <div class="mobile-user-card">${avatarHtml(user || { name: 'O' })}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+      <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
+    </div>
+  `;
+
+  const logout = () => {
+    Session.clear();
+    window.location.href = '../index.html';
+  };
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.addEventListener('click', logout);
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
+
+  setupMobileNavbar();
 }
 
 function renderAdminNavbar(activePage) {
