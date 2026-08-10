@@ -2,7 +2,9 @@ const express = require('express');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
+const Notification = require('../models/Notification');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { sendError } = require('../utils/errors');
 const router = express.Router();
 
 async function withWaitlistCounts(events) {
@@ -38,13 +40,13 @@ router.get('/', async (req, res) => {
     const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');
     res.json({ events: await withWaitlistCounts(events) });
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching events.', error: err.message });
+    sendError(res, 'GET /api/events', err, 'Server error fetching events.');
   }
 });
 
 router.get('/all', protect, adminOnly, async (req, res) => {
   try { res.json({ events: await Event.find().sort({ date: 1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching events.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/events/all', err, 'Server error fetching events.'); }
 });
 
 router.get('/:id', async (req, res) => {
@@ -53,7 +55,11 @@ router.get('/:id', async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     const [result] = await withWaitlistCounts([event]);
     res.json({ event: result });
-  } catch (err) { res.status(404).json({ message: 'Event not found.' }); }
+  } catch (err) {
+    // A malformed id is a 400 via the CastError mapping; a database or waitlist
+    // failure is no longer disguised as "Event not found".
+    sendError(res, 'GET /api/events/:id', err, 'Server error fetching event.');
+  }
 });
 
 router.post('/', protect, adminOnly, async (req, res) => {
@@ -67,7 +73,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published'
     });
     res.status(201).json({ message: 'Event created.', event: newEvent });
-  } catch (err) { res.status(500).json({ message: 'Server error creating event.', error: err.message }); }
+  } catch (err) { sendError(res, 'POST /api/events', err, 'Server error creating event.'); }
 });
 
 router.put('/:id', protect, adminOnly, async (req, res) => {
@@ -86,7 +92,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
     await event.save();
     res.json({ message: 'Event updated.', event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/events/:id', err, 'Server error updating event.'); }
 });
 
 router.put('/:id/approval', protect, adminOnly, async (req, res) => {
@@ -100,11 +106,10 @@ router.put('/:id/approval', protect, adminOnly, async (req, res) => {
     if (status === 'published') event.publishedAt = new Date();
     await event.save();
     if (event.organizer) {
-      const Notification = require('../models/Notification');
       await Notification.create({ user: event.organizer, type: 'event', title: `Event ${status.replace('_', ' ')}`, message: event.approvalNote || `${event.title} is now ${status.replace('_', ' ')}.`, link: `/event-details.html?id=${event.id}` });
     }
     res.json({ message: `Event ${status}.`, event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event approval.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/events/:id/approval', err, 'Server error updating event approval.'); }
 });
 
 router.delete('/:id', protect, adminOnly, async (req, res) => {
@@ -115,6 +120,6 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     await Waitlist.deleteMany({ event: event.id });
     await event.deleteOne();
     res.json({ message: 'Event deleted.' });
-  } catch (err) { res.status(500).json({ message: 'Server error deleting event.', error: err.message }); }
+  } catch (err) { sendError(res, 'DELETE /api/events/:id', err, 'Server error deleting event.'); }
 });
 module.exports = router;

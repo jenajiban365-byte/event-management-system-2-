@@ -10,7 +10,15 @@ const Session = {
   },
   getUser() {
     const raw = localStorage.getItem('ems_user');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      // Corrupted session data would otherwise throw on every page render.
+      console.error('Stored session user could not be parsed; clearing it.', err);
+      Session.clear();
+      return null;
+    }
   },
   setSession(token, user) {
     localStorage.setItem('ems_token', token);
@@ -73,16 +81,28 @@ async function apiRequest(path, { method = 'GET', body = null, auth = true } = {
     headers['Authorization'] = `Bearer ${Session.getToken()}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (networkError) {
+    // fetch only rejects when the request never reached the server, so the raw
+    // "Failed to fetch" is replaced with something the user can act on.
+    console.error(`${method} ${path} could not reach the server.`, networkError);
+    const err = new Error('Cannot reach the server. Check your connection and try again.');
+    err.cause = networkError;
+    throw err;
+  }
 
   let data = null;
   try {
     data = await res.json();
-  } catch (e) {
+  } catch (parseError) {
+    // A non-JSON body is expected for some errors, but never for a 2xx response.
+    if (res.ok) console.error(`${method} ${path} returned a body that is not valid JSON.`, parseError);
     data = null;
   }
 
@@ -90,6 +110,8 @@ async function apiRequest(path, { method = 'GET', body = null, auth = true } = {
     const message = (data && data.message) || `Request failed with status ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
+    err.data = data;
+    console.error(`${method} ${path} failed with status ${res.status}: ${message}`);
     throw err;
   }
 
@@ -497,7 +519,8 @@ async function initGoogleSignIn(containerId, onSuccess, onError) {
             const data = await Api.googleLogin(response.credential);
             onSuccess(data);
           } catch (err) {
-            onError && onError(err);
+            if (onError) onError(err);
+            else console.error('Google sign-in failed.', err);
           }
         }
       });
@@ -517,9 +540,17 @@ async function initGoogleSignIn(containerId, onSuccess, onError) {
       script.async = true;
       script.defer = true;
       script.onload = render;
+      script.onerror = () => {
+        const err = new Error('The Google Sign-In script could not be loaded.');
+        if (onError) onError(err);
+        else console.error(err);
+      };
       document.head.appendChild(script);
     }
   } catch (err) {
-    // Silently skip Google Sign-In if the config request fails (e.g. offline)
+    // Google Sign-In stays hidden when its config cannot be loaded (e.g. offline),
+    // but the reason is reported instead of disappearing.
+    console.error('Google Sign-In could not be initialised.', err);
+    if (onError) onError(err);
   }
 }

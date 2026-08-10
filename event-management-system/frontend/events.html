@@ -134,7 +134,7 @@
 
   function getSavedEvents() {
     try { return JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]'); }
-    catch (err) { return []; }
+    catch (err) { console.error('Saved events in local storage are corrupted; ignoring them.', err); return []; }
   }
 
   function renderEventCard(event) {
@@ -232,6 +232,7 @@
         });
       });
     } catch (err) {
+      console.error('Could not load event categories.', err);
       categoryDiscovery.innerHTML = '<div class="event-discovery-empty"><h3>Categories unavailable</h3><p>Please try again in a moment.</p></div>';
     }
   }

@@ -3,6 +3,7 @@ const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
 const { protect } = require('../middleware/authMiddleware');
+const { isDuplicateKeyError, sendError } = require('../utils/errors');
 const router = express.Router();
 
 router.get('/status/:eventId', protect, async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/status/:eventId', protect, async (req, res) => {
     const entry = await Waitlist.findOne({ event: req.params.eventId, user: req.user.id, status: 'waiting' });
     const count = await Waitlist.countDocuments({ event: req.params.eventId, status: 'waiting' });
     res.json({ joined: !!entry, position: entry ? entry.position : null, count });
-  } catch (err) { res.status(500).json({ message: 'Server error checking waitlist.' }); }
+  } catch (err) { sendError(res, 'GET /api/waitlist/status/:eventId', err, 'Server error checking waitlist.'); }
 });
 
 router.post('/', protect, async (req, res) => {
@@ -26,8 +27,8 @@ router.post('/', protect, async (req, res) => {
     const entry = await Waitlist.create({ event: event.id, user: req.user.id, position: count + 1 });
     res.status(201).json({ message: 'You joined the waitlist.', entry, count: count + 1 });
   } catch (err) {
-    if (err.code === 11000) return res.status(409).json({ message: 'You are already on the waitlist.' });
-    res.status(500).json({ message: 'Server error joining waitlist.' });
+    if (isDuplicateKeyError(err)) return res.status(409).json({ message: 'You are already on the waitlist.' });
+    sendError(res, 'POST /api/waitlist', err, 'Server error joining waitlist.');
   }
 });
 
@@ -37,6 +38,6 @@ router.delete('/:eventId', protect, async (req, res) => {
     if (!entry) return res.status(404).json({ message: 'Waitlist entry not found.' });
     await Waitlist.updateMany({ event: req.params.eventId, status: 'waiting', position: { $gt: entry.position } }, { $inc: { position: -1 } });
     res.json({ message: 'Removed from waitlist.' });
-  } catch (err) { res.status(500).json({ message: 'Server error leaving waitlist.' }); }
+  } catch (err) { sendError(res, 'DELETE /api/waitlist/:eventId', err, 'Server error leaving waitlist.'); }
 });
 module.exports = router;

@@ -11,6 +11,7 @@ const {
   sendPasswordResetEmail
 } = require('../utils/email');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { logError, sendError } = require('../utils/errors');
 
 const router = express.Router();
 const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
@@ -52,8 +53,8 @@ router.post('/register', authLimiter, async (req, res) => {
       status: 'active'
     });
 
-    sendWelcomeEmail(name, email).catch((err) => console.error('WELCOME EMAIL ERROR:', err.message));
-    sendVerificationEmail(name, email, verificationToken).catch((err) => console.error('VERIFICATION EMAIL ERROR:', err.message));
+    sendWelcomeEmail(name, email).catch((err) => logError('welcome email', err));
+    sendVerificationEmail(name, email, verificationToken).catch((err) => logError('verification email', err));
 
     // Do not establish a logged-in session until the email is verified.
     res.status(201).json({
@@ -62,8 +63,7 @@ router.post('/register', authLimiter, async (req, res) => {
       user: publicUser(newUser)
     });
   } catch (err) {
-    console.error('REGISTRATION ERROR:', err);
-    res.status(500).json({ message: 'Server error during registration.' });
+    sendError(res, 'POST /api/auth/register', err, 'Server error during registration.');
   }
 });
 
@@ -91,7 +91,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const token = generateToken(user);
     res.json({ message: 'Login successful.', token, user: publicUser(user) });
   } catch (err) {
-    res.status(500).json({ message: 'Server error during login.' });
+    sendError(res, 'POST /api/auth/login', err, 'Server error during login.');
   }
 });
 
@@ -101,8 +101,16 @@ router.post('/google', authLimiter, async (req, res) => {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ message: 'Missing Google credential.' });
 
-    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
-    const payload = ticket.getPayload();
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch (verifyError) {
+      // Only a rejected credential is the caller's fault — everything after this
+      // point is our own failure and gets reported as such.
+      logError('POST /api/auth/google verify', verifyError);
+      return res.status(401).json({ message: 'Google sign-in failed. Please try again.' });
+    }
     const { sub: googleId, email: googleEmail, name, email_verified: googleEmailVerified } = payload;
     const email = String(googleEmail || '').trim().toLowerCase();
     if (!email || !googleEmailVerified) return res.status(401).json({ message: 'Google account email is not verified.' });
@@ -130,7 +138,7 @@ router.post('/google', authLimiter, async (req, res) => {
     const token = generateToken(user);
     res.json({ message: 'Google sign-in successful.', token, user: publicUser(user) });
   } catch (err) {
-    res.status(401).json({ message: 'Google sign-in failed.', error: err.message });
+    sendError(res, 'POST /api/auth/google', err, 'Server error during Google sign-in.');
   }
 });
 
@@ -151,7 +159,7 @@ router.get('/verify-email', async (req, res) => {
     await user.save();
     res.json({ message: 'Email verified. You can now sign in.' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error verifying email.' });
+    sendError(res, 'GET /api/auth/verify-email', err, 'Server error verifying email.');
   }
 });
 
@@ -164,10 +172,13 @@ router.post('/resend-verification', authLimiter, async (req, res) => {
       user.emailVerificationToken = token;
       user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await user.save();
-      sendVerificationEmail(user.name, user.email, token).catch((err) => console.error('VERIFICATION EMAIL ERROR:', err.message));
+      sendVerificationEmail(user.name, user.email, token).catch((err) => logError('verification email', err));
     }
     res.json({ message: 'If an unverified account exists, a new verification email has been sent.' });
   } catch (err) {
+    // The response stays deliberately neutral so accounts cannot be enumerated,
+    // but the failure itself still has to be logged.
+    logError('POST /api/auth/resend-verification', err);
     res.json({ message: 'If an unverified account exists, a new verification email has been sent.' });
   }
 });
@@ -181,10 +192,12 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       user.passwordResetToken = token;
       user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
       await user.save();
-      sendPasswordResetEmail(user.name, user.email, token).catch((err) => console.error('PASSWORD RESET EMAIL ERROR:', err.message));
+      sendPasswordResetEmail(user.name, user.email, token).catch((err) => logError('password reset email', err));
     }
     res.json({ message: 'If an account exists for that email, reset instructions have been sent.' });
   } catch (err) {
+    // Same neutral response as above, with the error kept in the server log.
+    logError('POST /api/auth/forgot-password', err);
     res.json({ message: 'If an account exists for that email, reset instructions have been sent.' });
   }
 });
@@ -206,7 +219,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     await user.save();
     res.json({ message: 'Password reset successfully. You can now sign in.' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error resetting password.' });
+    sendError(res, 'POST /api/auth/reset-password', err, 'Server error resetting password.');
   }
 });
 

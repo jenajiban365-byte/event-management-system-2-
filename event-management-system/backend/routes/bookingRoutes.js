@@ -7,6 +7,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendWaitlistPromotedEmail } = require('../utils/email');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { isDuplicateKeyError, logError, sendError } = require('../utils/errors');
 const router = express.Router();
 
 async function promoteNextWaitlistEntry(eventId) {
@@ -24,13 +25,15 @@ async function promoteNextWaitlistEntry(eventId) {
 
     // Notify the promoted user — failure to send shouldn't undo the promotion, just log it
     User.findById(next.user).then((user) => {
-      if (user) sendWaitlistPromotedEmail(user.name, user.email, event).catch((err) => console.error('WAITLIST PROMOTION EMAIL ERROR:', err.message));
-    }).catch((err) => console.error('WAITLIST PROMOTION EMAIL LOOKUP ERROR:', err.message));
+      if (user) sendWaitlistPromotedEmail(user.name, user.email, event).catch((err) => logError('waitlist promotion email', err));
+    }).catch((err) => logError('waitlist promotion email lookup', err));
 
     await Notification.create({ user: next.user, type: 'booking', title: 'Waitlist promoted', message: `A spot opened up for ${event.title}; your registration is confirmed.`, link: '/my-bookings.html' });
     return booking;
   } catch (err) {
-    if (err.code !== 11000) console.error('WAITLIST PROMOTION ERROR:', err.message);
+    // The promotion runs after the cancellation it reacts to has already been
+    // committed, so it is logged and reported to the caller rather than thrown.
+    logError(isDuplicateKeyError(err) ? 'waitlist promotion (already booked)' : 'waitlist promotion', err);
     return null;
   }
 }
@@ -52,19 +55,22 @@ router.post('/', protect, async (req, res) => {
     if (!claimedEvent) return res.status(400).json({ message: 'This event is fully booked. Join the waitlist instead.' });
     try {
       const booking = await Booking.create({ user: req.user.id, event: eventId, status: 'confirmed', checkInCode: crypto.randomBytes(5).toString('hex').toUpperCase() });
-      await Notification.create({ user: req.user.id, type: 'booking', title: 'Registration confirmed', message: `Your spot for ${event.title} is confirmed.`, link: '/my-bookings.html' });
+      // The seat is already claimed at this point, so a failed notification must
+      // not roll the booking back — it is logged and the booking still stands.
+      await Notification.create({ user: req.user.id, type: 'booking', title: 'Registration confirmed', message: `Your spot for ${event.title} is confirmed.`, link: '/my-bookings.html' })
+        .catch((err) => logError('booking confirmation notification', err));
       res.status(201).json({ message: 'Booking confirmed.', booking });
     } catch (bookingError) {
       await Event.updateOne({ _id: eventId, bookedCount: { $gt: 0 } }, { $inc: { bookedCount: -1 } });
-      if (bookingError.code === 11000) return res.status(409).json({ message: 'You have already booked this event.' });
+      if (isDuplicateKeyError(bookingError)) return res.status(409).json({ message: 'You have already booked this event.' });
       throw bookingError;
     }
-  } catch (err) { res.status(500).json({ message: 'Server error creating booking.', error: err.message }); }
+  } catch (err) { sendError(res, 'POST /api/bookings', err, 'Server error creating booking.'); }
 });
 
 router.get('/my', protect, async (req, res) => {
   try { res.json({ bookings: await Booking.find({ user: req.user.id }).populate('event').sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching bookings.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/bookings/my', err, 'Server error fetching bookings.'); }
 });
 
 router.put('/:id/cancel', protect, async (req, res) => {
@@ -86,12 +92,12 @@ router.put('/:id/cancel', protect, async (req, res) => {
       }
     }
     res.json({ message: 'Booking cancelled.' });
-  } catch (err) { res.status(500).json({ message: 'Server error cancelling booking.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/bookings/:id/cancel', err, 'Server error cancelling booking.'); }
 });
 
 router.get('/', protect, adminOnly, async (req, res) => {
   try { res.json({ bookings: await Booking.find().populate('event').populate('user', 'name email').sort({ createdAt: -1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching bookings.', error: err.message }); }
+  catch (err) { sendError(res, 'GET /api/bookings', err, 'Server error fetching bookings.'); }
 });
 
 router.put('/:id/status', protect, adminOnly, async (req, res) => {
@@ -116,7 +122,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     booking.status = status;
     await booking.save();
     res.json({ message: 'Booking status updated.', booking });
-  } catch (err) { res.status(500).json({ message: 'Server error updating booking.', error: err.message }); }
+  } catch (err) { sendError(res, 'PUT /api/bookings/:id/status', err, 'Server error updating booking.'); }
 });
 
 module.exports = router;

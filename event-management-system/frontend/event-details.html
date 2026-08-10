@@ -90,7 +90,10 @@
         </div>
       `;
     } catch (err) {
-      similarEventsEl.innerHTML = ''; // non-critical — fail silently, don't disrupt the main page
+      // Non-critical section: it is hidden rather than disrupting the page, but
+      // the reason is still reported.
+      console.error('Could not load similar events.', err);
+      similarEventsEl.innerHTML = '';
     }
   }
 
