@@ -7,10 +7,12 @@ function avatarHtml(user, extraClass = '') {
 
   return `<span class="profile-avatar ${extraClass}" aria-hidden="true">${avatar}</span>`;
 }
-function createMobileToggle() {
+function createMobileToggle(user) {
+  const avatar = user ? avatarHtml(user, 'mobile-toggle-avatar') : '';
   return `
     <button class="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="siteNavLinks">
-      <span aria-hidden="true">☰</span>
+      ${avatar}
+      <span class="mobile-nav-toggle-icon" aria-hidden="true">☰</span>
     </button>
   `;
 }
@@ -26,7 +28,7 @@ function setupMobileNavbar() {
     const isOpen = navContainer.classList.toggle('nav-open');
     toggle.setAttribute('aria-expanded', String(isOpen));
     toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
-    const icon = toggle.querySelector('span');
+    const icon = toggle.querySelector('.mobile-nav-toggle-icon');
     if (icon) icon.textContent = isOpen ? '✕' : '☰';
   });
 
@@ -55,7 +57,7 @@ function closeMobileNavbar(navContainer) {
   if (toggle) {
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', 'Open navigation');
-    const icon = toggle.querySelector('span');
+    const icon = toggle.querySelector('.mobile-nav-toggle-icon');
     if (icon) icon.textContent = '☰';
   }
 }
@@ -113,7 +115,7 @@ function renderNavbar(activePage) {
         <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
         ${rightHtml}
       </div>
-      ${createMobileToggle()}
+      ${createMobileToggle(loggedIn ? user : null)}
     </div>
     <div class="mobile-nav-links" id="siteNavLinks">
       ${linksHtml}
@@ -179,7 +181,7 @@ function renderAdminNavbar(activePage) {
           </div>
         </div>
       </div>
-      ${createMobileToggle()}
+      ${createMobileToggle(user || { name: 'A' })}
     </div>
     <div class="mobile-nav-links" id="siteNavLinks">
       ${linksHtml}
