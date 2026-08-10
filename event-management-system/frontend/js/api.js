@@ -67,6 +67,7 @@ const Api = {
   resendVerification: (email) => apiRequest('/auth/resend-verification', { method: 'POST', body: { email }, auth: false }),
   forgotPassword: (email) => apiRequest('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
   resetPassword: (token, password) => apiRequest('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
+  submitContactForm: (payload) => apiRequest('/contact', { method: 'POST', body: payload, auth: false }),
   googleLogin: (credential) => apiRequest('/auth/google', { method: 'POST', body: { credential }, auth: false }),
   me: () => apiRequest('/auth/me'),
   getPublicConfig: () => apiRequest('/config', { auth: false }),

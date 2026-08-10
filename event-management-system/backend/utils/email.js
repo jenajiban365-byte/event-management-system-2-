@@ -8,14 +8,16 @@ function htmlEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
 
-async function sendEmail({ to, toName, subject, htmlContent }) {
+async function sendEmail({ to, toName, subject, htmlContent, replyTo }) {
   if (!process.env.BREVO_API_KEY || !process.env.EMAIL_FROM) {
     throw new Error('Brevo email configuration is missing. Set BREVO_API_KEY and EMAIL_FROM.');
   }
+  const payload = { sender: { name: 'EventHub', email: process.env.EMAIL_FROM }, to: [{ email: to, name: toName }], subject, htmlContent };
+  if (replyTo && replyTo.email) payload.replyTo = { email: replyTo.email, name: replyTo.name || replyTo.email };
   const response = await fetch(BREVO_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'api-key': process.env.BREVO_API_KEY },
-    body: JSON.stringify({ sender: { name: 'EventHub', email: process.env.EMAIL_FROM }, to: [{ email: to, name: toName }], subject, htmlContent })
+    body: JSON.stringify(payload)
   });
   if (!response.ok) throw new Error(`Brevo API error (${response.status}): ${await response.text()}`);
 }
@@ -59,4 +61,27 @@ const sendWaitlistPromotedEmail = async (name, email, event) => {
   await sendEmail({ to: email, toName: name, subject: `You're confirmed: ${event.title}`, htmlContent });
 };
 
-module.exports = { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendWaitlistPromotedEmail };
+const sendContactFormEmail = async (name, email, subject, message) => {
+  const safeName = htmlEscape(name);
+  const safeEmail = htmlEscape(email);
+  const safeSubject = htmlEscape(subject);
+  const safeMessage = htmlEscape(message).replace(/\n/g, '<br>');
+  const htmlContent = baseEmail(
+    'NEW CONTACT FORM MESSAGE',
+    safeSubject,
+    `<p><strong>From:</strong> ${safeName} (${safeEmail})</p><p style="margin-top:16px; padding:16px; background:#f4f4f5; border-radius:8px;">${safeMessage}</p><p style="margin-top:20px; font-size:13px; color:#71717a;">Reply directly to this email to respond to ${safeName}.</p>`,
+    'Open EventHub',
+    `${appUrl()}/admin/dashboard.html`
+  );
+  // Sent to the site's own verified sender address (acts as the support inbox),
+  // with reply-to set to the visitor so you can just hit "Reply" in your email client.
+  await sendEmail({
+    to: process.env.EMAIL_FROM,
+    toName: 'EventHub Support',
+    subject: `[Contact Form] ${subject}`,
+    htmlContent,
+    replyTo: { email, name }
+  });
+};
+
+module.exports = { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendWaitlistPromotedEmail, sendContactFormEmail };

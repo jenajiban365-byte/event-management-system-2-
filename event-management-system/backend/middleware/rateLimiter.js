@@ -10,4 +10,14 @@ const authLimiter = rateLimit({
   message: { message: 'Too many attempts from this device. Please try again in a few minutes.' }
 });
 
-module.exports = { authLimiter };
+// Applies to the public contact form: max 5 submissions per 15 minutes per IP.
+// Tighter than authLimiter since this is unauthenticated and sends real email traffic.
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many messages sent. Please try again in a few minutes.' }
+});
+
+module.exports = { authLimiter, contactLimiter };

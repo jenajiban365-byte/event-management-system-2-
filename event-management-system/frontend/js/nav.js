@@ -71,7 +71,8 @@ function renderNavbar(activePage) {
 
   const links = [
     { href: 'events.html', label: 'Events', key: 'events' },
-    { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true }
+    { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
+    { href: 'contact.html', label: 'Contact', key: 'contact' }
   ];
 
   const linksHtml = links
