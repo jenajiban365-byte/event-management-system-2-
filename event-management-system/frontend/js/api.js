@@ -182,37 +182,79 @@ function getCurrentPosition() {
       return;
     }
 
-    const timeoutMs = 15000;
+    // High-accuracy GPS can take too long on phones and desktop browsers.
+    // Start with a fast network/cached location, then fall back to GPS only
+    // if the browser cannot provide a position quickly enough.
+    let settled = false;
+
+    const finish = (position) => {
+      if (settled) return;
+      const latitude = Number(position.coords.latitude);
+      const longitude = Number(position.coords.longitude);
+      const accuracy = Number(position.coords.accuracy);
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(accuracy) || accuracy < 0) {
+        settled = true;
+        reject(new Error('The browser returned an invalid location result. Please try again.'));
+        return;
+      }
+
+      settled = true;
+      resolve({
+        latitude,
+        longitude,
+        accuracy,
+        quality: getLocationAccuracyQuality(accuracy)
+      });
+    };
+
+    const handlePermissionError = (error) => {
+      if (settled) return;
+      // Permission denial should never trigger another location request.
+      if (error.code === 1) {
+        settled = true;
+        reject(new Error('Location permission was denied. Please allow location access in your browser settings and try again.'));
+      }
+    };
+
+    const requestHighAccuracy = () => {
+      if (settled) return;
+      navigator.geolocation.getCurrentPosition(
+        finish,
+        (error) => {
+          if (settled) return;
+          handlePermissionError(error);
+          if (settled) return;
+          settled = true;
+          const message = error.code === 3
+            ? 'Location is taking too long to determine. Please make sure Location/GPS is enabled and try again.'
+            : 'Your location could not be determined. Please try again.';
+          reject(new Error(message));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 60000
+        }
+      );
+    };
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latitude = Number(position.coords.latitude);
-        const longitude = Number(position.coords.longitude);
-        const accuracy = Number(position.coords.accuracy);
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(accuracy) || accuracy < 0) {
-          reject(new Error('The browser returned an invalid location result. Please try again.'));
-          return;
-        }
-
-        resolve({
-          latitude,
-          longitude,
-          accuracy,
-          quality: getLocationAccuracyQuality(accuracy)
-        });
-      },
+      finish,
       (error) => {
-        const messages = {
-          1: 'Location permission was denied. Please allow location access and try again.',
-          2: 'Your location could not be determined. Please try again.',
-          3: 'Location request timed out. Please try again.'
-        };
-        reject(new Error(messages[error.code] || 'Could not get your location.'));
+        if (settled) return;
+        handlePermissionError(error);
+        if (settled) return;
+
+        // TIMEOUT/position-unavailable: retry with GPS and a longer window.
+        // This is especially helpful on mobile Chrome where the first
+        // network-based request can occasionally fail.
+        requestHighAccuracy();
       },
       {
-        enableHighAccuracy: true,
-        timeout: timeoutMs,
-        maximumAge: 0
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 120000
       }
     );
   });
