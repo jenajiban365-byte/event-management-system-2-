@@ -77,6 +77,37 @@ describe('GET /api/organizer/dashboard', () => {
   });
 });
 
+describe('GET /api/organizer/clubs', () => {
+  it('lists only the approved clubs the organizer runs', async () => {
+    const stub = queryStub([{ _id: 'club-1', name: 'Robotics' }]);
+    Club.find.mockReturnValue(stub);
+
+    const res = await request(app).get('/api/organizer/clubs');
+
+    expect(res.status).toBe(200);
+    expect(Club.find).toHaveBeenCalledWith({ organizerIds: 'org-1', status: 'approved' });
+    expect(stub.sort).toHaveBeenCalledWith({ name: 1 });
+    expect(res.body.clubs).toHaveLength(1);
+  });
+
+  it('403s for a plain user', async () => {
+    global.__testUser = { id: 'user-1', role: 'user' };
+
+    const res = await request(app).get('/api/organizer/clubs');
+
+    expect(res.status).toBe(403);
+    expect(Club.find).not.toHaveBeenCalled();
+  });
+
+  it('500s when the lookup fails', async () => {
+    Club.find.mockReturnValue(rejectingQueryStub(new Error('db down')));
+
+    const res = await request(app).get('/api/organizer/clubs');
+
+    expect(res.status).toBe(500);
+  });
+});
+
 describe('GET /api/organizer/events', () => {
   it('lists only events of the clubs the organizer runs', async () => {
     Club.find.mockReturnValue(queryStub([{ _id: 'club-1' }]));
