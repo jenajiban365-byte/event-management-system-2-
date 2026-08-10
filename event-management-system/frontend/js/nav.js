@@ -71,6 +71,7 @@ function renderNavbar(activePage) {
 
   const links = [
     { href: 'events.html', label: 'Discover', key: 'events' },
+    { href: 'organizer/dashboard.html', label: 'Organizer Hub', key: 'organizer', organizerOnly: true },
     { href: 'saved-events.html', label: 'Saved Events', key: 'saved', authOnly: true },
     { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
     { href: 'notifications.html', label: 'Notifications', key: 'notifications', authOnly: true },
@@ -80,8 +81,13 @@ function renderNavbar(activePage) {
   ];
 
   const linksHtml = links
-    .filter((l) => !l.authOnly || loggedIn)
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
+    .filter((l) => (!l.authOnly || loggedIn) && (!l.organizerOnly || Session.isOrganizer()))
+    .map((l) => {
+      const badge = l.key === 'notifications'
+        ? `<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>`
+        : '';
+      return `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${badge}</a>`;
+    })
     .join('');
 
   const greeting = loggedIn && user && user.name
@@ -92,7 +98,10 @@ function renderNavbar(activePage) {
     ? `
       <div class="nav-profile">
         <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
-          ${avatarHtml(user)}
+          <span class="profile-avatar-wrap">
+            ${avatarHtml(user)}
+            <span class="nav-notif-dot" data-nav-notif-dot hidden aria-hidden="true"></span>
+          </span>
           <span class="profile-name">${escapeHtml((user.name || 'User').split(' ')[0])}</span>
           <span class="profile-chevron" aria-hidden="true">⌄</span>
         </button>
@@ -107,6 +116,10 @@ function renderNavbar(activePage) {
           <div class="profile-menu-greeting">${greeting}</div>
           <a href="my-bookings.html" role="menuitem">My Bookings</a>
           <a href="saved-events.html" role="menuitem">Saved Events</a>
+          <a href="notifications.html" role="menuitem">Notifications<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+          <a href="support.html" role="menuitem">My Questions</a>
+          ${Session.isOrganizer() ? '<a href="organizer/dashboard.html" role="menuitem">Organizer Dashboard</a>' : ''}
+          ${Session.isAdmin() ? '<a href="admin/dashboard.html" role="menuitem">Admin Dashboard</a>' : ''}
           <a href="profile.html" role="menuitem">Profile</a>
           <a href="profile.html#settings" role="menuitem">Settings</a>
           <button id="logoutBtn" type="button" role="menuitem">Sign out</button>
@@ -186,6 +199,90 @@ function renderNavbar(activePage) {
   updateThemeQuickToggle();
 
   setupMobileNavbar();
+
+  if (loggedIn) refreshNotificationBadge();
+}
+
+// Fetches the real unread notification count from the backend and updates
+// every badge element in the header (nav link badge x2 for desktop/mobile,
+// plus the small dot on the avatar). Never shows a count when there are
+// zero unread notifications — badges stay hidden until there's a real number.
+async function refreshNotificationBadge() {
+  try {
+    const { unreadCount } = await Api.getNotifications();
+    const badges = document.querySelectorAll('[data-nav-notif-badge]');
+    const dots = document.querySelectorAll('[data-nav-notif-dot]');
+    const hasUnread = Number(unreadCount) > 0;
+
+    badges.forEach((badge) => {
+      if (hasUnread) {
+        badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        badge.hidden = false;
+      } else {
+        badge.hidden = true;
+      }
+    });
+    dots.forEach((dot) => { dot.hidden = !hasUnread; });
+  } catch (err) {
+    // Non-critical — if this fails (e.g. offline), just leave badges hidden rather than erroring the page
+  }
+}
+
+function renderOrganizerNavbar(activePage) {
+  const navContainer = document.getElementById('navbar');
+  if (!navContainer) return;
+
+  const user = Session.getUser();
+
+  const links = [
+    { href: 'dashboard.html', label: 'Organizer Hub', key: 'dashboard' },
+    { href: 'events.html', label: 'Events', key: 'events' },
+    { href: 'registrations.html', label: 'Registrations', key: 'registrations' },
+    { href: 'check-in.html', label: 'Check-in', key: 'check-in' },
+    { href: '../notifications.html', label: 'Notifications', key: 'notifications', badge: true }
+  ];
+
+  const linksHtml = links
+    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${l.badge ? '<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>' : ''}</a>`)
+    .join('');
+
+  navContainer.innerHTML = `
+    <div class="navbar-inner">
+      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎪</span> EventHub Organizer</a>
+      <div class="desktop-nav">
+        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
+        <a class="nav-admin-site" href="../events.html">View Site</a>
+        <div class="nav-profile">
+          <button class="profile-trigger" type="button">${avatarHtml(user || { name: 'O' })}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Organizer')}</span><span class="profile-chevron">⌄</span></button>
+          <div class="profile-menu">
+            <div class="profile-menu-head">${avatarHtml(user || { name: 'O' }, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+            <a href="../events.html">View Site</a>
+            <a href="../profile.html">Profile</a>
+            <button id="logoutBtn" type="button">Sign out</button>
+          </div>
+        </div>
+      </div>
+      ${createMobileToggle(user || { name: 'O' })}
+    </div>
+    <div class="mobile-nav-links" id="siteNavLinks">
+      ${linksHtml}
+      <a href="../events.html">View Site</a>
+      <div class="mobile-user-card">${avatarHtml(user || { name: 'O' })}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
+      <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
+    </div>
+  `;
+
+  const logout = () => {
+    Session.clear();
+    window.location.href = '../index.html';
+  };
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.addEventListener('click', logout);
+  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
+
+  setupMobileNavbar();
+  refreshNotificationBadge();
 }
 
 function renderAdminNavbar(activePage) {
@@ -201,11 +298,12 @@ function renderAdminNavbar(activePage) {
     { href: 'bookings.html', label: 'Bookings', key: 'bookings' },
     { href: 'users.html', label: 'Users', key: 'users' },
     { href: 'clubs.html', label: 'Clubs', key: 'clubs' },
-    { href: 'support.html', label: 'Support Inbox', key: 'support' }
+    { href: 'support.html', label: 'Support Inbox', key: 'support' },
+    { href: '../notifications.html', label: 'Notifications', key: 'notifications', badge: true }
   ];
 
   const linksHtml = links
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
+    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${l.badge ? '<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>' : ''}</a>`)
     .join('');
 
   navContainer.innerHTML = `
@@ -243,4 +341,5 @@ function renderAdminNavbar(activePage) {
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
 
   setupMobileNavbar();
+  refreshNotificationBadge();
 }

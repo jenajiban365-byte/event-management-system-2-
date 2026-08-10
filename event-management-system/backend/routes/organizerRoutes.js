@@ -25,6 +25,13 @@ router.get('/dashboard', protect, organizerOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Server error fetching organizer dashboard.', error: err.message }); }
 });
 
+router.get('/clubs', protect, organizerOnly, async (req, res) => {
+  try {
+    const clubs = await Club.find({ organizerIds: req.user.id, status: 'approved' }).sort({ name: 1 });
+    res.json({ clubs });
+  } catch (err) { res.status(500).json({ message: 'Server error fetching organizer clubs.', error: err.message }); }
+});
+
 router.get('/events', protect, organizerOnly, async (req, res) => {
   try {
     const clubs = await Club.find({ organizerIds: req.user.id }).select('_id');
@@ -106,7 +113,7 @@ router.put('/registrations/:id/status', protect, organizerOnly, async (req, res)
     const booking = await Booking.findById(req.params.id).populate('event').populate('user', 'name email');
     if (!booking || !booking.event) return res.status(404).json({ message: 'Registration not found.' });
     const clubs = await Club.find({ organizerIds: req.user.id }).select('_id');
-    if (!clubs.some((id) => id.toString() === String(booking.event.club)) || String(booking.event.organizer) !== req.user.id) return res.status(403).json({ message: 'You cannot manage this registration.' });
+    if (!clubs.some((c) => String(c._id) === String(booking.event.club)) || String(booking.event.organizer) !== req.user.id) return res.status(403).json({ message: 'You cannot manage this registration.' });
     const wasCounted = ['confirmed', 'pending'].includes(booking.status);
     const willBeCounted = ['confirmed', 'pending'].includes(status);
     if (!wasCounted && willBeCounted) {
@@ -130,7 +137,7 @@ router.post('/check-in', protect, organizerOnly, async (req, res) => {
     const booking = await Booking.findOne({ checkInCode: code }).populate('event').populate('user', 'name email studentId department');
     if (!booking) return res.status(404).json({ message: 'Registration pass not found.' });
     const clubs = await Club.find({ organizerIds: req.user.id }).select('_id');
-    if (!booking.event || !clubs.some((id) => id.toString() === String(booking.event.club))) return res.status(403).json({ message: 'You cannot check in attendees for this event.' });
+    if (!booking.event || !clubs.some((c) => String(c._id) === String(booking.event.club))) return res.status(403).json({ message: 'You cannot check in attendees for this event.' });
     if (booking.status !== 'confirmed') return res.status(400).json({ message: 'This registration is not confirmed.' });
     if (booking.checkedInAt) return res.status(409).json({ message: 'This attendee is already checked in.', booking });
     booking.checkedInAt = new Date();
