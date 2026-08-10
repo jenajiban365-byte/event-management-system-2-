@@ -16,6 +16,12 @@ const { createApp, queryStub, rejectingQueryStub } = require('../helpers/testApp
 
 const app = createApp('/api/organizer', organizerRoutes);
 
+// Club.find(...).select('_id') yields documents whose toString() is a debug
+// representation, not the id, so membership must compare against _id.
+function clubDoc(id) {
+  return { _id: id, toString: () => `{ _id: new ObjectId("${id}") }` };
+}
+
 function distinctStub(values) {
   return { distinct: jest.fn().mockResolvedValue(values) };
 }
@@ -322,7 +328,7 @@ describe('PUT /api/organizer/registrations/:id/status', () => {
   }
 
   beforeEach(() => {
-    Club.find.mockReturnValue(queryStub(['club-1']));
+    Club.find.mockReturnValue(queryStub([clubDoc('club-1')]));
   });
 
   it('releases a seat when an active registration is rejected', async () => {
@@ -393,7 +399,7 @@ describe('PUT /api/organizer/registrations/:id/status', () => {
   });
 
   it('403s when the event club is not one the organizer runs', async () => {
-    Club.find.mockReturnValue(queryStub(['club-9']));
+    Club.find.mockReturnValue(queryStub([clubDoc('club-9')]));
     Booking.findById.mockReturnValue(queryStub(bookingDoc()));
 
     const res = await request(app).put('/api/organizer/registrations/booking-1/status').send({ status: 'confirmed' });
@@ -426,7 +432,7 @@ describe('POST /api/organizer/check-in', () => {
   }
 
   beforeEach(() => {
-    Club.find.mockReturnValue(queryStub(['club-1']));
+    Club.find.mockReturnValue(queryStub([clubDoc('club-1')]));
   });
 
   it('checks the attendee in with an upper-cased code and notifies them', async () => {
@@ -458,7 +464,7 @@ describe('POST /api/organizer/check-in', () => {
   });
 
   it('403s for an event outside the organizer clubs', async () => {
-    Club.find.mockReturnValue(queryStub(['club-9']));
+    Club.find.mockReturnValue(queryStub([clubDoc('club-9')]));
     Booking.findOne.mockReturnValue(queryStub(bookingDoc()));
 
     const res = await request(app).post('/api/organizer/check-in').send({ code: 'AB12CD' });
