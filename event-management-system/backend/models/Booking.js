@@ -5,7 +5,10 @@ const bookingSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
-    status: { type: String, enum: ['confirmed', 'pending', 'cancelled', 'rejected'], default: 'confirmed' }
+    status: { type: String, enum: ['confirmed', 'pending', 'cancelled', 'rejected'], default: 'confirmed' },
+    checkInCode: { type: String, unique: true, sparse: true },
+    checkedInAt: { type: Date, default: null },
+    attendanceStatus: { type: String, enum: ['not_checked_in', 'checked_in'], default: 'not_checked_in' }
   },
   schemaOptions
 );

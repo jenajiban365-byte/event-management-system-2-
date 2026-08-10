@@ -14,6 +14,11 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const waitlistRoutes = require('./routes/waitlistRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const supportRoutes = require('./routes/supportRoutes');
+const clubRoutes = require('./routes/clubRoutes');
+const organizerRoutes = require('./routes/organizerRoutes');
+const savedEventRoutes = require('./routes/savedEventRoutes');
 const geocodeRoutes = require('./routes/geocodeRoutes');
 
 const app = express();
@@ -48,6 +53,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/clubs', clubRoutes);
+app.use('/api/organizer', organizerRoutes);
+app.use('/api/saved-events', savedEventRoutes);
 app.use('/api/geocode', geocodeRoutes);
 
 app.get('/api/health', (req, res) => {
@@ -86,4 +96,3 @@ async function start() {
 }
 
 start();
-

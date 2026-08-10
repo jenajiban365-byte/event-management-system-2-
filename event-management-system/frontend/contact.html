@@ -88,7 +88,9 @@
         subject: document.getElementById('subject').value.trim(),
         message: document.getElementById('message').value.trim()
       };
-      const result = await Api.submitContactForm(payload);
+      const result = Session.isLoggedIn()
+        ? await Api.createSupportTicket({ subject: payload.subject, message: payload.message })
+        : await Api.submitContactForm(payload);
       showAlert(alertBox, result.message, 'success');
       form.reset();
       // Re-prefill after reset, if logged in

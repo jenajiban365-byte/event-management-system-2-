@@ -17,7 +17,7 @@ async function withWaitlistCounts(events) {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, category, upcoming, date, sort, excludeId, limit } = req.query;
+    const { search, category, upcoming, date, sort, excludeId, limit, price, eventType, availability } = req.query;
     const query = { status: 'published' };
     if (search) {
       const term = search.trim();
@@ -25,13 +25,17 @@ router.get('/', async (req, res) => {
       query.$or = [{ title: regex }, { description: regex }, { location: regex }];
     }
     if (category) query.category = category;
+    if (eventType) query.eventType = eventType;
+    if (price === 'free') query.price = { $eq: 0 };
+    if (price === 'paid') query.price = { $gt: 0 };
+    if (availability === 'available') query.$expr = { $lt: ['$bookedCount', '$capacity'] };
     if (date) query.date = date;
     if (upcoming === 'true') query.date = { ...(query.date ? { $eq: query.date } : {}), $gte: new Date().toISOString().split('T')[0] };
     if (excludeId) query._id = { $ne: excludeId };
-    const sortOption = sort === 'popular' ? { bookedCount: -1 } : { date: 1 };
+    const sortOption = sort === 'popular' ? { bookedCount: -1, date: 1 } : { date: 1, time: 1 };
     let eventsQuery = Event.find(query).sort(sortOption);
     if (limit) eventsQuery = eventsQuery.limit(Math.min(Number(limit) || 20, 50));
-    const events = await eventsQuery;
+    const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');
     res.json({ events: await withWaitlistCounts(events) });
   } catch (err) {
     res.status(500).json({ message: 'Server error fetching events.', error: err.message });
@@ -45,7 +49,7 @@ router.get('/all', protect, adminOnly, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id).populate('club', 'name category logoUrl contactEmail').populate('organizer', 'name email avatarUrl');
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     const [result] = await withWaitlistCounts([event]);
     res.json({ event: result });
@@ -83,6 +87,24 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     await event.save();
     res.json({ message: 'Event updated.', event });
   } catch (err) { res.status(500).json({ message: 'Server error updating event.', error: err.message }); }
+});
+
+router.put('/:id/approval', protect, adminOnly, async (req, res) => {
+  try {
+    const { status, note } = req.body;
+    if (!['published', 'changes_requested', 'rejected', 'cancelled'].includes(status)) return res.status(400).json({ message: 'Invalid approval status.' });
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
+    event.status = status;
+    event.approvalNote = String(note || '').trim();
+    if (status === 'published') event.publishedAt = new Date();
+    await event.save();
+    if (event.organizer) {
+      const Notification = require('../models/Notification');
+      await Notification.create({ user: event.organizer, type: 'event', title: `Event ${status.replace('_', ' ')}`, message: event.approvalNote || `${event.title} is now ${status.replace('_', ' ')}.`, link: `/event-details.html?id=${event.id}` });
+    }
+    res.json({ message: `Event ${status}.`, event });
+  } catch (err) { res.status(500).json({ message: 'Server error updating event approval.', error: err.message }); }
 });
 
 router.delete('/:id', protect, adminOnly, async (req, res) => {

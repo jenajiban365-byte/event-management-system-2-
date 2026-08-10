@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema(
     passwordResetToken: { type: String, default: '', select: false },
     passwordResetExpires: { type: Date, default: null, select: false },
     avatarUrl: { type: String, default: '' },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'organizer', 'admin'], default: 'user' },
+    studentId: { type: String, default: '', trim: true },
+    department: { type: String, default: '', trim: true },
+    year: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' }
   },
   schemaOptions

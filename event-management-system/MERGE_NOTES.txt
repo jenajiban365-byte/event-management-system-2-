@@ -1,0 +1,3 @@
+This build uses the MAIN SITE as the base. Existing main-site frontend pages, CSS, navigation, support UI, authentication UI, and working features were not overwritten by the college upgrade.
+
+College additions are additive: organizer pages, admin pending-events page, SavedEvent persistence APIs, organizer/admin backend routes, and attendance/check-in fields.

@@ -73,6 +73,9 @@ function renderNavbar(activePage) {
     { href: 'events.html', label: 'Discover', key: 'events' },
     { href: 'saved-events.html', label: 'Saved Events', key: 'saved', authOnly: true },
     { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
+    { href: 'notifications.html', label: 'Notifications', key: 'notifications', authOnly: true },
+    { href: 'support.html', label: 'My Questions', key: 'support', authOnly: true },
+    { href: 'clubs.html', label: 'Clubs', key: 'clubs' },
     { href: 'contact.html', label: 'Contact', key: 'contact' }
   ];
 
@@ -196,7 +199,9 @@ function renderAdminNavbar(activePage) {
     { href: 'events.html', label: 'Events', key: 'events' },
     { href: 'categories.html', label: 'Categories', key: 'categories' },
     { href: 'bookings.html', label: 'Bookings', key: 'bookings' },
-    { href: 'users.html', label: 'Users', key: 'users' }
+    { href: 'users.html', label: 'Users', key: 'users' },
+    { href: 'clubs.html', label: 'Clubs', key: 'clubs' },
+    { href: 'support.html', label: 'Support Inbox', key: 'support' }
   ];
 
   const linksHtml = links

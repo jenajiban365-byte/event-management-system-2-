@@ -105,6 +105,16 @@ const Api = {
   forgotPassword: (email) => apiRequest('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
   resetPassword: (token, password) => apiRequest('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
   submitContactForm: (payload) => apiRequest('/contact', { method: 'POST', body: payload, auth: false }),
+  createSupportTicket: (payload) => apiRequest('/support', { method: 'POST', body: payload }),
+  getMySupportTickets: () => apiRequest('/support/mine'),
+  getSupportTickets: () => apiRequest('/support'),
+  replyToSupportTicket: (id, message) => apiRequest(`/support/${id}/reply`, { method: 'POST', body: { message } }),
+  updateSupportTicket: (id, status) => apiRequest(`/support/${id}/status`, { method: 'PUT', body: { status } }),
+  getNotifications: () => apiRequest('/notifications/my'),
+  markAllNotificationsRead: () => apiRequest('/notifications/read-all', { method: 'PUT' }),
+  getClubs: () => apiRequest('/clubs', { auth: false }),
+  requestClub: (payload) => apiRequest('/clubs/request', { method: 'POST', body: payload }),
+  toggleClubFollow: (id) => apiRequest(`/clubs/${id}/follow`, { method: 'POST' }),
   googleLogin: (credential) => apiRequest('/auth/google', { method: 'POST', body: { credential }, auth: false }),
   me: () => apiRequest('/auth/me'),
   getPublicConfig: () => apiRequest('/config', { auth: false }),
@@ -116,6 +126,24 @@ const Api = {
   createEvent: (payload) => apiRequest('/events', { method: 'POST', body: payload }),
   updateEvent: (id, payload) => apiRequest(`/events/${id}`, { method: 'PUT', body: payload }),
   deleteEvent: (id) => apiRequest(`/events/${id}`, { method: 'DELETE' }),
+
+  // Saved events (persistent college feature)
+  getSavedEvents: () => apiRequest('/saved-events'),
+  getSavedEventIds: () => apiRequest('/saved-events/ids'),
+  saveEvent: (id) => apiRequest(`/saved-events/${id}`, { method: 'POST' }),
+  removeSavedEvent: (id) => apiRequest(`/saved-events/${id}`, { method: 'DELETE' }),
+
+  // Organizer / college workflows
+  getOrganizerDashboard: () => apiRequest('/organizer/dashboard'),
+  getOrganizerEvents: () => apiRequest('/organizer/events'),
+  createOrganizerEvent: (payload) => apiRequest('/organizer/events', { method: 'POST', body: payload }),
+  updateOrganizerEvent: (id, payload) => apiRequest(`/organizer/events/${id}`, { method: 'PUT', body: payload }),
+  getOrganizerRegistrations: (id) => apiRequest(`/organizer/events/${id}/registrations`),
+  updateOrganizerRegistration: (id, status) => apiRequest(`/organizer/registrations/${id}/status`, { method: 'PUT', body: { status } }),
+  announceOrganizerEvent: (id, payload) => apiRequest(`/organizer/events/${id}/announce`, { method: 'POST', body: payload }),
+  checkInAttendee: (code) => apiRequest('/organizer/check-in', { method: 'POST', body: { code } }),
+  getPendingEvents: () => apiRequest('/admin/pending-events'),
+  approveEvent: (id, status, note) => apiRequest(`/events/${id}/approval`, { method: 'PUT', body: { status, note } }),
 
   // Categories
   getCategories: () => apiRequest('/categories', { auth: false }),

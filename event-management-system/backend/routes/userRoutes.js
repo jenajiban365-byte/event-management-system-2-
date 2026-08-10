@@ -61,7 +61,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { role, status } = req.body; const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'User not found.' });
-    if (role && ['user', 'admin'].includes(role)) target.role = role;
+    if (role && ['user', 'organizer', 'admin'].includes(role)) target.role = role;
     if (status && ['active', 'blocked'].includes(status)) target.status = status;
     await target.save(); res.json({ message: 'User updated.', user: target });
   } catch (err) { res.status(500).json({ message: 'Server error updating user.', error: err.message }); }

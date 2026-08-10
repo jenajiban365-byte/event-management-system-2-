@@ -1,8 +1,10 @@
 const express = require('express');
+const crypto = require('crypto');
 const Booking = require('../models/Booking');
 const Event = require('../models/Event');
 const Waitlist = require('../models/Waitlist');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { sendWaitlistPromotedEmail } = require('../utils/email');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -13,7 +15,7 @@ async function promoteNextWaitlistEntry(eventId) {
   const next = await Waitlist.findOne({ event: eventId, status: 'waiting' }).sort({ position: 1, createdAt: 1 });
   if (!next) return null;
   try {
-    const booking = await Booking.create({ user: next.user, event: eventId, status: 'confirmed' });
+    const booking = await Booking.create({ user: next.user, event: eventId, status: 'confirmed', checkInCode: crypto.randomBytes(5).toString('hex').toUpperCase() });
     next.status = 'fulfilled';
     await next.save();
     event.bookedCount += 1;
@@ -25,6 +27,7 @@ async function promoteNextWaitlistEntry(eventId) {
       if (user) sendWaitlistPromotedEmail(user.name, user.email, event).catch((err) => console.error('WAITLIST PROMOTION EMAIL ERROR:', err.message));
     }).catch((err) => console.error('WAITLIST PROMOTION EMAIL LOOKUP ERROR:', err.message));
 
+    await Notification.create({ user: next.user, type: 'booking', title: 'Waitlist promoted', message: `A spot opened up for ${event.title}; your registration is confirmed.`, link: '/my-bookings.html' });
     return booking;
   } catch (err) {
     if (err.code !== 11000) console.error('WAITLIST PROMOTION ERROR:', err.message);
@@ -39,6 +42,7 @@ router.post('/', protect, async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: 'Event not found.' });
     if (event.status !== 'published') return res.status(400).json({ message: 'This event is not open for booking.' });
+    if (event.registrationDeadline && event.registrationDeadline < new Date().toISOString().slice(0, 10)) return res.status(400).json({ message: 'The registration deadline for this event has passed.' });
     const existing = await Booking.findOne({ event: eventId, user: req.user.id, status: { $ne: 'cancelled' } });
     if (existing) return res.status(409).json({ message: 'You have already booked this event.' });
     const claimedEvent = await Event.findOneAndUpdate(
@@ -47,7 +51,8 @@ router.post('/', protect, async (req, res) => {
     );
     if (!claimedEvent) return res.status(400).json({ message: 'This event is fully booked. Join the waitlist instead.' });
     try {
-      const booking = await Booking.create({ user: req.user.id, event: eventId, status: 'confirmed' });
+      const booking = await Booking.create({ user: req.user.id, event: eventId, status: 'confirmed', checkInCode: crypto.randomBytes(5).toString('hex').toUpperCase() });
+      await Notification.create({ user: req.user.id, type: 'booking', title: 'Registration confirmed', message: `Your spot for ${event.title} is confirmed.`, link: '/my-bookings.html' });
       res.status(201).json({ message: 'Booking confirmed.', booking });
     } catch (bookingError) {
       await Event.updateOne({ _id: eventId, bookedCount: { $gt: 0 } }, { $inc: { bookedCount: -1 } });
@@ -71,6 +76,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
     const wasCounted = ['confirmed', 'pending'].includes(booking.status);
     booking.status = 'cancelled';
     await booking.save();
+    await Notification.create({ user: booking.user, type: 'booking', title: 'Registration cancelled', message: 'Your event registration has been cancelled.', link: '/my-bookings.html' });
     if (wasCounted) {
       const event = await Event.findById(booking.event);
       if (event) {

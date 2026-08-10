@@ -1,0 +1,3 @@
+const mongoose = require('mongoose'); const schemaOptions = require('./schemaOptions');
+const clubSchema = new mongoose.Schema({ name:{type:String,required:true,unique:true,trim:true}, description:{type:String,default:''}, category:{type:String,default:'Club'}, logoUrl:{type:String,default:''}, contactEmail:{type:String,default:''}, status:{type:String,enum:['pending','approved','blocked'],default:'pending'}, organizerIds:[{type:mongoose.Schema.Types.ObjectId,ref:'User'}], followerIds:[{type:mongoose.Schema.Types.ObjectId,ref:'User'}], createdBy:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true} },schemaOptions);
+module.exports=mongoose.model('Club',clubSchema);
