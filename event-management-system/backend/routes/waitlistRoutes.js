@@ -3,15 +3,14 @@ const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
 const { protect } = require('../middleware/authMiddleware');
+const { asyncRoute } = require('../utils/routeHelpers');
 const router = express.Router();
 
-router.get('/status/:eventId', protect, async (req, res) => {
-  try {
-    const entry = await Waitlist.findOne({ event: req.params.eventId, user: req.user.id, status: 'waiting' });
-    const count = await Waitlist.countDocuments({ event: req.params.eventId, status: 'waiting' });
-    res.json({ joined: !!entry, position: entry ? entry.position : null, count });
-  } catch (err) { res.status(500).json({ message: 'Server error checking waitlist.' }); }
-});
+router.get('/status/:eventId', protect, asyncRoute(async (req, res) => {
+  const entry = await Waitlist.findOne({ event: req.params.eventId, user: req.user.id, status: 'waiting' });
+  const count = await Waitlist.countDocuments({ event: req.params.eventId, status: 'waiting' });
+  res.json({ joined: !!entry, position: entry ? entry.position : null, count });
+}, 'Server error checking waitlist.', { includeError: false }));
 
 router.post('/', protect, async (req, res) => {
   try {
@@ -31,12 +30,11 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-router.delete('/:eventId', protect, async (req, res) => {
-  try {
-    const entry = await Waitlist.findOneAndUpdate({ event: req.params.eventId, user: req.user.id, status: 'waiting' }, { status: 'cancelled' }, { new: true });
-    if (!entry) return res.status(404).json({ message: 'Waitlist entry not found.' });
-    await Waitlist.updateMany({ event: req.params.eventId, status: 'waiting', position: { $gt: entry.position } }, { $inc: { position: -1 } });
-    res.json({ message: 'Removed from waitlist.' });
-  } catch (err) { res.status(500).json({ message: 'Server error leaving waitlist.' }); }
-});
+router.delete('/:eventId', protect, asyncRoute(async (req, res) => {
+  const entry = await Waitlist.findOneAndUpdate({ event: req.params.eventId, user: req.user.id, status: 'waiting' }, { status: 'cancelled' }, { new: true });
+  if (!entry) return res.status(404).json({ message: 'Waitlist entry not found.' });
+  await Waitlist.updateMany({ event: req.params.eventId, status: 'waiting', position: { $gt: entry.position } }, { $inc: { position: -1 } });
+  res.json({ message: 'Removed from waitlist.' });
+}, 'Server error leaving waitlist.', { includeError: false }));
+
 module.exports = router;

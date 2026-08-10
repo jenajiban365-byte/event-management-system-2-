@@ -1,5 +1,7 @@
 const { verifyToken } = require('../utils/auth');
 const User = require('../models/User');
+const { publicUser } = require('../utils/routeHelpers');
+const { adminOnly } = require('./roleMiddleware');
 
 async function protect(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -18,18 +20,11 @@ async function protect(req, res, next) {
     if (user.status === 'blocked') {
       return res.status(403).json({ message: 'Your account has been blocked. Contact admin.' });
     }
-    req.user = { id: user.id, name: user.name, email: user.email, role: user.role, avatarUrl: user.avatarUrl || '', emailVerified: user.emailVerified !== false };
+    req.user = publicUser(user);
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid or expired token.' });
   }
-}
-
-function adminOnly(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required.' });
-  }
-  next();
 }
 
 module.exports = { protect, adminOnly };

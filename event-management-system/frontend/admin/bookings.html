@@ -51,11 +51,6 @@
 
   let bookingsCache = [];
 
-  function statusBadge(status) {
-    const map = { confirmed: 'badge-success', pending: 'badge-warning', cancelled: 'badge-muted', rejected: 'badge-danger' };
-    return `<span class="badge ${map[status] || 'badge-muted'}">${status}</span>`;
-  }
-
   function renderBookings() {
     const filtered = statusFilter.value
       ? bookingsCache.filter((b) => b.status === statusFilter.value)
@@ -71,7 +66,7 @@
         <td>${escapeHtml(b.user ? b.user.name : 'Deleted user')}</td>
         <td>${escapeHtml(b.user ? b.user.email : '-')}</td>
         <td>${escapeHtml(b.event ? b.event.title : 'Deleted event')}</td>
-        <td>${statusBadge(b.status)}</td>
+        <td>${bookingStatusBadge(b.status)}</td>
         <td>${formatDateTime(b.createdAt)}</td>
         <td>
           <div class="action-row">

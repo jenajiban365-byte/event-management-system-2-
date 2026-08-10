@@ -2,8 +2,13 @@ const express = require('express');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
+const Notification = require('../models/Notification');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { asyncRoute, applyFields, toNumberOrNull, todayIsoDate } = require('../utils/routeHelpers');
 const router = express.Router();
+
+const EVENT_FIELDS = ['title', 'description', 'category', 'date', 'time', 'location', 'latitude', 'longitude', 'capacity', 'imageUrl', 'status'];
+const EVENT_NUMERIC_FIELDS = ['capacity', 'latitude', 'longitude'];
 
 async function withWaitlistCounts(events) {
   const items = Array.isArray(events) ? events : [events];
@@ -15,37 +20,32 @@ async function withWaitlistCounts(events) {
   });
 }
 
-router.get('/', async (req, res) => {
-  try {
-    const { search, category, upcoming, date, sort, excludeId, limit, price, eventType, availability } = req.query;
-    const query = { status: 'published' };
-    if (search) {
-      const term = search.trim();
-      const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      query.$or = [{ title: regex }, { description: regex }, { location: regex }];
-    }
-    if (category) query.category = category;
-    if (eventType) query.eventType = eventType;
-    if (price === 'free') query.price = { $eq: 0 };
-    if (price === 'paid') query.price = { $gt: 0 };
-    if (availability === 'available') query.$expr = { $lt: ['$bookedCount', '$capacity'] };
-    if (date) query.date = date;
-    if (upcoming === 'true') query.date = { ...(query.date ? { $eq: query.date } : {}), $gte: new Date().toISOString().split('T')[0] };
-    if (excludeId) query._id = { $ne: excludeId };
-    const sortOption = sort === 'popular' ? { bookedCount: -1, date: 1 } : { date: 1, time: 1 };
-    let eventsQuery = Event.find(query).sort(sortOption);
-    if (limit) eventsQuery = eventsQuery.limit(Math.min(Number(limit) || 20, 50));
-    const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');
-    res.json({ events: await withWaitlistCounts(events) });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error fetching events.', error: err.message });
+router.get('/', asyncRoute(async (req, res) => {
+  const { search, category, upcoming, date, sort, excludeId, limit, price, eventType, availability } = req.query;
+  const query = { status: 'published' };
+  if (search) {
+    const term = search.trim();
+    const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    query.$or = [{ title: regex }, { description: regex }, { location: regex }];
   }
-});
+  if (category) query.category = category;
+  if (eventType) query.eventType = eventType;
+  if (price === 'free') query.price = { $eq: 0 };
+  if (price === 'paid') query.price = { $gt: 0 };
+  if (availability === 'available') query.$expr = { $lt: ['$bookedCount', '$capacity'] };
+  if (date) query.date = date;
+  if (upcoming === 'true') query.date = { ...(query.date ? { $eq: query.date } : {}), $gte: todayIsoDate() };
+  if (excludeId) query._id = { $ne: excludeId };
+  const sortOption = sort === 'popular' ? { bookedCount: -1, date: 1 } : { date: 1, time: 1 };
+  let eventsQuery = Event.find(query).sort(sortOption);
+  if (limit) eventsQuery = eventsQuery.limit(Math.min(Number(limit) || 20, 50));
+  const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');
+  res.json({ events: await withWaitlistCounts(events) });
+}, 'Server error fetching events.'));
 
-router.get('/all', protect, adminOnly, async (req, res) => {
-  try { res.json({ events: await Event.find().sort({ date: 1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching events.', error: err.message }); }
-});
+router.get('/all', protect, adminOnly, asyncRoute(async (req, res) => {
+  res.json({ events: await Event.find().sort({ date: 1 }) });
+}, 'Server error fetching events.'));
 
 router.get('/:id', async (req, res) => {
   try {
@@ -56,65 +56,49 @@ router.get('/:id', async (req, res) => {
   } catch (err) { res.status(404).json({ message: 'Event not found.' }); }
 });
 
-router.post('/', protect, adminOnly, async (req, res) => {
-  try {
-    const { title, description, category, date, time, location, capacity, imageUrl, latitude, longitude } = req.body;
-    if (!title || !description || !category || !date || !time || !location || !capacity) return res.status(400).json({ message: 'All fields are required.' });
-    const newEvent = await Event.create({
-      title, description, category, date, time, location,
-      latitude: latitude === '' || latitude === null || latitude === undefined ? null : Number(latitude),
-      longitude: longitude === '' || longitude === null || longitude === undefined ? null : Number(longitude),
-      capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published'
-    });
-    res.status(201).json({ message: 'Event created.', event: newEvent });
-  } catch (err) { res.status(500).json({ message: 'Server error creating event.', error: err.message }); }
-});
+router.post('/', protect, adminOnly, asyncRoute(async (req, res) => {
+  const { title, description, category, date, time, location, capacity, imageUrl, latitude, longitude } = req.body;
+  if (!title || !description || !category || !date || !time || !location || !capacity) return res.status(400).json({ message: 'All fields are required.' });
+  const newEvent = await Event.create({
+    title, description, category, date, time, location,
+    latitude: toNumberOrNull(latitude),
+    longitude: toNumberOrNull(longitude),
+    capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published'
+  });
+  res.status(201).json({ message: 'Event created.', event: newEvent });
+}, 'Server error creating event.'));
 
-router.put('/:id', protect, adminOnly, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Event not found.' });
-    ['title', 'description', 'category', 'date', 'time', 'location', 'latitude', 'longitude', 'capacity', 'imageUrl', 'status'].forEach((field) => {
-      if (req.body[field] !== undefined) {
-        if (field === 'capacity' || field === 'latitude' || field === 'longitude') {
-          event[field] = req.body[field] === '' || req.body[field] === null ? null : Number(req.body[field]);
-        } else {
-          event[field] = req.body[field];
-        }
-      }
-    });
-    if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
-    await event.save();
-    res.json({ message: 'Event updated.', event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event.', error: err.message }); }
-});
+router.put('/:id', protect, adminOnly, asyncRoute(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  if (!event) return res.status(404).json({ message: 'Event not found.' });
+  applyFields(event, req.body, EVENT_FIELDS, EVENT_NUMERIC_FIELDS);
+  if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
+  await event.save();
+  res.json({ message: 'Event updated.', event });
+}, 'Server error updating event.'));
 
-router.put('/:id/approval', protect, adminOnly, async (req, res) => {
-  try {
-    const { status, note } = req.body;
-    if (!['published', 'changes_requested', 'rejected', 'cancelled'].includes(status)) return res.status(400).json({ message: 'Invalid approval status.' });
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Event not found.' });
-    event.status = status;
-    event.approvalNote = String(note || '').trim();
-    if (status === 'published') event.publishedAt = new Date();
-    await event.save();
-    if (event.organizer) {
-      const Notification = require('../models/Notification');
-      await Notification.create({ user: event.organizer, type: 'event', title: `Event ${status.replace('_', ' ')}`, message: event.approvalNote || `${event.title} is now ${status.replace('_', ' ')}.`, link: `/event-details.html?id=${event.id}` });
-    }
-    res.json({ message: `Event ${status}.`, event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event approval.', error: err.message }); }
-});
+router.put('/:id/approval', protect, adminOnly, asyncRoute(async (req, res) => {
+  const { status, note } = req.body;
+  if (!['published', 'changes_requested', 'rejected', 'cancelled'].includes(status)) return res.status(400).json({ message: 'Invalid approval status.' });
+  const event = await Event.findById(req.params.id);
+  if (!event) return res.status(404).json({ message: 'Event not found.' });
+  event.status = status;
+  event.approvalNote = String(note || '').trim();
+  if (status === 'published') event.publishedAt = new Date();
+  await event.save();
+  if (event.organizer) {
+    await Notification.create({ user: event.organizer, type: 'event', title: `Event ${status.replace('_', ' ')}`, message: event.approvalNote || `${event.title} is now ${status.replace('_', ' ')}.`, link: `/event-details.html?id=${event.id}` });
+  }
+  res.json({ message: `Event ${status}.`, event });
+}, 'Server error updating event approval.'));
 
-router.delete('/:id', protect, adminOnly, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ message: 'Event not found.' });
-    await Booking.updateMany({ event: event.id }, { status: 'cancelled' });
-    await Waitlist.deleteMany({ event: event.id });
-    await event.deleteOne();
-    res.json({ message: 'Event deleted.' });
-  } catch (err) { res.status(500).json({ message: 'Server error deleting event.', error: err.message }); }
-});
+router.delete('/:id', protect, adminOnly, asyncRoute(async (req, res) => {
+  const event = await Event.findById(req.params.id);
+  if (!event) return res.status(404).json({ message: 'Event not found.' });
+  await Booking.updateMany({ event: event.id }, { status: 'cancelled' });
+  await Waitlist.deleteMany({ event: event.id });
+  await event.deleteOne();
+  res.json({ message: 'Event deleted.' });
+}, 'Server error deleting event.'));
+
 module.exports = router;

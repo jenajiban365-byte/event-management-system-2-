@@ -32,16 +32,6 @@
   const bookingsList = document.getElementById('bookingsList');
   const alertBox = document.getElementById('alertBox');
 
-  function statusBadge(status) {
-    const map = {
-      confirmed: 'badge-success',
-      pending: 'badge-warning',
-      cancelled: 'badge-muted',
-      rejected: 'badge-danger'
-    };
-    return `<span class="badge ${map[status] || 'badge-muted'}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
-  }
-
   function renderBookings(bookings) {
     if (!bookings.length) {
       bookingsList.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
@@ -56,7 +46,7 @@
     bookingsList.innerHTML = bookings.map((b) => {
       const event = b.event;
       if (!event) {
-        return `<div class="card"><p>Event no longer available.</p> ${statusBadge(b.status)}</div>`;
+        return `<div class="card"><p>Event no longer available.</p> ${bookingStatusBadge(b.status)}</div>`;
       }
       const canCancel = b.status === 'confirmed' || b.status === 'pending';
       return `
@@ -70,7 +60,7 @@
                 📍 ${escapeHtml(event.location)}
               </div>
             </div>
-            ${statusBadge(b.status)}
+            ${bookingStatusBadge(b.status)}
           </div>
           <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
             <a href="event-details.html?id=${event.id}" class="btn btn-outline btn-sm">View Event</a>
