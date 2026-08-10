@@ -26,6 +26,10 @@ const Session = {
   isAdmin() {
     const user = Session.getUser();
     return !!user && user.role === 'admin';
+  },
+  isOrganizer() {
+    const user = Session.getUser();
+    return !!user && (user.role === 'organizer' || user.role === 'admin');
   }
 };
 
@@ -135,6 +139,7 @@ const Api = {
 
   // Organizer / college workflows
   getOrganizerDashboard: () => apiRequest('/organizer/dashboard'),
+  getMyClubs: () => apiRequest('/organizer/clubs'),
   getOrganizerEvents: () => apiRequest('/organizer/events'),
   createOrganizerEvent: (payload) => apiRequest('/organizer/events', { method: 'POST', body: payload }),
   updateOrganizerEvent: (id, payload) => apiRequest(`/organizer/events/${id}`, { method: 'PUT', body: payload }),
@@ -466,6 +471,13 @@ function requireAuth() {
 function requireAdmin() {
   if (!Session.isLoggedIn() || !Session.isAdmin()) {
     window.location.href = 'login.html';
+  }
+}
+
+// Organizer pages live in /organizer/, so redirects need to climb one level.
+function requireOrganizer() {
+  if (!Session.isLoggedIn() || !Session.isOrganizer()) {
+    window.location.href = '../login.html';
   }
 }
 

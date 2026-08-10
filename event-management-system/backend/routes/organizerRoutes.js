@@ -25,6 +25,13 @@ router.get('/dashboard', protect, organizerOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Server error fetching organizer dashboard.', error: err.message }); }
 });
 
+router.get('/clubs', protect, organizerOnly, async (req, res) => {
+  try {
+    const clubs = await Club.find({ organizerIds: req.user.id, status: 'approved' }).sort({ name: 1 });
+    res.json({ clubs });
+  } catch (err) { res.status(500).json({ message: 'Server error fetching organizer clubs.', error: err.message }); }
+});
+
 router.get('/events', protect, organizerOnly, async (req, res) => {
   try {
     const clubs = await Club.find({ organizerIds: req.user.id }).select('_id');
