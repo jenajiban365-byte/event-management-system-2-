@@ -98,6 +98,8 @@
     const spotsLeft = event.capacity - event.bookedCount;
     const full = spotsLeft <= 0;
     const loggedIn = Session.isLoggedIn();
+    const price = event.price && Number(event.price) > 0 ? `₹${Number(event.price)}` : 'Free';
+    const saved = new Set(JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]')).has(event.id);
 
     content.innerHTML = `
       <div class="card event-detail-card">
@@ -114,19 +116,41 @@
               <span class="badge badge-primary">${escapeHtml(event.category)}</span>
               <h1>${escapeHtml(event.title)}</h1>
             </div>
-            <a href="events.html" class="btn btn-outline btn-sm">← Back to events</a>
+            <div class="detail-header-actions">
+              <button class="btn btn-outline btn-sm" id="saveDetailBtn" type="button">${saved ? 'Saved' : 'Save'} event</button>
+              <a href="events.html" class="btn btn-outline btn-sm">← Back to events</a>
+            </div>
           </div>
           <div class="event-detail-info">
             <span class="info-chip">📅 ${formatDate(event.date)} at ${escapeHtml(event.time)}</span>
             <span class="info-chip">📍 ${escapeHtml(event.location)}</span>
             <span class="info-chip">👥 ${event.bookedCount}/${event.capacity} booked</span>
+            <span class="info-chip">🎟️ ${escapeHtml(price)}</span>
           </div>
           <div class="event-detail-body">
             <p>${escapeHtml(event.description)}</p>
           </div>
-          <div class="event-availability">
-            <div class="availability-heading"><span>Availability</span><strong>${Math.max(0, spotsLeft)} of ${event.capacity} spots left</strong></div>
-            <div class="availability-track" role="progressbar" aria-label="Event availability" aria-valuemin="0" aria-valuemax="${event.capacity}" aria-valuenow="${Math.max(0, spotsLeft)}"><span style="width:${Math.min(100, Math.max(0, (spotsLeft / event.capacity) * 100))}%"></span></div>
+          <div class="event-detail-grid">
+            <div class="event-detail-panel">
+              <div class="event-detail-panel-title">Event details</div>
+              <div class="detail-list">
+                <div><span>Venue</span><strong>${escapeHtml(event.location)}</strong></div>
+                <div><span>Date & time</span><strong>${formatDate(event.date)} • ${escapeHtml(event.time)}</strong></div>
+                <div><span>Availability</span><strong>${Math.max(0, spotsLeft)} / ${event.capacity} spots left</strong></div>
+                <div><span>Organizer</span><strong>${escapeHtml(event.organizer || 'EventHub Team')}</strong></div>
+              </div>
+            </div>
+            <div class="event-detail-panel emphasis-panel">
+              <div class="event-detail-panel-title">Booking</div>
+              <div class="booking-summary">
+                <span>${Math.max(0, spotsLeft)} seats remaining</span>
+                <strong>${price}</strong>
+              </div>
+              <div class="event-availability">
+                <div class="availability-heading"><span>Availability</span><strong>${Math.max(0, spotsLeft)} of ${event.capacity} spots left</strong></div>
+                <div class="availability-track" role="progressbar" aria-label="Event availability" aria-valuemin="0" aria-valuemax="${event.capacity}" aria-valuenow="${Math.max(0, spotsLeft)}"><span style="width:${Math.min(100, Math.max(0, (spotsLeft / event.capacity) * 100))}%"></span></div>
+              </div>
+            </div>
           </div>
           <div class="event-detail-actions">
             <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
@@ -145,6 +169,7 @@
     const waitlistStatus = document.getElementById('waitlistStatus');
     const calendarBtn = document.getElementById('calendarBtn');
     const shareBtn = document.getElementById('shareBtn');
+    const saveBtn = document.getElementById('saveDetailBtn');
     calendarBtn.addEventListener('click', () => downloadCalendarEvent(event));
     shareBtn.addEventListener('click', async () => {
       try {
@@ -154,6 +179,21 @@
         if (err.name !== 'AbortError') showToast('Unable to share this event.', 'error');
       }
     });
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const savedSet = new Set(JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]'));
+        if (savedSet.has(event.id)) {
+          savedSet.delete(event.id);
+          showToast('Removed from saved events');
+        } else {
+          savedSet.add(event.id);
+          showToast('Saved this event');
+        }
+        localStorage.setItem('eventhub_saved_events', JSON.stringify(Array.from(savedSet)));
+        loadEvent();
+      });
+    }
 
     if (waitlistBtn) {
       const refreshWaitlist = async () => {

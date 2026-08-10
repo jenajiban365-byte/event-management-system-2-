@@ -19,8 +19,8 @@
   <div class="events-intro">
     <div>
       <div class="eyebrow">DISCOVER WHAT'S NEXT</div>
-      <h1>Upcoming Events</h1>
-      <p>Find experiences worth leaving the house for.</p>
+      <h1 id="eventsTitle">Discover events you'll love</h1>
+      <p id="eventsSubtitle">Explore what is coming up around you.</p>
     </div>
   </div>
 
@@ -43,7 +43,22 @@
         <option value="">All Categories</option>
       </select>
       <input type="date" id="dateFilter" class="form-control filter-control" aria-label="Filter by date" />
+      <select id="priceFilter" class="form-control filter-control" aria-label="Filter by price">
+        <option value="">All Prices</option>
+        <option value="free">Free</option>
+        <option value="paid">Paid</option>
+      </select>
+      <select id="typeFilter" class="form-control filter-control" aria-label="Filter by event type">
+        <option value="">All event types</option>
+        <option value="Conference">Conference</option>
+        <option value="Workshop">Workshop</option>
+        <option value="Concert">Concert</option>
+        <option value="Sports">Sports</option>
+        <option value="Networking">Networking</option>
+      </select>
       <select id="sortFilter" class="form-control filter-control" aria-label="Sort events">
+        <option value="recommended">Sort: Recommended</option>
+        <option value="nearest">Sort: Nearest</option>
         <option value="soonest">Sort: Soonest</option>
         <option value="popular">Sort: Most Popular</option>
       </select>
@@ -52,7 +67,7 @@
   </div>
 
   <div id="alertBox"></div>
-  <div id="featuredEvent"></div>
+  <div id="eventDiscovery" class="discovery-layout"></div>
   <div class="results-toolbar">
     <span id="resultsSummary" aria-live="polite">Loading events...</span>
     <button class="text-button" id="resetSavedFiltersBtn" type="button">Reset saved filters</button>
@@ -68,11 +83,15 @@
   renderNavbar('events');
 
   const eventsGrid = document.getElementById('eventsGrid');
-  const featuredEvent = document.getElementById('featuredEvent');
+  const eventDiscovery = document.getElementById('eventDiscovery');
+  const eventsTitle = document.getElementById('eventsTitle');
+  const eventsSubtitle = document.getElementById('eventsSubtitle');
   const alertBox = document.getElementById('alertBox');
   const searchInput = document.getElementById('searchInput');
   const categoryFilter = document.getElementById('categoryFilter');
   const dateFilter = document.getElementById('dateFilter');
+  const priceFilter = document.getElementById('priceFilter');
+  const typeFilter = document.getElementById('typeFilter');
   const sortFilter = document.getElementById('sortFilter');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
   const nearMeBtn = document.getElementById('nearMeBtn');
@@ -88,11 +107,25 @@
   const resultsSummary = document.getElementById('resultsSummary');
   const resetSavedFiltersBtn = document.getElementById('resetSavedFiltersBtn');
 
+  function personaliseDiscoveryIntro() {
+    const user = Session.getUser();
+    if (Session.isLoggedIn() && user && user.name) {
+      const firstName = String(user.name).split(' ')[0] || 'there';
+      eventsTitle.textContent = `Hi, ${firstName} 👋`;
+      eventsSubtitle.textContent = 'Events curated for your next plan.';
+    } else {
+      eventsTitle.textContent = 'Discover events you\'ll love';
+      eventsSubtitle.textContent = 'Sign in to personalise recommendations around your location.';
+    }
+  }
+
   function saveFilters() {
     localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
       search: searchInput.value,
       category: categoryFilter.value,
       date: dateFilter.value,
+      price: priceFilter.value,
+      type: typeFilter.value,
       sort: sortFilter.value,
       nearMe: nearMeActive
     }));
@@ -105,7 +138,9 @@
       searchInput.value = saved.search || '';
       categoryFilter.value = saved.category || '';
       dateFilter.value = saved.date || '';
-      sortFilter.value = saved.sort || 'soonest';
+      priceFilter.value = saved.price || '';
+      typeFilter.value = saved.type || '';
+      sortFilter.value = saved.sort || 'recommended';
       nearMeActive = saved.nearMe === true;
     } catch (err) {
       localStorage.removeItem(FILTER_STORAGE_KEY);
@@ -176,7 +211,7 @@
 
   function renderFeatured(event) {
     if (!event) {
-      featuredEvent.innerHTML = '';
+      eventDiscovery.innerHTML = '';
       return;
     }
     const spotsLeft = event.capacity - event.bookedCount;
@@ -185,13 +220,13 @@
       ? `<img src="${optimizedImageUrl(event.imageUrl, 900).replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" />`
       : `<div style="height:100%;display:grid;place-items:center;font-size:4rem;">${escapeHtml(event.category.charAt(0))}</div>`;
 
-    featuredEvent.innerHTML = `
+    eventDiscovery.innerHTML = `
       <article class="featured-event">
         <a class="featured-event-media" href="event-details.html?id=${event.id}" aria-label="View ${escapeHtml(event.title)}">
           ${image}
         </a>
         <div class="featured-event-content">
-          <div class="featured-kicker">Featured event</div>
+          <div class="featured-kicker">Trending near you</div>
           <div style="margin-top:8px;"><span class="badge badge-primary">${escapeHtml(event.category)}</span></div>
           <h2>${escapeHtml(event.title)}</h2>
           <p>${escapeHtml(event.description || 'A great event is waiting for you.')}</p>
@@ -208,9 +243,72 @@
     `;
   }
 
+  function eventPrice(event) {
+    if (event && Number.isFinite(Number(event.price)) && Number(event.price) > 0) return `₹${Number(event.price)}`;
+    return 'Free';
+  }
+
+  function getSavedEvents() {
+    try {
+      return JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]');
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveEventIds() {
+    const ids = getSavedEvents();
+    return new Set(ids);
+  }
+
+  function renderEventCard(event) {
+    const spotsLeft = Number(event.capacity || 0) - Number(event.bookedCount || 0);
+    const full = spotsLeft <= 0;
+    const safeImg = event.imageUrl ? optimizedImageUrl(event.imageUrl, 500).replace(/"/g, '&quot;') : '';
+    const date = new Date(event.date);
+    const savedSet = saveEventIds();
+    const saved = savedSet.has(event.id);
+
+    return `<article class="event-card">
+      <button type="button" class="save-heart ${saved ? 'saved' : ''}" data-save-event="${escapeHtml(event.id)}" aria-label="${saved ? 'Remove saved event' : 'Save event'}">
+        <span class="heart-icon" aria-hidden="true">${saved ? '♥' : '♡'}</span>
+      </button>
+      <a href="event-details.html?id=${event.id}" class="event-card-link">
+        <div class="thumb">
+          ${event.imageUrl ? `<img src="${safeImg}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" class="thumb-img" />` : `<span class="cat-badge">${escapeHtml(event.category.charAt(0))}</span>`}
+          <div class="event-date-chip" aria-label="Event date">
+            <strong>${date.toLocaleDateString(undefined, { day: '2-digit' })}</strong>
+            <span>${date.toLocaleDateString(undefined, { month: 'short' })}</span>
+          </div>
+          <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
+        </div>
+        <div class="body">
+          <div class="event-card-topline">
+            <span class="badge badge-primary">${escapeHtml(event.category)}</span>
+            <span class="event-time">${escapeHtml(event.time)}</span>
+          </div>
+          <h3>${escapeHtml(event.title)}</h3>
+          <div class="meta">
+            <span>📅 ${formatDate(event.date)}</span>
+            <span>📍 ${escapeHtml(event.location)}</span>
+            ${distanceBadge(event)}
+          </div>
+          <div class="premium-meta">
+            <span class="event-price">${escapeHtml(eventPrice(event))}</span>
+            <span class="badge badge-muted">${event.bookedCount || 0}/${event.capacity || 0} booked</span>
+          </div>
+        </div>
+        <div class="footer">
+          <span class="badge badge-muted">${event.bookedCount || 0}/${event.capacity || 0} booked</span>
+          <span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    </article>`;
+  }
+
   function renderEvents(events) {
     if (!events.length) {
-      featuredEvent.innerHTML = '';
+      eventDiscovery.innerHTML = '';
       eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
         <div class="icon">🔍</div>
         <h3>No events found</h3>
@@ -219,49 +317,91 @@
       return;
     }
 
-    renderFeatured(events[0]);
-    const gridEvents = events.slice(1);
-    if (!gridEvents.length) {
-      eventsGrid.innerHTML = '';
-      return;
+    const savedIds = saveEventIds();
+    const trending = events.slice(0, Math.min(4, events.length));
+    const nearYou = events.slice(0, Math.min(4, events.length));
+    const recommended = events.slice(0, Math.min(4, events.length));
+    const weekend = events.filter((event) => {
+      if (!event.date) return false;
+      const date = new Date(event.date + 'T00:00:00');
+      const today = new Date();
+      const next = new Date(today);
+      next.setDate(today.getDate() + 7);
+      return date >= today && date <= next;
+    }).slice(0, 4);
+    const categoryNames = Array.from(new Set(events.map((event) => event.category).filter(Boolean))).slice(0, 6);
+
+    const sections = [];
+
+    if (trending.length) {
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">EVENTS TO WATCH</div><h2>Trending Events</h2></div><a href="events.html" class="section-action">Browse all</a></div><div class="discovery-results-grid">${trending.map(renderEventCard).join('')}</div></section>`);
     }
 
-    eventsGrid.innerHTML = gridEvents.map((e) => {
-      const spotsLeft = e.capacity - e.bookedCount;
-      const full = spotsLeft <= 0;
-      const safeImg = e.imageUrl ? optimizedImageUrl(e.imageUrl, 500).replace(/"/g, '&quot;') : '';
-      const date = new Date(e.date);
-      return `
-        <a href="event-details.html?id=${e.id}" class="event-card">
-          <div class="thumb">
-            ${e.imageUrl
-              ? `<img src="${safeImg}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />`
-              : `<span class="cat-badge">${escapeHtml(e.category.charAt(0))}</span>`}
-            <div class="event-date-chip" aria-label="Event date">
-              <strong>${date.toLocaleDateString(undefined, { day: '2-digit' })}</strong>
-              <span>${date.toLocaleDateString(undefined, { month: 'short' })}</span>
-            </div>
-            <span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spotsLeft + ' left'}</span>
-          </div>
-          <div class="body">
-            <div class="event-card-topline">
-              <span class="badge badge-primary">${escapeHtml(e.category)}</span>
-              <span class="event-time">${escapeHtml(e.time)}</span>
-            </div>
-            <h3>${escapeHtml(e.title)}</h3>
-            <div class="meta">
-              <span>📅 ${formatDate(e.date)}</span>
-              <span>📍 ${escapeHtml(e.location)}</span>
-              ${distanceBadge(e)}
-            </div>
-          </div>
-          <div class="footer">
-            <span class="badge badge-muted">${e.bookedCount}/${e.capacity} booked</span>
-            <span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span>
-          </div>
-        </a>
-      `;
-    }).join('');
+    if (nearMeActive && nearYou.length) {
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">LOCAL DISCOVERY</div><h2>Events Near You</h2></div><span class="section-action">${locationStatus.textContent}</span></div><div class="discovery-results-grid">${nearYou.map(renderEventCard).join('')}</div></section>`);
+    }
+
+    if (recommended.length) {
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">${Session.isLoggedIn() ? 'PERSONALIZED' : 'DISCOVER'} </div><h2>${Session.isLoggedIn() ? 'Recommended For You' : 'Recommended For You'}</h2></div></div><div class="discovery-results-grid">${recommended.map(renderEventCard).join('')}</div></section>`);
+    }
+
+    if (weekend.length) {
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">THIS WEEKEND</div><h2>This Weekend</h2></div><span class="section-action">${weekend.length} picks</span></div><div class="discovery-results-grid">${weekend.map(renderEventCard).join('')}</div></section>`);
+    }
+
+    if (categoryNames.length) {
+      const catHtml = categoryNames.map((category) => `<span class="category-pill"><span aria-hidden="true">✦</span>${escapeHtml(category)} <strong>${events.filter((event) => event.category === category).length}</strong></span>`).join('');
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">CATEGORIES</div><h2>Popular Categories</h2></div></div><div class="category-strip">${catHtml}</div></section>`);
+    }
+
+    const savedEvents = getSavedEvents();
+    if (savedEvents.length) {
+      const savedVisible = events.filter((event) => savedIds.has(event.id));
+      if (savedVisible.length) {
+        sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">YOUR LIST</div><h2>Saved Events</h2></div><a class="section-action" href="events.html#saved">View saved</a></div><div class="discovery-results-grid">${savedVisible.map(renderEventCard).join('')}</div></section>`);
+      }
+    }
+
+    const viewed = getRecentlyViewed();
+    const viewedEvents = events.filter((event) => viewed.includes(event.id));
+    if (viewedEvents.length) {
+      sections.push(`<section class="discovery-section"><div class="section-head"><div><div class="section-subtitle">YOUR ACTIVITY</div><h2>Recently Viewed</h2></div></div><div class="discovery-results-grid">${viewedEvents.map(renderEventCard).join('')}</div></section>`);
+    }
+
+    eventDiscovery.innerHTML = sections.join('') || `<div class="event-discovery-empty"><h3>No discovery sections to show</h3><p>There are no events matching your current filters.</p></div>`;
+
+    if (events.length) {
+      eventsGrid.innerHTML = events.map((e) => renderEventCard(e)).join('');
+    } else {
+      eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔍</div><h3>No events found</h3><p>Try adjusting your search or filters.</p></div>`;
+    }
+
+    document.querySelectorAll('[data-save-event]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const id = btn.getAttribute('data-save-event');
+        const current = new Set(getSavedEvents());
+        if (current.has(id)) {
+          current.delete(id);
+          showToast('Removed from saved events');
+        } else {
+          current.add(id);
+          showToast('Saved event');
+        }
+        localStorage.setItem('eventhub_saved_events', JSON.stringify(Array.from(current)));
+        loadEvents();
+      });
+    });
+  }
+
+  function getRecentlyViewed() {
+    try {
+      const viewed = JSON.parse(localStorage.getItem('eventhub_recently_viewed') || '[]');
+      return Array.isArray(viewed) ? viewed : [];
+    } catch (err) {
+      return [];
+    }
   }
 
   function renderSkeletons(count = 6) {
@@ -279,10 +419,36 @@
   async function loadEvents() {
     try {
       clearAlert(alertBox);
-      featuredEvent.innerHTML = '';
+      eventDiscovery.innerHTML = '';
       renderSkeletons();
       const response = await Api.getEvents(buildQuery());
-      const events = enrichWithDistance(response.events);
+      let events = enrichWithDistance(response.events || []);
+
+      if (priceFilter.value === 'free') {
+        events = events.filter((event) => !Number.isFinite(Number(event.price)) || Number(event.price) === 0);
+      }
+      if (priceFilter.value === 'paid') {
+        events = events.filter((event) => Number.isFinite(Number(event.price)) && Number(event.price) > 0);
+      }
+
+      if (typeFilter.value) {
+        events = events.filter((event) => (event.category || '').toLowerCase() === typeFilter.value.toLowerCase());
+      }
+
+      if (sortFilter.value === 'popular') {
+        events = events.sort((a, b) => Number(b.bookedCount || 0) - Number(a.bookedCount || 0));
+      } else if (sortFilter.value === 'near' || sortFilter.value === 'nearest') {
+        events = events.sort((a, b) => (a.distanceKm ?? Number.MAX_SAFE_INTEGER) - (b.distanceKm ?? Number.MAX_SAFE_INTEGER));
+      } else if (sortFilter.value === 'soonest') {
+        events = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+      } else {
+        events = events.sort((a, b) => {
+          const aScore = Number(a.bookedCount || 0) + (Date.parse(a.date) || 0);
+          const bScore = Number(b.bookedCount || 0) + (Date.parse(b.date) || 0);
+          return bScore - aScore;
+        });
+      }
+
       saveFilters();
       const nearbyCount = nearMeActive ? events.filter((event) => event.distanceKm != null).length : events.length;
       resultsSummary.textContent = nearMeActive
@@ -292,7 +458,7 @@
     } catch (err) {
       resultsSummary.textContent = 'Could not load events';
       showAlert(alertBox, err.message);
-      featuredEvent.innerHTML = '';
+      eventDiscovery.innerHTML = '';
       eventsGrid.innerHTML = '';
     }
   }
@@ -378,12 +544,16 @@
   });
   categoryFilter.addEventListener('change', loadEvents);
   dateFilter.addEventListener('change', loadEvents);
+  priceFilter.addEventListener('change', loadEvents);
+  typeFilter.addEventListener('change', loadEvents);
   sortFilter.addEventListener('change', loadEvents);
   clearFiltersBtn.addEventListener('click', () => {
     searchInput.value = '';
     categoryFilter.value = '';
     dateFilter.value = '';
-    sortFilter.value = 'soonest';
+    priceFilter.value = '';
+    typeFilter.value = '';
+    sortFilter.value = 'recommended';
     loadEvents();
   });
   resetSavedFiltersBtn.addEventListener('click', () => {
@@ -393,6 +563,7 @@
 
   loadCategories().then(() => {
     restoreFilters();
+    personaliseDiscoveryIntro();
     if (nearMeActive) {
       nearMeActive = false;
       locationStatus.textContent = 'Location access needs to be enabled again on this visit.';

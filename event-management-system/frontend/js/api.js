@@ -29,6 +29,43 @@ const Session = {
   }
 };
 
+function getStoredTheme() {
+  const theme = localStorage.getItem('eventhub_theme') || 'system';
+  return theme === 'dark' || theme === 'light' || theme === 'system' ? theme : 'system';
+}
+
+function getSystemColorMode() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyEventHubTheme(mode = getStoredTheme()) {
+  const selectedMode = mode === 'dark' || mode === 'light' || mode === 'system' ? mode : 'system';
+  const resolvedMode = selectedMode === 'system' ? getSystemColorMode() : selectedMode;
+  const body = document.body;
+  if (!body) return;
+  body.setAttribute('data-theme', resolvedMode);
+  body.classList.toggle('eventhub-light', resolvedMode === 'light');
+  body.classList.toggle('eventhub-dark', resolvedMode === 'dark');
+
+  const selectValues = [document.getElementById('themeSelect'), document.getElementById('mobileThemeSelect')];
+  selectValues.forEach((control) => {
+    if (control) control.value = selectedMode;
+  });
+}
+
+function initThemeSupport() {
+  const selectedTheme = getStoredTheme();
+  applyEventHubTheme(selectedTheme);
+
+  const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  if (media && media.addEventListener) {
+    media.addEventListener('change', () => {
+      const theme = getStoredTheme();
+      if (theme === 'system') applyEventHubTheme('system');
+    });
+  }
+}
+
 // ---------- Fetch wrapper ----------
 async function apiRequest(path, { method = 'GET', body = null, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -367,6 +404,8 @@ function redirectIfLoggedIn() {
     window.location.href = Session.isAdmin() ? 'admin/dashboard.html' : 'events.html';
   }
 }
+
+initThemeSupport();
 
 // ---------- Google Sign-In ----------
 // Loads the Google Identity Services script (if needed), then renders a

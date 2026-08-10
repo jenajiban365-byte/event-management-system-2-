@@ -70,7 +70,8 @@ function renderNavbar(activePage) {
   const loggedIn = Session.isLoggedIn();
 
   const links = [
-    { href: 'events.html', label: 'Events', key: 'events' },
+    { href: 'events.html', label: 'Discover', key: 'events' },
+    { href: 'events.html#saved', label: 'Saved Events', key: 'saved', authOnly: true },
     { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
     { href: 'contact.html', label: 'Contact', key: 'contact' }
   ];
@@ -79,6 +80,10 @@ function renderNavbar(activePage) {
     .filter((l) => !l.authOnly || loggedIn)
     .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
     .join('');
+
+  const greeting = loggedIn && user && user.name
+    ? `Hi, ${escapeHtml(user.name.split(' ')[0])} 👋`
+    : '';
 
   const rightHtml = loggedIn
     ? `
@@ -96,9 +101,20 @@ function renderNavbar(activePage) {
               <span>${escapeHtml(user.email || '')}</span>
             </div>
           </div>
-          <a href="profile.html" role="menuitem">Profile</a>
+          <div class="profile-menu-greeting">${greeting}</div>
           <a href="my-bookings.html" role="menuitem">My Bookings</a>
-          <button id="logoutBtn" type="button" role="menuitem">Logout</button>
+          <a href="events.html#saved" role="menuitem">Saved Events</a>
+          <a href="profile.html" role="menuitem">Profile</a>
+          <a href="profile.html#settings" role="menuitem">Settings</a>
+          <div class="theme-row">
+            <span class="theme-label">Theme</span>
+            <select id="themeSelect" class="theme-select" aria-label="Select theme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+          <button id="logoutBtn" type="button" role="menuitem">Sign out</button>
         </div>
       </div>
     `
@@ -111,7 +127,7 @@ function renderNavbar(activePage) {
 
   navContainer.innerHTML = `
     <div class="navbar-inner">
-      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">🎫</span> EventHub</a>
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
       <div class="desktop-nav">
         <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
         ${rightHtml}
@@ -121,12 +137,23 @@ function renderNavbar(activePage) {
     <div class="mobile-nav-links" id="siteNavLinks">
       ${linksHtml}
       ${loggedIn ? `
-        <a href="profile.html" class="${activePage === 'profile' ? 'active' : ''}">Profile</a>
         <div class="mobile-user-card">
           ${avatarHtml(user)}
           <div><strong>${escapeHtml(user.name || 'User')}</strong><span>${escapeHtml(user.email || '')}</span></div>
         </div>
-        <button id="mobileLogoutBtn" type="button" class="mobile-logout">Logout</button>
+        <a href="my-bookings.html" class="${activePage === 'bookings' ? 'active' : ''}">My Bookings</a>
+        <a href="events.html#saved" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>
+        <a href="profile.html" class="${activePage === 'profile' ? 'active' : ''}">Profile</a>
+        <a href="profile.html#settings" class="${activePage === 'settings' ? 'active' : ''}">Settings</a>
+        <div class="mobile-theme-row">
+          <span>Theme</span>
+          <select id="mobileThemeSelect" class="theme-select">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+          </select>
+        </div>
+        <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
       ` : `
         <div class="mobile-auth-row">
           <a class="nav-signin" href="login.html">Sign in</a>
@@ -145,6 +172,27 @@ function renderNavbar(activePage) {
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
   const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
   if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
+
+  const selectedTheme = localStorage.getItem('eventhub_theme') || 'system';
+  const themeControl = document.getElementById('themeSelect');
+  if (themeControl) {
+    themeControl.value = selectedTheme;
+    themeControl.addEventListener('change', () => {
+      const next = themeControl.value;
+      localStorage.setItem('eventhub_theme', next);
+      applyEventHubTheme(next);
+    });
+  }
+
+  const mobileThemeControl = document.getElementById('mobileThemeSelect');
+  if (mobileThemeControl) {
+    mobileThemeControl.value = selectedTheme;
+    mobileThemeControl.addEventListener('change', () => {
+      const next = mobileThemeControl.value;
+      localStorage.setItem('eventhub_theme', next);
+      applyEventHubTheme(next);
+    });
+  }
 
   setupMobileNavbar();
 }
