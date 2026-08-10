@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const Event = require('../models/Event');
@@ -6,16 +7,28 @@ const Event = require('../models/Event');
 async function seedDatabase() {
   const userCount = await User.countDocuments();
   if (userCount === 0) {
-    const passwordHash = await bcrypt.hash('Admin@123', 10);
-    await User.create({
-      name: 'System Admin',
-      email: 'admin@events.com',
-      password: passwordHash,
-      role: 'admin',
-      status: 'active',
-      emailVerified: true
-    });
-    console.log('Seeded default admin account (admin@events.com / Admin@123).');
+    const email = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    if (!email) {
+      console.warn('No users exist yet and ADMIN_EMAIL is not set — skipping admin seeding.');
+    } else {
+      // A generated password is printed once, to the server log only, so an empty
+      // deployment never ships with publicly known admin credentials.
+      const generatedPassword = process.env.ADMIN_PASSWORD ? null : crypto.randomBytes(18).toString('base64url');
+      const password = process.env.ADMIN_PASSWORD || generatedPassword;
+      if (password.length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters.');
+      await User.create({
+        name: 'System Admin',
+        email,
+        password: await bcrypt.hash(password, 10),
+        role: 'admin',
+        status: 'active',
+        emailVerified: true
+      });
+      console.log(`Seeded admin account for ${email}.`);
+      if (generatedPassword) {
+        console.log(`Generated one-time admin password: ${generatedPassword} — sign in and change it now.`);
+      }
+    }
   }
 
   const categoryCount = await Category.countDocuments();

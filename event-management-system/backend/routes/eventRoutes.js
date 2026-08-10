@@ -2,8 +2,15 @@ const express = require('express');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, optionalAuth } = require('../middleware/authMiddleware');
 const router = express.Router();
+
+// Query values arrive as strings, but Express also parses `?field[$ne]=x` into an
+// object, which Mongo would interpret as an operator. Coercing to a string keeps
+// every filter a plain equality match.
+function asString(value) {
+  return typeof value === 'string' ? value : '';
+}
 
 async function withWaitlistCounts(events) {
   const items = Array.isArray(events) ? events : [events];
@@ -17,7 +24,16 @@ async function withWaitlistCounts(events) {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, category, upcoming, date, sort, excludeId, limit, price, eventType, availability } = req.query;
+    const search = asString(req.query.search);
+    const category = asString(req.query.category);
+    const upcoming = asString(req.query.upcoming);
+    const date = asString(req.query.date);
+    const sort = asString(req.query.sort);
+    const excludeId = asString(req.query.excludeId);
+    const limit = asString(req.query.limit);
+    const price = asString(req.query.price);
+    const eventType = asString(req.query.eventType);
+    const availability = asString(req.query.availability);
     const query = { status: 'published' };
     if (search) {
       const term = search.trim();
@@ -38,19 +54,24 @@ router.get('/', async (req, res) => {
     const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');
     res.json({ events: await withWaitlistCounts(events) });
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching events.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Server error fetching events.' });
   }
 });
 
 router.get('/all', protect, adminOnly, async (req, res) => {
   try { res.json({ events: await Event.find().sort({ date: 1 }) }); }
-  catch (err) { res.status(500).json({ message: 'Server error fetching events.', error: err.message }); }
+  catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error fetching events.' }); }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('club', 'name category logoUrl contactEmail').populate('organizer', 'name email avatarUrl');
     if (!event) return res.status(404).json({ message: 'Event not found.' });
+    // Drafts and events awaiting approval are only visible to admins and their organizer.
+    const organizerId = event.organizer ? String(event.organizer.id || event.organizer) : null;
+    const isStaff = req.user && (req.user.role === 'admin' || req.user.id === organizerId);
+    if (event.status !== 'published' && !isStaff) return res.status(404).json({ message: 'Event not found.' });
     const [result] = await withWaitlistCounts([event]);
     res.json({ event: result });
   } catch (err) { res.status(404).json({ message: 'Event not found.' }); }
@@ -67,7 +88,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       capacity: Number(capacity), bookedCount: 0, imageUrl: imageUrl || '', status: 'published'
     });
     res.status(201).json({ message: 'Event created.', event: newEvent });
-  } catch (err) { res.status(500).json({ message: 'Server error creating event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error creating event.' }); }
 });
 
 router.put('/:id', protect, adminOnly, async (req, res) => {
@@ -86,7 +107,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
     await event.save();
     res.json({ message: 'Event updated.', event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating event.' }); }
 });
 
 router.put('/:id/approval', protect, adminOnly, async (req, res) => {
@@ -104,7 +125,7 @@ router.put('/:id/approval', protect, adminOnly, async (req, res) => {
       await Notification.create({ user: event.organizer, type: 'event', title: `Event ${status.replace('_', ' ')}`, message: event.approvalNote || `${event.title} is now ${status.replace('_', ' ')}.`, link: `/event-details.html?id=${event.id}` });
     }
     res.json({ message: `Event ${status}.`, event });
-  } catch (err) { res.status(500).json({ message: 'Server error updating event approval.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error updating event approval.' }); }
 });
 
 router.delete('/:id', protect, adminOnly, async (req, res) => {
@@ -115,6 +136,6 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     await Waitlist.deleteMany({ event: event.id });
     await event.deleteOne();
     res.json({ message: 'Event deleted.' });
-  } catch (err) { res.status(500).json({ message: 'Server error deleting event.', error: err.message }); }
+  } catch (err) { console.error(req.method, req.originalUrl, err); res.status(500).json({ message: 'Server error deleting event.' }); }
 });
 module.exports = router;

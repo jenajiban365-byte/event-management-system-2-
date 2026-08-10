@@ -10,7 +10,8 @@ router.get('/', async (req, res) => {
     const categories = await Category.find().sort({ name: 1 });
     res.json({ categories });
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching categories.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Server error fetching categories.' });
   }
 });
 
@@ -28,7 +29,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const category = await Category.create({ name: name.trim() });
     res.status(201).json({ message: 'Category created.', category });
   } catch (err) {
-    res.status(500).json({ message: 'Server error creating category.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Server error creating category.' });
   }
 });
 
@@ -46,7 +48,8 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     await category.save();
     res.json({ message: 'Category updated.', category });
   } catch (err) {
-    res.status(500).json({ message: 'Server error updating category.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Server error updating category.' });
   }
 });
 
@@ -58,7 +61,8 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     await category.deleteOne();
     res.json({ message: 'Category deleted.' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error deleting category.', error: err.message });
+    console.error(req.method, req.originalUrl, err);
+    res.status(500).json({ message: 'Server error deleting category.' });
   }
 });
 

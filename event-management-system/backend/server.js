@@ -30,7 +30,20 @@ const PORT = process.env.PORT || 5000;
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-app.use(cors());
+// The frontend is served by this same server, so cross-origin access is denied by
+// default. Set ALLOWED_ORIGINS (comma-separated) to opt specific origins in.
+const allowedOrigins = String(process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '3mb' }));
 
 // Lightweight security headers without adding a runtime dependency. These
@@ -91,7 +104,6 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`Event Management API server running on http://localhost:${PORT}`);
     console.log(`Frontend available at http://localhost:${PORT}`);
-    console.log(`Default admin login -> email: admin@events.com | password: Admin@123`);
   });
 }
 
