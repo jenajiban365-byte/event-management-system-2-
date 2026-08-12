@@ -1,0 +1,1 @@
+EventHub V19: consolidated the stacked CSS overrides into a single light-only student UI system; repaired responsive overflow, event/club cards, navigation, auth/Google alignment, club details, filters, modals and admin tables.

@@ -1,0 +1,7 @@
+EventHub V14 UI polish
+- Keeps the V13 editorial campus direction but replaces the yellow/coral-heavy palette with purple, mint, orange and sky accents.
+- Fixes the duplicated desktop/mobile navbar by hiding the mobile menu until the mobile toggle opens it.
+- Rebuilds the event search/filter area into one clean shopping-style filter bar on desktop.
+- Makes category chips a contained horizontal rail instead of spilling across the viewport.
+- Adds subtle card hover/reveal motion and improves spacing and hierarchy.
+- Dark mode receives explicit readable colors for inputs, navigation, cards and text.

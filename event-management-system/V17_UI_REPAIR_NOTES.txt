@@ -1,0 +1,14 @@
+EventHub V17 UI Repair
+
+Changed:
+- frontend/css/style.css — consolidated responsive design repair layer for shared navigation, light/dark themes, landing page, auth, events/discover filters, category chips, clubs, cards, admin chart/table responsiveness.
+- frontend/js/nav.js — rebuilt shared desktop/mobile navigation, profile dropdown, mobile menu, role-aware links, and theme controls to prevent duplicated/leaked navigation content.
+- frontend/js/api.js — Google Identity Services button uses a visible theme-aware style and responsive width.
+- frontend/events.html — filter panel starts collapsed, filter labels are visible, and the filter toggle uses the clean expandable panel behavior.
+- frontend/clubs.html — club actions are grouped cleanly; cover images are visually suppressed by the shared UI layer to prevent duplicate/overcrowded club imagery.
+
+Backend/MongoDB/authentication APIs were not changed.
+
+Validation performed:
+- All JavaScript files passed `node --check`.
+- All frontend HTML files parsed successfully with Python HTMLParser.

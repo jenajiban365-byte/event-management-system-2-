@@ -1,0 +1,19 @@
+EventHub V18 UI repair pass
+
+Applied:
+- Light/day mode only remains user-facing; theme controls are not rendered.
+- Fixed mobile navigation state: the three-line menu now opens the intended panel using .nav-open instead of leaking nav content into page flow.
+- Fixed page headers so actions sit beside headings on desktop and stack cleanly on mobile.
+- Redesigned Add/Edit Event dialog as a centered, scrollable modal with a sticky action row.
+- Improved date/time inputs for clearer native calendar/clock affordances.
+- Google Sign-In container is aligned to the auth content area instead of being centered as an orphan.
+- Mobile admin/data tables become readable stacked cards instead of forcing horizontal scrolling.
+- Added a dedicated admin/club-setup.html page for creating clubs and assigning/removing Club Heads.
+- Simplified admin/clubs.html to requests + club directory, with a clear link to Club Setup.
+- Added Club Setup to the admin navigation/profile menu.
+- Preserved backend APIs, authentication, MongoDB logic, booking/event logic, and role enforcement.
+
+Validation:
+- All frontend JavaScript files pass node --check.
+- All 30 frontend HTML files parse successfully with Python HTMLParser.
+- Backend Jest tests could not be executed in this environment because dependencies were not installed; npm install timed out. No backend source was changed in this pass.
