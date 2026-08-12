@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Profile - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container" style="max-width:560px;">
+  <div class="page-header">
+    <div>
+      <h1>My Profile</h1>
+      <p>Update your account details.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="alertBox"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div id="avatarPreview" class="profile-avatar profile-avatar-lg" style="width:72px;height:72px;font-size:1.5rem;overflow:hidden;"></div>
+      <div style="flex:1"><label for="avatarFile">Profile picture</label><input id="avatarFile" class="form-control" type="file" accept="image/png,image/jpeg,image/webp"/><small style="color:var(--text-muted)">PNG, JPG or WebP. Max 2 MB.</small></div>
+    </div>
+    <form id="profileForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" class="form-control" required />
+      </div>
+
+      <div class="section-title" style="font-size:1rem; margin:24px 0 12px;">Change Password (optional)</div>
+      <div class="form-group">
+        <label for="currentPassword">Current Password</label>
+        <input type="password" id="currentPassword" class="form-control" placeholder="Required only to change password" />
+      </div>
+      <div class="form-group">
+        <label for="newPassword">New Password</label>
+        <input type="password" id="newPassword" class="form-control" placeholder="Leave blank to keep current password" minlength="6" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<footer class="site-footer">EventHub &mdash; Event Management System</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  requireAuth();
+  renderNavbar('profile');
+
+  const alertBox = document.getElementById('alertBox');
+  const form = document.getElementById('profileForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const avatarFile = document.getElementById('avatarFile');
+  const avatarPreview = document.getElementById('avatarPreview');
+  let avatarUrl = '';
+
+  function renderAvatar(user) {
+    const value = user.avatarUrl || '';
+    avatarPreview.innerHTML = value ? `<img src="${escapeHtml(value)}" alt="Profile picture" style="width:100%;height:100%;object-fit:cover" />` : escapeHtml((user.name || 'U').charAt(0).toUpperCase());
+  }
+
+  async function loadProfile() {
+    try {
+      const { user } = await Api.getProfile();
+      document.getElementById('name').value = user.name;
+      document.getElementById('email').value = user.email;
+      avatarUrl = user.avatarUrl || '';
+      renderAvatar(user);
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(alertBox);
+
+    const payload = {
+      avatarUrl,
+      name: document.getElementById('name').value.trim(),
+      email: document.getElementById('email').value.trim()
+    };
+    const newPassword = document.getElementById('newPassword').value;
+    const currentPassword = document.getElementById('currentPassword').value;
+    if (newPassword) {
+      payload.password = newPassword;
+      payload.currentPassword = currentPassword;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+      const { user } = await Api.updateProfile(payload);
+      const token = Session.getToken();
+      Session.setSession(token, { ...Session.getUser(), name: user.name, email: user.email, avatarUrl: user.avatarUrl || '' });
+      showAlert(alertBox, 'Profile updated successfully.', 'success');
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      renderNavbar('profile');
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Changes';
+    }
+  });
+
+  avatarFile.addEventListener('change', () => {
+    const file = avatarFile.files && avatarFile.files[0];
+    if (!file) return;
+    if (!['image/png','image/jpeg','image/webp'].includes(file.type) ||  (file.size > 2 * 1024 * 1024) ) {
+      avatarFile.value = ''; showAlert(alertBox, 'Choose a PNG, JPG or WebP image smaller than 2MB.'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => { avatarUrl = reader.result; renderAvatar({ name: document.getElementById('name').value, avatarUrl }); };
+    reader.readAsDataURL(file);
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clubs - EventHub</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<main class="container">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">CAMPUS COMMUNITY</span>
+      <h1>Find your people.</h1>
+      <p>Explore the clubs shaping campus life — find your crowd, follow what matters and see what they are building.</p>
+    </div>
+  </div>
+
+  <div class="clubs-nav" role="tablist" aria-label="Club sections">
+    <button type="button" class="clubs-nav-btn active" role="tab" aria-selected="true" data-tab="discover">Discover</button>
+    <button type="button" class="clubs-nav-btn" role="tab" aria-selected="false" data-tab="following">Following</button>
+    <button type="button" class="clubs-nav-btn" role="tab" aria-selected="false" data-tab="announcements">Announcements</button>
+    <button type="button" class="clubs-nav-btn" role="tab" aria-selected="false" data-tab="my-clubs">My Clubs</button>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <section id="discoverTab" class="clubs-tab-panel" role="tabpanel" aria-labelledby="discover-tab">
+    <section class="club-discovery-tools" aria-label="Find a club">
+      <div class="club-search-copy">
+        <span class="eyebrow">EXPLORE</span>
+        <h2>What are you into?</h2>
+        <p>Search by club, department or vibe, then narrow it down by category.</p>
+      </div>
+      <div class="club-search-controls">
+        <div class="club-search-field">
+          <span aria-hidden="true">⌕</span>
+          <label class="sr-only" for="search">Search clubs</label>
+          <input id="search" class="form-control" placeholder="Search clubs, communities, departments...">
+        </div>
+        <div class="club-category-field">
+          <label for="category">Category</label>
+          <select id="category" class="form-control"><option>All</option></select>
+        </div>
+      </div>
+    </section>
+
+    <div id="clubCategoriesContainer"></div>
+  </section>
+
+  <section id="followingTab" class="clubs-tab-panel hidden" role="tabpanel" aria-labelledby="following-tab">
+    <div id="followingGrid" class="grid grid-3"></div>
+    <div id="followingEmpty" class="empty-state hidden" style="grid-column:1/-1;">
+      <div class="icon">👥</div>
+      <h3>Not following any clubs yet</h3>
+      <p>Discover clubs and follow them to see their events and announcements here.</p>
+      <a href="#discover" class="btn btn-primary">Discover Clubs</a>
+    </div>
+  </section>
+
+  <section id="opportunitiesTab" class="clubs-tab-panel hidden" role="tabpanel" aria-labelledby="opportunities-tab">
+    <div id="opportunitiesGrid" class="grid grid-3"></div>
+    <div id="opportunitiesEmpty" class="empty-state hidden" style="grid-column:1/-1;">
+      <div class="icon">💼</div>
+      <h3>No open opportunities</h3>
+      <p>When clubs open recruitment, opportunities will appear here.</p>
+    </div>
+  </section>
+
+  <section id="announcementsTab" class="clubs-tab-panel hidden" role="tabpanel" aria-labelledby="announcements-tab">
+    <div id="announcementsList"></div>
+    <div id="announcementsEmpty" class="empty-state hidden">
+      <div class="icon">📢</div>
+      <h3>No announcements</h3>
+      <p>Announcements from clubs you follow will appear here.</p>
+    </div>
+  </section>
+
+  <section id="myClubsTab" class="clubs-tab-panel hidden" role="tabpanel" aria-labelledby="my-clubs-tab">
+    <div id="myClubsGrid" class="grid grid-3"></div>
+    <div id="myClubsEmpty" class="empty-state hidden" style="grid-column:1/-1;">
+      <div class="icon">👑</div>
+      <h3>You're not a Club Head</h3>
+      <p>If you're a Club Head, your assigned clubs will appear here.</p>
+    </div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  requireAuth();
+  renderNavbar('clubs');
+  if (!Session.isLoggedIn()) {
+    document.querySelector('main.container').innerHTML = `
+      <section class="guest-gate">
+        <span class="eyebrow">STUDENT ACCESS</span>
+        <h1>Find your people.</h1>
+        <p>Sign in to explore campus clubs, follow communities and see what they are building.</p>
+        <div class="guest-gate-actions"><a class="btn btn-primary" href="login.html">Sign in →</a><a class="btn btn-outline" href="register.html">Create free account</a></div>
+      </section>`;
+  } else {
+
+  const alertBox = document.getElementById('alertBox');
+  const searchInput = document.getElementById('search');
+  const categorySelect = document.getElementById('category');
+  const clubCategoriesContainer = document.getElementById('clubCategoriesContainer');
+  const followingGrid = document.getElementById('followingGrid');
+  const followingEmpty = document.getElementById('followingEmpty');
+  const opportunitiesGrid = document.getElementById('opportunitiesGrid');
+  const opportunitiesEmpty = document.getElementById('opportunitiesEmpty');
+  const announcementsList = document.getElementById('announcementsList');
+  const announcementsEmpty = document.getElementById('announcementsEmpty');
+  const myClubsGrid = document.getElementById('myClubsGrid');
+  const myClubsEmpty = document.getElementById('myClubsEmpty');
+
+  const navButtons = document.querySelectorAll('.clubs-nav-btn');
+  const tabPanels = document.querySelectorAll('.clubs-tab-panel');
+
+  let allClubs = [];
+  let allCategories = [];
+  let currentTab = 'discover';
+  const loadedTabs = new Set(['discover', 'following', 'my-clubs']);
+  let loadingClubTab = null;
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function renderClubCard(club, showFollowBtn = true) {
+    const followerCount = club.followerCount || 0;
+    const memberCount = club.memberCount || 0;
+    const upcomingEvents = club.upcomingEventsCount || 0;
+    const activeRecruitments = club.activeRecruitmentsCount || 0;
+    const isFollowing = club.isFollowing;
+    const isClubHead = Session.getUser()?.role === 'club_head';
+    const safeLogo = club.logoUrl ? club.logoUrl.replace(/"/g, '"') : '';
+    const safeCover = club.coverImage ? club.coverImage.replace(/"/g, '"') : '';
+
+    return `<article class="club-card">
+      <div class="club-card-header">
+        ${club.coverImage ? `<img src="${safeCover}" alt="" class="club-cover" loading="lazy" decoding="async">` : ''}
+        <div class="club-logo-wrap">
+          ${club.logoUrl ? `<img src="${safeLogo}" alt="${escapeHtml(club.name)}" class="club-logo" loading="lazy" decoding="async">` : `<div class="club-logo-placeholder">${escapeHtml(club.name.charAt(0))}</div>`}
+        </div>
+      </div>
+      <div class="club-card-body">
+        <div class="club-card-top">
+          <h3>${escapeHtml(club.name)}</h3>
+          <span class="badge badge-primary">${escapeHtml(club.category)}</span>
+        </div>
+        <p class="club-description">${escapeHtml(club.description || 'No description available.')}</p>
+        <div class="club-meta">
+          <span>🏢 ${escapeHtml(club.department || 'General')}</span>
+          <span>👥 ${followerCount} followers</span>
+          ${upcomingEvents > 0 ? `<span>📅 ${upcomingEvents} upcoming</span>` : ''}
+        </div>
+        <div class="club-card-actions">
+          ${showFollowBtn && !isClubHead ? `
+          <button type="button" class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'} follow-btn" data-club-id="${club.id || club._id || ''}" data-following="${isFollowing}">
+            ${isFollowing ? 'Following' : 'Follow'}
+          </button>` : '<span></span>'}
+          <a href="club-details.html?id=${club.id || club._id || ''}" class="btn btn-outline view-club-btn">View Club</a>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function renderOpportunityCard(opp) {
+    const safeImg = opp.club?.logoUrl ? opp.club.logoUrl.replace(/"/g, '"') : '';
+    return `<article class="opportunity-card">
+      ${opp.club?.logoUrl ? `<img src="${safeImg}" alt="${escapeHtml(opp.club.name)}" class="opportunity-logo" loading="lazy">` : ''}
+      <div class="opportunity-body">
+        <div class="opportunity-top">
+          <span class="badge badge-warning">${escapeHtml(opp.status === 'open' ? 'Open' : opp.status)}</span>
+          <span class="opportunity-club">${escapeHtml(opp.club?.name || 'Club')}</span>
+        </div>
+        <h3>${escapeHtml(opp.title)}</h3>
+        <p>${escapeHtml(opp.description.substring(0, 120))}${opp.description.length > 120 ? '...' : ''}</p>
+        <div class="opportunity-meta">
+          <span>📍 ${escapeHtml(opp.departments.join(', ') || 'All departments')}</span>
+          <span>📅 Apply by ${formatDate(opp.closingDate)}</span>
+          <span>👥 ${opp.numberOfPositions} positions</span>
+        </div>
+        <a href="club-details.html?id=${opp.club?._id || opp.club}&opportunity=${opp.id || opp._id}" class="btn btn-primary btn-sm">View & Apply</a>
+      </div>
+    </article>`;
+  }
+
+  function renderAnnouncementCard(ann) {
+    return `<article class="announcement-card">
+      <div class="announcement-header">
+        ${ann.club?.logoUrl ? `<img src="${ann.club.logoUrl.replace(/"/g, '"')}" alt="${escapeHtml(ann.club.name)}" class="announcement-logo" loading="lazy">` : ''}
+        <div>
+          <strong>${escapeHtml(ann.club?.name || 'Club')}</strong>
+          <span class="muted">${formatDate(ann.createdAt)}</span>
+        </div>
+      </div>
+      <h4>${escapeHtml(ann.title)}</h4>
+      <p>${escapeHtml(ann.content)}</p>
+    </article>`;
+  }
+
+  function renderCategorySection(categoryName, clubs) {
+    if (!clubs.length) return '';
+    return `
+      <section class="club-category-section" aria-labelledby="cat-${categoryName.toLowerCase().replace(/\s+/g, '-')}">
+        <h2 id="cat-${categoryName.toLowerCase().replace(/\s+/g, '-')}" class="club-category-title">
+          <span class="club-category-icon">${getCategoryIcon(categoryName)}</span>
+          ${escapeHtml(categoryName)}
+        </h2>
+        <div class="grid grid-3">${clubs.map(c => renderClubCard(c)).join('')}</div>
+      </section>`;
+  }
+
+  function getCategoryIcon(category) {
+    const icons = {
+      'Coding & Technology': '💻',
+      'Arts & Culture': '🎨',
+      'Entertainment': '🎭',
+      'Robotics & Innovation': '🤖',
+      'Entrepreneurship': '🚀',
+      'Media & Photography': '📸',
+      'Sports & Fitness': '⚽',
+      'Social & Community': '🤝'
+    };
+    return icons[category] || '📁';
+  }
+
+  function groupClubsByCategory(clubs) {
+    const groups = {};
+    for (const club of clubs) {
+      const cat = club.category || 'General';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(club);
+    }
+    return groups;
+  }
+
+  function renderClubCategories() {
+    const filteredClubs = allClubs.filter(club => {
+      const matchesSearch = !searchInput.value.trim() ||
+        club.name.toLowerCase().includes(searchInput.value.trim().toLowerCase()) ||
+        club.description.toLowerCase().includes(searchInput.value.trim().toLowerCase()) ||
+        club.department.toLowerCase().includes(searchInput.value.trim().toLowerCase());
+      const matchesCategory = categorySelect.value === 'All' || club.category === categorySelect.value;
+      return matchesSearch && matchesCategory;
+    });
+
+    const groups = groupClubsByCategory(filteredClubs);
+    const categoryOrder = [
+      'Coding & Technology',
+      'Arts & Culture',
+      'Entertainment',
+      'Robotics & Innovation',
+      'Entrepreneurship',
+      'Media & Photography',
+      'Sports & Fitness',
+      'Social & Community'
+    ];
+
+    let html = '';
+    for (const cat of categoryOrder) {
+      if (groups[cat]) {
+        html += renderCategorySection(cat, groups[cat]);
+      }
+    }
+    // Any remaining categories not in the order
+    for (const cat of Object.keys(groups)) {
+      if (!categoryOrder.includes(cat)) {
+        html += renderCategorySection(cat, groups[cat]);
+      }
+    }
+
+    if (!html) {
+      html = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔍</div><h3>No clubs found</h3><p>Try adjusting your search or filters.</p></div>`;
+    }
+
+    clubCategoriesContainer.innerHTML = html;
+    bindFollowButtons();
+  }
+
+  async function loadClubs() {
+    try {
+      const res = await Api.getClubs();
+      allClubs = res.clubs || [];
+      renderClubCategories();
+      renderFollowingTab();
+      renderMyClubsTab();
+      if (currentTab === 'opportunities') loadClubTab('opportunities');
+      if (currentTab === 'announcements') loadClubTab('announcements');
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await Api.getCategories();
+      allCategories = (res.categories || []).filter(c => c.status === 'active');
+      categorySelect.innerHTML = '<option>All</option>' + allCategories.map(c => `<option>${escapeHtml(c.name)}</option>`).join('');
+    } catch (err) {
+      console.error('CATEGORIES ERROR:', err);
+    }
+  }
+
+  function bindFollowButtons() {
+    document.querySelectorAll('.follow-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const clubId = String(btn.dataset.clubId || '').trim();
+        if (!clubId || clubId === 'undefined' || clubId === 'null') {
+          showAlert(alertBox, 'This club is missing its ID. Please refresh the page.');
+          return;
+        }
+        const wasFollowing = btn.dataset.following === 'true';
+        try {
+          const res = await Api.toggleClubFollow(clubId);
+          btn.dataset.following = res.isFollowing;
+          btn.textContent = res.isFollowing ? 'Following' : 'Follow';
+          btn.classList.toggle('btn-primary', !res.isFollowing);
+          btn.classList.toggle('btn-outline', res.isFollowing);
+          const club = allClubs.find(c => String(c.id || c._id) === String(clubId));
+          if (club) { club.isFollowing = res.isFollowing; club.followerCount = res.followerCount; }
+          renderClubCategories();
+          renderFollowingTab();
+          showToast(res.message);
+        } catch (err) {
+          showAlert(alertBox, err.message);
+        }
+      });
+    });
+  }
+
+  async function loadClubTab(tab) {
+    if (!['opportunities', 'announcements'].includes(tab) || loadedTabs.has(tab) || loadingClubTab === tab) return;
+    loadingClubTab = tab;
+    try {
+      if (tab === 'opportunities') await renderOpportunitiesTab();
+      if (tab === 'announcements') await renderAnnouncementsTab();
+      loadedTabs.add(tab);
+    } finally {
+      loadingClubTab = null;
+    }
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    navButtons.forEach(btn => {
+      const isActive = btn.dataset.tab === tab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive);
+    });
+    tabPanels.forEach(panel => {
+      const isActive = panel.id === `${tab}Tab`;
+      panel.classList.toggle('hidden', !isActive);
+      panel.setAttribute('aria-hidden', !isActive);
+    });
+    loadClubTab(tab);
+  }
+
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  function debounce(fn, delay) {
+    let timeoutId;
+    return (...args) => { clearTimeout(timeoutId); timeoutId = setTimeout(() => fn(...args), delay); };
+  }
+
+  const debouncedSearch = debounce(() => renderClubCategories(), 300);
+  searchInput.addEventListener('input', debouncedSearch);
+  categorySelect.addEventListener('change', renderClubCategories);
+
+  async function renderFollowingTab() {
+    const followed = allClubs.filter(c => c.isFollowing);
+    if (followed.length) {
+      followingGrid.innerHTML = followed.map(c => renderClubCard(c, false)).join('');
+      followingEmpty.classList.add('hidden');
+      followingGrid.classList.remove('hidden');
+    } else {
+      followingGrid.classList.add('hidden');
+      followingEmpty.classList.remove('hidden');
+    }
+  }
+
+  async function renderOpportunitiesTab() {
+    try {
+      const res = await Api.getClubOpportunities();
+      const openOpps = (res.opportunities || []).filter(o => o.status === 'open');
+      if (openOpps.length) {
+        opportunitiesGrid.innerHTML = openOpps.map(renderOpportunityCard).join('');
+        opportunitiesEmpty.classList.add('hidden');
+        opportunitiesGrid.classList.remove('hidden');
+      } else {
+        opportunitiesGrid.classList.add('hidden');
+        opportunitiesEmpty.classList.remove('hidden');
+      }
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      opportunitiesGrid.classList.add('hidden');
+      opportunitiesEmpty.classList.remove('hidden');
+    }
+  }
+
+  async function renderAnnouncementsTab() {
+    try {
+      if (!Session.isLoggedIn()) {
+        announcementsList.classList.add('hidden');
+        announcementsEmpty.classList.remove('hidden');
+        return;
+      }
+      const res = await Api.getFollowedClubAnnouncements();
+      const allAnns = res.announcements || [];
+      if (allAnns.length) {
+        announcementsList.innerHTML = allAnns.slice(0, 50).map(renderAnnouncementCard).join('');
+        announcementsEmpty.classList.add('hidden');
+        announcementsList.classList.remove('hidden');
+      } else {
+        announcementsList.classList.add('hidden');
+        announcementsEmpty.classList.remove('hidden');
+      }
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      announcementsList.classList.add('hidden');
+      announcementsEmpty.classList.remove('hidden');
+    }
+  }
+
+  async function renderMyClubsTab() {
+    const user = Session.getUser();
+    if (user.role === 'club_head' && user.clubId) {
+      const myClub = allClubs.find(c => String(c.id || c._id) === String(user.clubId));
+      if (myClub) {
+        myClubsGrid.innerHTML = renderClubCard(myClub, false);
+        myClubsEmpty.classList.add('hidden');
+        myClubsGrid.classList.remove('hidden');
+      } else {
+        myClubsGrid.classList.add('hidden');
+        myClubsEmpty.classList.remove('hidden');
+      }
+    } else {
+      myClubsGrid.classList.add('hidden');
+      myClubsEmpty.classList.remove('hidden');
+    }
+  }
+
+
+
+
+  const currentUser = Session.getUser();
+  if (currentUser?.role === 'club_head') {
+    document.querySelectorAll('[data-tab="opportunities"],[data-tab="following"],[data-tab="announcements"]').forEach((btn) => btn.remove());
+    document.getElementById('opportunitiesTab')?.remove();
+    document.getElementById('followingTab')?.remove();
+    document.getElementById('announcementsTab')?.remove();
+  }
+
+  loadClubs();
+  }
+</script>
+</body>
+</html>

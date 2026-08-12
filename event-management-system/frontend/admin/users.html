@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manage Users - EventHub Admin</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Manage Users</h1>
+      <p>View users, manage account status, and assign trusted staff roles.</p>
+    </div>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script>
+  requireAdmin();
+  renderAdminNavbar('users');
+
+  const alertBox = document.getElementById('alertBox');
+  const usersBody = document.getElementById('usersBody');
+  const currentUser = Session.getUser();
+
+  function statusBadge(status) {
+    return status === 'blocked'
+      ? '<span class="badge badge-danger">Blocked</span>'
+      : '<span class="badge badge-success">Active</span>';
+  }
+  function roleBadge(role) {
+    const labels = { admin: 'Admin', organizer: 'Organizer', club_head: 'Club Head', user: 'Student' };
+    const classes = { admin: 'badge-primary', organizer: 'badge-primary', club_head: 'badge-primary', user: 'badge-muted' };
+    return `<span class="badge ${classes[role] || 'badge-muted'}">${labels[role] || role}</span>`;
+  }
+
+  async function load() {
+    try {
+      clearAlert(alertBox);
+      const { users } = await Api.getAllUsers();
+      usersBody.innerHTML = users.length
+        ? users.map((u) => `
+            <tr>
+              <td>${escapeHtml(u.name)}</td>
+              <td>${escapeHtml(u.email)}</td>
+              <td>${roleBadge(u.role)}</td>
+              <td>${statusBadge(u.status)}</td>
+              <td>${formatDate(u.createdAt ? u.createdAt.split('T')[0] : '')}</td>
+              <td>
+                <div class="action-row">
+                  ${u.id === currentUser.id ? '<span style="color:var(--text-muted); font-size:0.82rem;">(you)</span>' : `
+                    ${u.role !== 'admin' ? `<select class="form-control form-control-sm" data-role-select="${u.id}" aria-label="Change role for ${escapeHtml(u.name)}">
+                      <option value="user" ${u.role === 'user' ? 'selected' : ''}>Student</option>
+                      <option value="organizer" ${u.role === 'organizer' ? 'selected' : ''}>Organizer</option>
+                    </select>` : ''}
+                    <button class="btn btn-outline btn-sm" data-toggle-status="${u.id}" data-current="${u.status}">
+                      ${u.status === 'blocked' ? 'Unblock' : 'Block'}
+                    </button>
+                    <button class="btn btn-danger btn-sm" data-delete="${u.id}">Delete</button>
+                  `}
+                </div>
+              </td>
+            </tr>
+          `).join('')
+        : `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No users found.</td></tr>`;
+
+
+      document.querySelectorAll('[data-role-select]').forEach((select) => {
+        select.addEventListener('change', async () => {
+          const id = select.getAttribute('data-role-select');
+          const role = select.value;
+          if (!confirm(`Change this account to ${role === 'organizer' ? 'Organizer' : 'Student'}?`)) {
+            load();
+            return;
+          }
+          try {
+            await Api.updateAdminUserRole(id, { role });
+            load();
+          } catch (err) {
+            showAlert(alertBox, err.message);
+            load();
+          }
+        });
+      });
+      document.querySelectorAll('[data-toggle-status]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const newStatus = btn.getAttribute('data-current') === 'blocked' ? 'active' : 'blocked';
+          try {
+            await Api.updateUser(btn.getAttribute('data-toggle-status'), { status: newStatus });
+            load();
+          } catch (err) {
+            showAlert(alertBox, err.message);
+          }
+        });
+      });
+      document.querySelectorAll('[data-delete]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this user account permanently?')) return;
+          try {
+            await Api.deleteUser(btn.getAttribute('data-delete'));
+            load();
+          } catch (err) {
+            showAlert(alertBox, err.message);
+          }
+        });
+      });
+    } catch (err) {
+      showAlert(alertBox, err.message);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

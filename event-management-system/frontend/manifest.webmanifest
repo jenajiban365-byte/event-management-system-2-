@@ -1,0 +1,10 @@
+{
+  "name": "EventHub — Campus Events & Clubs",
+  "short_name": "EventHub",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f0df",
+  "theme_color": "#f5f0df",
+  "description": "Discover campus events, follow clubs, book your seat and never miss the moment."
+}

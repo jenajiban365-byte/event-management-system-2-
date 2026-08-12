@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create Account - EventHub</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-icon">🎫</div>
+    <h1>EventHub</h1>
+    <p class="tagline">Create an account to start discovering events.</p>
+
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <a href="login.html">Sign in</a>
+        <a href="register.html" class="active">Create account</a>
+      </div>
+
+      <div id="alertBox"></div>
+      <div id="verificationBox" style="display:none;" class="card" aria-live="polite"></div>
+
+      <section id="roleChooser" aria-labelledby="roleChooserTitle">
+        <div style="margin:4px 0 14px">
+          <h2 id="roleChooserTitle" style="margin:0 0 5px;font-size:1.25rem">What type of account are you creating?</h2>
+          <p class="muted" style="margin:0">Choose the workspace that matches your role.</p>
+        </div>
+        <div class="grid grid-1" style="gap:10px">
+          <button type="button" class="card role-choice" data-role="student" style="text-align:left;cursor:pointer">
+            <strong>🎓 Student</strong>
+            <span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Discover events, follow clubs, save events, book events and apply to opportunities.</span>
+          </button>
+        </div>
+        <div class="card" style="margin-top:12px;padding:14px;background:var(--surface-muted,rgba(255,255,255,.04));">
+          <strong>🔐 Organizer &amp; Club Head accounts</strong>
+          <p class="muted" style="margin:6px 0 0;font-size:.82rem;line-height:1.5">These roles are assigned by the College Admin. They cannot be self-created, which protects EventHub from unauthorized access to event and club management.</p>
+        </div>
+      </section>
+
+      <section id="credentialsBox" style="display:none;margin-top:18px">
+        <div class="section-heading-row" style="margin-bottom:12px">
+          <div><strong id="selectedRoleLabel">Student</strong><div class="muted" style="font-size:.78rem">Create your EventHub account.</div></div>
+          <button type="button" class="btn btn-outline" id="changeRoleBtn">Change</button>
+        </div>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" class="form-control" placeholder="Jane Doe" required />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" class="form-control" placeholder="At least 6 characters" required minlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter password" required minlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="studentId">Student ID (optional)</label>
+            <input type="text" id="studentId" class="form-control" placeholder="Your student ID" />
+          </div>
+          <div class="form-group">
+            <label for="department">Department (optional)</label>
+            <input type="text" id="department" class="form-control" placeholder="Computer Science, ECE, etc." />
+          </div>
+          <div class="form-group">
+            <label for="year">Year (optional)</label>
+            <input type="text" id="year" class="form-control" placeholder="1st, 2nd, 3rd, 4th" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create Account as Student</button>
+        </form>
+
+        <div class="auth-divider">or</div>
+        <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
+      </section>
+    </div>
+
+    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:14px;">
+      Admin accounts are created by the platform administrator only.
+    </p>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNavbar('register');
+  redirectIfLoggedIn();
+
+  const form = document.getElementById('registerForm');
+  const alertBox = document.getElementById('alertBox');
+  const submitBtn = document.getElementById('submitBtn');
+  const verificationBox = document.getElementById('verificationBox');
+  const roleChooser = document.getElementById('roleChooser');
+  const credentialsBox = document.getElementById('credentialsBox');
+  const selectedRoleLabel = document.getElementById('selectedRoleLabel');
+  const changeRoleBtn = document.getElementById('changeRoleBtn');
+  const roleButtons = [...document.querySelectorAll('.role-choice')];
+
+  const roleLabels = { student: 'Student' };
+
+  function selectRole(role) {
+    selectedRole = role;
+    roleButtons.forEach((button) => button.classList.toggle('active', button.dataset.role === role));
+    roleChooser.style.display = 'none';
+    credentialsBox.style.display = 'block';
+    selectedRoleLabel.textContent = roleLabels[role];
+    submitBtn.textContent = 'Create Student Account';
+    clearAlert(alertBox);
+  }
+
+  let selectedRole = '';
+  roleButtons.forEach((button) => button.addEventListener('click', () => selectRole(button.dataset.role)));
+  changeRoleBtn.addEventListener('click', () => {
+    credentialsBox.style.display = 'none';
+    roleChooser.style.display = 'block';
+    clearAlert(alertBox);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert(alertBox);
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const studentId = document.getElementById('studentId').value.trim();
+    const department = document.getElementById('department').value.trim();
+    const year = document.getElementById('year').value.trim();
+
+    if (password !== confirmPassword) {
+      showAlert(alertBox, 'Passwords do not match.');
+      return;
+    }
+
+    if (!selectedRole) {
+      showAlert(alertBox, 'Please select a role first.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+
+    try {
+      const data = await Api.register({ name, email, password, role: selectedRole, studentId, department, year });
+      if (data.requiresVerification) {
+        form.style.display = 'none';
+        document.querySelector('.auth-divider').style.display = 'none';
+        document.getElementById('googleSignInBtn').style.display = 'none';
+        verificationBox.style.display = 'block';
+        verificationBox.innerHTML = `<strong>Check your inbox.</strong><p style="margin:8px 0 14px;color:var(--text-muted)">${escapeHtml(data.message)}</p><button type="button" class="btn btn-outline btn-block" id="resendVerificationBtn">Resend verification email</button>`;
+        document.getElementById('resendVerificationBtn').addEventListener('click', async () => {
+          const btn = document.getElementById('resendVerificationBtn'); btn.disabled = true;
+          try { const result = await Api.resendVerification(email); showAlert(alertBox, result.message, 'success'); }
+          catch (err) { showAlert(alertBox, err.message); }
+          finally { btn.disabled = false; }
+        });
+        showAlert(alertBox, data.message, 'success');
+        submitBtn.disabled = false; submitBtn.textContent = 'Create Account';
+        return;
+      }
+      Session.setSession(data.token, data.user);
+      window.location.href = 'events.html';
+    } catch (err) {
+      showAlert(alertBox, err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Student Account';
+    }
+  });
+
+  initGoogleSignIn(
+    'googleSignInBtn',
+    (data) => {
+      Session.setSession(data.token, data.user);
+      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
+    },
+    (err) => showAlert(alertBox, err.message)
+  );
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EventHub — Your campus is alive</title>
+<meta name="description" content="Discover campus events, follow clubs, book your seat and never miss the moment. EventHub puts the whole campus in one place." />
+<meta property="og:title" content="EventHub — Your campus is alive" />
+<meta property="og:description" content="Events, clubs, opportunities and the people who make campus life happen." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#f5f0df" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<main class="home-page">
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="live-badge" id="liveBadge">✦ Loading campus moments…</div>
+    <h1>Your campus is <span class="accent-text">alive.</span></h1>
+    <p class="subtitle">Find the event, club or opportunity that makes you want to show up. Search, save, book — all in one place.</p>
+
+    <form class="hero-search" id="heroSearchForm" role="search">
+      <label class="visually-hidden" for="heroSearchInput">Search events, clubs or venues</label>
+      <span class="hero-search-icon" aria-hidden="true">🔍</span>
+      <input id="heroSearchInput" type="search" placeholder="Try “hackathon”, “dance”, “auditorium”…" autocomplete="off" />
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+
+    <div class="hero-actions">
+      <a href="events.html" class="btn btn-dark">Browse all events <span aria-hidden="true">→</span></a>
+      <a href="clubs.html" class="btn btn-outline">Meet your clubs</a>
+      <a href="register.html" class="btn btn-ghost" id="heroSecondaryAction">Create free account</a>
+    </div>
+
+    <dl class="hero-stats" id="heroStats">
+      <div class="hero-stat"><dt>Live events</dt><dd data-stat="events">—</dd></div>
+      <div class="hero-stat"><dt>Active clubs</dt><dd data-stat="clubs">—</dd></div>
+      <div class="hero-stat"><dt>Categories</dt><dd data-stat="categories">—</dd></div>
+      <div class="hero-stat"><dt>Seats booked</dt><dd data-stat="booked">—</dd></div>
+    </dl>
+  </section>
+  <!-- Event discovery is intentionally kept behind student sign-in. -->
+
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="home-section how-section" aria-labelledby="howHeading">
+    <div class="section-heading-row"><div><span class="eyebrow">HOW IT WORKS</span><h2 id="howHeading">Three steps, zero group chats.</h2></div></div>
+    <ol class="how-steps">
+      <li><span class="how-step-num">1</span><h3>Discover</h3><p>Search when you know what you want, then filter by date, price, category or availability.</p></li>
+      <li><span class="how-step-num">2</span><h3>Book or save</h3><p>Save the moments you like or reserve your seat once you're signed in.</p></li>
+      <li><span class="how-step-num">3</span><h3>Show up</h3><p>Your bookings, notifications and check-in details stay together.</p></li>
+    </ol>
+  </section>
+
+  <!-- ============ CAMPUS CLUBS ============ -->
+  <section class="home-section home-clubs-section" aria-labelledby="homeClubsHeading">
+    <div class="section-heading-row">
+      <div><span class="eyebrow">MEET THE CAMPUS</span><h2 id="homeClubsHeading">Find your people.</h2><p class="home-section-lede">A quick look at the clubs shaping campus life. Sign in when you find one you want to follow.</p></div>
+      <a class="btn btn-outline btn-sm" href="clubs.html">See all clubs →</a>
+    </div>
+    <div id="homeClubsRail" class="home-clubs-grid"><div class="home-rail-empty">Loading clubs…</div></div>
+  </section>
+
+  <!-- ============ ROLES ============ -->
+  <section class="home-section" aria-labelledby="rolesHeading">
+    <div class="section-heading-row"><div><span class="eyebrow">THREE WAYS IN</span><h2 id="rolesHeading">Pick your way into campus life.</h2></div></div>
+    <div class="spotlight-grid">
+      <a class="spotlight-card spotlight-card-main" href="register.html"><span class="spotlight-icon">🎓</span><div><span class="spotlight-label">STUDENT</span><h3>Discover. Join. Show up.</h3><p>Events, clubs, bookings and opportunities built around student life.</p></div></a>
+      <a class="spotlight-card" href="login.html"><span class="spotlight-icon">🎤</span><div><span class="spotlight-label">ORGANIZER</span><h3>Put your event on the map.</h3><p>Create experiences, manage registrations and know exactly who's coming.</p></div></a>
+      <a class="spotlight-card" href="login.html"><span class="spotlight-icon">👑</span><div><span class="spotlight-label">CLUB HEAD</span><h3>Build a community people remember.</h3><p>Recruit, announce, host and grow your club from one workspace.</p></div></a>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="home-section home-cta">
+    <div><span class="eyebrow">DON'T JUST SCROLL</span><h2>Go where the good stuff is.</h2><p>Your next memory probably has a date, a place and a few people you haven't met yet.</p></div>
+    <a href="events.html" class="btn btn-primary">Open EventHub →</a>
+  </section>
+</main>
+
+<footer class="site-footer site-footer-rich">
+  <div class="footer-grid">
+    <div>
+      <strong class="footer-brand">EventHub</strong>
+      <p>Built for campus life — events, clubs and opportunities in one place.</p>
+    </div>
+    <nav aria-label="Discover">
+      <h3>Discover</h3>
+      <a href="events.html">Events</a>
+      <a href="clubs.html">Clubs</a>
+      <a href="saved-events.html">Saved events</a>
+    </nav>
+    <nav aria-label="Account">
+      <h3>Account</h3>
+      <a href="login.html">Sign in</a>
+      <a href="register.html">Create account</a>
+      <a href="my-bookings.html">My bookings</a>
+    </nav>
+    <nav aria-label="Help">
+      <h3>Help</h3>
+      <a href="contact.html">Contact us</a>
+      <a href="support.html">My questions</a>
+      <a href="forgot-password.html">Reset password</a>
+    </nav>
+  </div>
+  <div class="footer-base"><span>© <span id="footerYear"></span> EventHub</span><span>Made for students, by students.</span></div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+<script>
+  renderNavbar('home');
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+  const clubsRail = document.getElementById('homeClubsRail');
+
+  (function personaliseHome() {
+    const secondary = document.getElementById('heroSecondaryAction');
+    const user = Session.getUser();
+    if (Session.isLoggedIn() && secondary) {
+      secondary.href = 'my-bookings.html';
+      secondary.textContent = 'My bookings';
+      if (user && user.name) {
+        const first = String(user.name).split(' ')[0];
+        document.querySelector('.hero .subtitle').textContent = `Welcome back, ${first}. Explore clubs first, then sign in to discover and book events.`;
+      }
+    }
+  })();
+
+  document.getElementById('heroSearchForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = document.getElementById('heroSearchInput').value.trim();
+    window.location.href = value ? `events.html?search=${encodeURIComponent(value)}` : 'events.html';
+  });
+
+  (async function loadClubs() {
+    try {
+      const { clubs = [] } = await Api.getClubs();
+      const active = clubs.filter((c) => !c.status || c.status === 'active');
+      clubsRail.innerHTML = active.length
+        ? active.slice(0, 8).map((club) => `<a class="home-club-card" href="club-details.html?id=${encodeURIComponent(club.slug || club.id)}">
+            <span class="home-club-logo">${club.logoUrl ? `<img src="${escapeHtml(optimizedImageUrl(club.logoUrl, 120))}" alt="" loading="lazy" />` : escapeHtml((club.name || 'C').charAt(0))}</span>
+            <div class="home-club-copy"><span class="spotlight-label">${escapeHtml(club.category || 'CAMPUS CLUB')}</span><h3>${escapeHtml(club.name)}</h3><p>${escapeHtml(club.description || club.department || 'A student community worth discovering.')}</p></div>
+            <span class="home-club-arrow" aria-hidden="true">→</span>
+          </a>`).join('')
+        : '<div class="home-rail-empty">No clubs are live yet. Check back soon.</div>';
+    } catch (err) {
+      clubsRail.innerHTML = '<div class="home-rail-empty">Clubs are unavailable right now.</div>';
+    }
+  })();
+</script>
+</body>
+</html>

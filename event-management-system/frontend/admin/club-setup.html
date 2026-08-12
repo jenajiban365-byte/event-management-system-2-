@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Club Setup - EventHub Admin</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+<main class="container admin-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">COLLEGE ADMIN</span>
+      <h1>Club Setup</h1>
+      <p>Create a club and assign its Club Head from one focused workspace.</p>
+    </div>
+    <a class="btn btn-outline" href="clubs.html">← Back to Clubs</a>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <section class="card" style="margin-bottom:24px">
+    <div class="section-heading-row" style="margin-bottom:16px">
+      <div><span class="eyebrow">01 / CREATE</span><h2 style="margin:6px 0">New club</h2></div>
+    </div>
+    <form id="createForm" class="form-grid">
+      <div class="form-group"><label for="cName">Club name</label><input id="cName" class="form-control" required placeholder="e.g. Coding Ninjas"></div>
+      <div class="form-group"><label for="cShort">Short name</label><input id="cShort" class="form-control" placeholder="e.g. CN"></div>
+      <div class="form-group"><label for="cCategory">Category</label><input id="cCategory" class="form-control" required placeholder="Coding & Technology"></div>
+      <div class="form-group"><label for="cDepartment">Department</label><input id="cDepartment" class="form-control" placeholder="Computer Science & IT"></div>
+      <div class="form-group full"><label for="cDescription">Description</label><textarea id="cDescription" class="form-control" rows="4" placeholder="What makes this club worth joining?"></textarea></div>
+      <div class="form-group"><label for="cLogo">Logo URL</label><input id="cLogo" class="form-control" placeholder="https://..."></div>
+      <div class="form-group"><label for="cCover">Cover image URL</label><input id="cCover" class="form-control" placeholder="https://..."></div>
+      <div class="form-group full"><button class="btn btn-primary" type="submit">Create Club →</button></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="section-heading-row" style="margin-bottom:16px">
+      <div><span class="eyebrow">02 / OWNERSHIP</span><h2 style="margin:6px 0">Assign Club Heads</h2></div>
+    </div>
+    <p>Club Head accounts are assigned by College Admin. Students cannot promote themselves into this role.</p>
+    <div id="clubs" class="grid grid-2"></div>
+  </section>
+</main>
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script>
+requireAdmin();
+renderAdminNavbar('club-setup');
+const alertBox=document.getElementById('alertBox');
+const clubs=document.getElementById('clubs');
+
+async function loadClubs(){
+  try{
+    const {clubs:list=[]}=await Api.getAdminClubs();
+    clubs.innerHTML=list.map(c=>`<article class="club-head-card">
+      <div class="event-card-topline"><span class="badge ${c.status==='active'?'badge-success':'badge-warning'}">${escapeHtml(c.status)}</span><span>${(c.clubHeads||[]).length} head(s)</span></div>
+      <h3>${escapeHtml(c.name)}</h3>
+      <p>${escapeHtml(c.category)} · ${escapeHtml(c.department||'General')}</p>
+      <div class="club-head-list">${(c.clubHeads||[]).map(h=>`<span class="badge badge-primary" style="margin:3px 4px 3px 0">${escapeHtml(h.name)} · ${escapeHtml(h.email)} <button type="button" data-remove="${c.id}" data-user="${h.id}" aria-label="Remove ${escapeHtml(h.name)}" style="border:0;background:none;color:inherit;cursor:pointer;font-weight:900">×</button></span>`).join('')||'<span class="muted">No Club Head assigned yet.</span>'}</div>
+      <div class="form-grid" style="margin-top:14px">
+        <div class="form-group"><label for="head-${c.id}">Student email</label><input id="head-${c.id}" class="form-control" placeholder="student@college.edu" data-email="${c.id}"></div>
+        <div class="form-group" style="align-self:end"><button type="button" class="btn btn-primary btn-sm" data-assign="${c.id}">Assign Head →</button></div>
+      </div>
+    </article>`).join('') || '<div class="empty-state"><p>No clubs exist yet. Create the first club above.</p></div>';
+
+    document.querySelectorAll('[data-assign]').forEach(btn=>btn.onclick=async()=>{
+      const input=document.querySelector(`[data-email="${btn.dataset.assign}"]`);
+      if(!input.value.trim()) return showAlert(alertBox,'Enter the student email first.');
+      try{await Api.assignClubHead(btn.dataset.assign,{userEmail:input.value.trim()});showAlert(alertBox,'Club Head assigned successfully.','success');await loadClubs();}
+      catch(e){showAlert(alertBox,e.message);}
+    });
+    document.querySelectorAll('[data-remove]').forEach(btn=>btn.onclick=async()=>{
+      if(!confirm('Remove this Club Head assignment?')) return;
+      try{await Api.removeClubHead(btn.dataset.remove,{userId:btn.dataset.user});showAlert(alertBox,'Club Head assignment removed.','success');await loadClubs();}
+      catch(e){showAlert(alertBox,e.message);}
+    });
+  }catch(e){showAlert(alertBox,e.message);}
+}
+
+document.getElementById('createForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  try{
+    await Api.createAdminClub({name:cName.value,shortName:cShort.value,category:cCategory.value,department:cDepartment.value,description:cDescription.value,logoUrl:cLogo.value,coverImage:cCover.value});
+    showAlert(alertBox,'Club created successfully. Now assign its Club Head below.','success');
+    e.target.reset();
+    await loadClubs();
+  }catch(err){showAlert(alertBox,err.message);}
+});
+loadClubs();
+</script>
+</body>
+</html>
