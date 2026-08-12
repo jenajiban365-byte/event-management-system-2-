@@ -94,18 +94,17 @@
     }
   }
 
-  function renderEvent(event) {
+function renderEvent(event) {
     const spotsLeft = event.capacity - event.bookedCount;
     const full = spotsLeft <= 0;
     const loggedIn = Session.isLoggedIn();
     const price = event.price && Number(event.price) > 0 ? `₹${Number(event.price)}` : 'Free';
-    const saved = new Set(JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]')).has(event.id);
 
     content.innerHTML = `
       <div class="card event-detail-card">
         <div class="event-detail-hero">
           ${event.imageUrl
-            ? `<img src="${optimizedImageUrl(event.imageUrl, 900).replace(/"/g, '&quot;')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" />`
+            ? `<img src="${optimizedImageUrl(event.imageUrl, 900).replace(/"/g, '"')}" alt="${escapeHtml(event.title)}" loading="lazy" decoding="async" />`
             : `<span aria-hidden="true">${escapeHtml(event.category.charAt(0))}</span>`}
           <span class="badge badge-primary hero-category">${escapeHtml(event.category)}</span>
           <span class="badge badge-location hero-place-badge">${escapeHtml(event.location)}</span>
@@ -156,7 +155,7 @@
             ${full ? `<button id="waitlistBtn" class="btn btn-primary" type="button">${loggedIn ? 'Join Waitlist' : 'Login to Join Waitlist'}</button>` : `<button id="bookBtn" class="btn btn-primary">${loggedIn ? 'Book This Event' : 'Login to Book'}</button>`}
             <a id="googleCalendarBtn" class="btn btn-outline" href="${escapeHtml(googleCalendarUrl(event))}" target="_blank" rel="noopener">Google Calendar</a>
             <button id="calendarBtn" class="btn btn-outline" type="button">Download .ics</button>
-            <button id="saveDetailBtn" class="btn btn-outline save-detail-action" type="button">${saved ? '♥ Saved' : '♡ Save event'}</button>
+            <button id="saveDetailBtn" class="btn btn-outline save-detail-action" type="button">♡ Save event</button>
             <button id="shareBtn" class="btn btn-outline" type="button">Share event</button>
           </div>
           ${full && loggedIn ? `<div id="waitlistStatus" style="margin-top:12px;color:var(--text-muted)"></div>` : ''}
@@ -180,21 +179,40 @@
       }
     });
 
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
-        const savedSet = new Set(JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]'));
-        if (savedSet.has(event.id)) {
-          savedSet.delete(event.id);
-          showToast('Removed from saved events');
-        } else {
-          savedSet.add(event.id);
-          showToast('Saved this event');
-        }
-        localStorage.setItem('eventhub_saved_events', JSON.stringify(Array.from(savedSet)));
-        loadEvent();
-      });
+    // Load saved state for this event
+    let isSaved = false;
+    if (loggedIn) {
+      Api.getSavedEventIds().then(res => {
+        isSaved = (res.eventIds || []).includes(event.id);
+        saveBtn.textContent = isSaved ? '♥ Saved' : '♡ Save event';
+      }).catch(() => {});
     }
 
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        if (!loggedIn) {
+          window.location.href = `login.html?redirect=event-details.html?id=${encodeURIComponent(event.id)}`;
+          return;
+        }
+        saveBtn.disabled = true;
+        try {
+          if (isSaved) {
+            await Api.removeSavedEvent(event.id);
+            isSaved = false;
+            showToast('Removed from saved events');
+          } else {
+            await Api.saveEvent(event.id);
+            isSaved = true;
+            showToast('Saved this event');
+          }
+          saveBtn.textContent = isSaved ? '♥ Saved' : '♡ Save event';
+        } catch (err) {
+          showAlert(alertBox, err.message);
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
     if (waitlistBtn) {
       const refreshWaitlist = async () => {
         try {

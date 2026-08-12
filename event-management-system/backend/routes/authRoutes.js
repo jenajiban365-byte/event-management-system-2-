@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const Club = require('../models/Club');
 const { generateToken } = require('../utils/auth');
 const { protect } = require('../middleware/authMiddleware');
 const {
@@ -17,14 +18,35 @@ const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env
 
 function publicUser(user) {
   return {
-    id: user.id,
+    id: user.id || user._id,
     name: user.name,
     email: user.email,
     role: user.role,
+    clubId: user.clubId ? String(user.clubId) : null,
+    department: user.department || '',
+    year: user.year || '',
+    studentId: user.studentId || '',
     avatarUrl: user.avatarUrl || '',
     emailVerified: user.emailVerified !== false,
     authProvider: user.authProvider || 'local'
   };
+}
+
+function normalizeRequestedRole(value) {
+  const role = String(value || '').trim().toLowerCase();
+  if (role === 'student' || role === 'user') return 'user';
+  if (role === 'organizer') return 'organizer';
+  if (role === 'club_head' || role === 'club head' || role === 'clubhead') return 'club_head';
+  if (role === 'college_admin' || role === 'college admin' || role === 'admin') return 'admin';
+  return role;
+}
+
+function roleLabel(role) {
+  if (role === 'user') return 'Student';
+  if (role === 'organizer') return 'Organizer';
+  if (role === 'club_head') return 'Club Head';
+  if (role === 'admin') return 'College Admin';
+  return role;
 }
 
 router.post('/register', authLimiter, async (req, res) => {
@@ -32,8 +54,19 @@ router.post('/register', authLimiter, async (req, res) => {
     const name = String(req.body.name || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
+    const studentId = String(req.body.studentId || '').trim();
+    const department = String(req.body.department || '').trim();
+    const year = String(req.body.year || '').trim();
+
     if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required.' });
     if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+
+    // Public registration is Student-only. Privileged roles are assigned by College Admin.
+    const requestedRole = normalizeRequestedRole(req.body.role);
+    if (requestedRole && requestedRole !== 'user') {
+      return res.status(403).json({ message: `${roleLabel(requestedRole)} accounts cannot be created publicly. Create a Student account first and contact College Admin for role assignment.` });
+    }
+    const role = 'user';
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(409).json({ message: 'An account with this email already exists.' });
@@ -44,18 +77,20 @@ router.post('/register', authLimiter, async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      studentId,
+      department,
+      year,
       emailVerificationToken: verificationToken,
       emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       emailVerified: false,
       authProvider: 'local',
-      role: 'user',
+      role,
       status: 'active'
     });
 
     sendWelcomeEmail(name, email).catch((err) => console.error('WELCOME EMAIL ERROR:', err.message));
     sendVerificationEmail(name, email, verificationToken).catch((err) => console.error('VERIFICATION EMAIL ERROR:', err.message));
 
-    // Do not establish a logged-in session until the email is verified.
     res.status(201).json({
       message: 'Registration successful. Check your inbox to verify your email.',
       requiresVerification: true,
@@ -71,6 +106,7 @@ router.post('/login', authLimiter, async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
+    const requestedRole = normalizeRequestedRole(req.body.requestedRole);
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required.' });
 
     const user = await User.findOne({ email });
@@ -88,6 +124,19 @@ router.post('/login', authLimiter, async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid email or password.' });
 
+    if (requestedRole && !['user', 'organizer', 'club_head', 'admin'].includes(requestedRole)) {
+      return res.status(400).json({ message: 'Invalid login role selected.' });
+    }
+
+    // Role strict check requirement from prompt:
+    if (requestedRole && user.role !== requestedRole) {
+      return res.status(403).json({
+        message: `This account is registered as ${roleLabel(user.role)}. Please choose ${roleLabel(user.role)} to continue.`,
+        roleMismatch: true,
+        actualRole: user.role
+      });
+    }
+
     const token = generateToken(user);
     res.json({ message: 'Login successful.', token, user: publicUser(user) });
   } catch (err) {
@@ -99,6 +148,7 @@ router.post('/google', authLimiter, async (req, res) => {
   try {
     if (!googleClient) return res.status(500).json({ message: 'Google Sign-In is not configured on this server.' });
     const { credential } = req.body;
+    const requestedRole = normalizeRequestedRole(req.body.requestedRole);
     if (!credential) return res.status(400).json({ message: 'Missing Google credential.' });
 
     const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
@@ -110,11 +160,25 @@ router.post('/google', authLimiter, async (req, res) => {
     let user = await User.findOne({ googleId });
     if (!user) user = await User.findOne({ email });
     if (user) {
+      if (requestedRole && user.role !== requestedRole) {
+        return res.status(403).json({
+          message: `This account is registered as ${roleLabel(user.role)}. Please choose ${roleLabel(user.role)} to continue.`,
+          roleMismatch: true,
+          actualRole: user.role
+        });
+      }
       user.googleId = googleId;
       user.authProvider = 'google';
       user.emailVerified = true;
       await user.save();
     } else {
+      if (requestedRole && requestedRole !== 'user') {
+        return res.status(403).json({
+          message: 'New accounts start as Student. An admin can assign Organizer, Club Head, or Admin access after your account is created.',
+          roleMismatch: true,
+          actualRole: 'user'
+        });
+      }
       user = await User.create({
         name: String(name || email.split('@')[0]).trim(),
         email,
@@ -134,7 +198,11 @@ router.post('/google', authLimiter, async (req, res) => {
   }
 });
 
-router.get('/me', protect, (req, res) => res.json({ user: req.user }));
+router.get('/me', protect, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ message: 'User not found.' });
+  res.json({ user: publicUser(user) });
+});
 
 router.get('/verify-email', async (req, res) => {
   try {

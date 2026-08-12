@@ -1,5 +1,6 @@
 const express = require('express');
 const Event = require('../models/Event');
+const Club = require('../models/Club');
 const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
@@ -17,22 +18,38 @@ async function withWaitlistCounts(events) {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, category, upcoming, date, sort, excludeId, limit, price, eventType, availability } = req.query;
+    const { search, category, upcoming, date, dateTo, sort, excludeId, limit, price, eventType, availability } = req.query;
     const query = { status: 'published' };
     if (search) {
       const term = search.trim();
       const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      query.$or = [{ title: regex }, { description: regex }, { location: regex }];
+      const matchingClubs = await Club.find({ status: 'active', $or: [
+        { name: regex }, { shortName: regex }, { description: regex }, { department: regex }
+      ] }).select('_id');
+      query.$or = [
+        { title: regex },
+        { description: regex },
+        { location: regex },
+        ...(matchingClubs.length ? [{ club: { $in: matchingClubs.map((club) => club._id) } }] : [])
+      ];
     }
     if (category) query.category = category;
     if (eventType) query.eventType = eventType;
     if (price === 'free') query.price = { $eq: 0 };
     if (price === 'paid') query.price = { $gt: 0 };
     if (availability === 'available') query.$expr = { $lt: ['$bookedCount', '$capacity'] };
-    if (date) query.date = date;
-    if (upcoming === 'true') query.date = { ...(query.date ? { $eq: query.date } : {}), $gte: new Date().toISOString().split('T')[0] };
+    if (availability === 'waitlist') query.$expr = { $gte: ['$bookedCount', '$capacity'] };
+    if (date && dateTo) query.date = { $gte: date, $lte: dateTo };
+    else if (date) query.date = date;
+    if (upcoming === 'true') {
+      const today = new Date().toISOString().split('T')[0];
+      const existingDate = query.date;
+      if (existingDate && typeof existingDate === 'object' && existingDate.$gte) query.date = { ...existingDate, $gte: existingDate.$gte < today ? today : existingDate.$gte };
+      else if (existingDate) query.date = { $eq: existingDate, $gte: today };
+      else query.date = { $gte: today };
+    }
     if (excludeId) query._id = { $ne: excludeId };
-    const sortOption = sort === 'popular' ? { bookedCount: -1, date: 1 } : { date: 1, time: 1 };
+    const sortOption = sort === 'popular' ? { bookedCount: -1, date: 1 } : sort === 'date-desc' ? { date: -1, time: -1 } : { date: 1, time: 1 };
     let eventsQuery = Event.find(query).sort(sortOption);
     if (limit) eventsQuery = eventsQuery.limit(Math.min(Number(limit) || 20, 50));
     const events = await eventsQuery.populate('club', 'name category logoUrl').populate('organizer', 'name email avatarUrl');

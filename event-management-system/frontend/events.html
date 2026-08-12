@@ -20,20 +20,72 @@
     <div>
       <div class="eyebrow">DISCOVER WHAT'S NEXT</div>
       <h1 id="eventsTitle">Discover events you'll love</h1>
-      <p id="eventsSubtitle">Choose what interests you, or find events near you.</p>
+      <p id="eventsSubtitle">Search for an event, club, venue, category or date to get exactly what you want.</p>
     </div>
   </div>
 
-  <section class="category-discovery-shell" aria-labelledby="categoryDiscoveryTitle">
-    <div class="category-discovery-head">
-      <div>
-        <div class="eyebrow">BROWSE BY INTEREST</div>
-        <h2 id="categoryDiscoveryTitle">What are you in the mood for?</h2>
-        <p>Choose a category to see matching events.</p>
+  <section class="search-filters-section" aria-labelledby="searchFiltersTitle">
+    <div class="search-filters-container">
+      <div class="search-row">
+        <div class="search-wrapper">
+          <label for="eventSearch" class="visually-hidden">Search events</label>
+          <input type="search" id="eventSearch" class="form-control search-input" placeholder="Search events, clubs, venues..." aria-label="Search events, clubs, venues" />
+          <span class="search-icon" aria-hidden="true">🔍</span>
+        </div>
+        <button type="button" class="filter-toggle" id="filterToggle" aria-expanded="true" aria-controls="eventFilters">⚙ Filters</button>
       </div>
-      <button class="btn btn-outline" id="browseAllBtn" type="button">Browse all events →</button>
+      <div class="filters-wrapper" id="eventFilters">
+        <div class="filter-group">
+          <label for="dateFilter" class="visually-hidden">Date filter</label>
+          <select id="dateFilter" class="form-control filter-select" aria-label="Filter by date">
+            <option value="">Any date</option>
+            <option value="today">Today</option>
+            <option value="this-week">This week</option>
+            <option value="this-month">This month</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="priceFilter" class="visually-hidden">Price filter</label>
+          <select id="priceFilter" class="form-control filter-select" aria-label="Filter by price">
+            <option value="">Any price</option>
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="availabilityFilter" class="visually-hidden">Availability filter</label>
+          <select id="availabilityFilter" class="form-control filter-select" aria-label="Filter by availability">
+            <option value="">Any availability</option>
+            <option value="available">Available</option>
+            <option value="waitlist">Waitlist only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="sortFilter" class="visually-hidden">Sort by</label>
+          <select id="sortFilter" class="form-control filter-select" aria-label="Sort events">
+            <option value="date">Date (soonest)</option>
+            <option value="popular">Most popular</option>
+            <option value="date-desc">Date (latest)</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div id="categoryDiscovery" class="category-discovery-grid" aria-live="polite"></div>
+  </section>
+
+  <section class="category-chips-section" aria-labelledby="categoryChipsTitle">
+    <div class="category-chips-container" id="categoryChips" role="tablist" aria-label="Event categories"></div>
+  </section>
+
+  <section id="resultsSection" class="results-section" aria-labelledby="resultsTitle">
+    <div class="results-toolbar">
+      <div>
+        <div class="eyebrow">YOUR RESULTS</div>
+        <h2 id="resultsTitle">Search results</h2>
+      </div>
+      <span id="resultsSummary" aria-live="polite"></span>
+    </div>
+    <div id="eventsGrid" class="grid grid-3" aria-live="polite"></div>
   </section>
 
   <section class="nearby-shell" aria-labelledby="nearbyTitle">
@@ -49,17 +101,6 @@
   </section>
 
   <div id="alertBox"></div>
-
-  <section id="resultsSection" class="results-section hidden-results" aria-labelledby="resultsTitle">
-    <div class="results-toolbar">
-      <div>
-        <div class="eyebrow">YOUR RESULTS</div>
-        <h2 id="resultsTitle">Events</h2>
-      </div>
-      <span id="resultsSummary" aria-live="polite"></span>
-    </div>
-    <div id="eventsGrid" class="grid grid-3" aria-live="polite"></div>
-  </section>
 </main>
 
 <footer class="site-footer">EventHub &mdash; Event Management System</footer>
@@ -71,28 +112,43 @@
 
   const eventsGrid = document.getElementById('eventsGrid');
   const resultsSection = document.getElementById('resultsSection');
-  const categoryDiscovery = document.getElementById('categoryDiscovery');
   const eventsTitle = document.getElementById('eventsTitle');
   const eventsSubtitle = document.getElementById('eventsSubtitle');
   const alertBox = document.getElementById('alertBox');
-  const browseAllBtn = document.getElementById('browseAllBtn');
+  const eventSearch = document.getElementById('eventSearch');
+  const dateFilter = document.getElementById('dateFilter');
+  const priceFilter = document.getElementById('priceFilter');
+  const availabilityFilter = document.getElementById('availabilityFilter');
+  const sortFilter = document.getElementById('sortFilter');
+  const categoryChips = document.getElementById('categoryChips');
+  const resultsSummary = document.getElementById('resultsSummary');
   const nearMeBtn = document.getElementById('nearMeBtn');
   const clearLocationBtn = document.getElementById('clearLocationBtn');
   const locationStatus = document.getElementById('locationStatus');
-  const resultsSummary = document.getElementById('resultsSummary');
+  const filterToggle = document.getElementById('filterToggle');
+  const eventFilters = document.getElementById('eventFilters');
+
 
   let selectedCategory = '';
   let userLocation = null;
   let nearMeActive = false;
   let nearMeRequestId = 0;
-  let browsingMode = false;
+  let searchQuery = '';
+  let allEvents = [];
+  let allCategories = [];
+
+  // Always start Discover with neutral filters; the student chooses what to search.
+  dateFilter.value = '';
+  priceFilter.value = '';
+  availabilityFilter.value = '';
+  sortFilter.value = 'date';
 
   function personaliseDiscoveryIntro() {
     const user = Session.getUser();
     if (Session.isLoggedIn() && user && user.name) {
       const firstName = String(user.name).split(' ')[0] || 'there';
       eventsTitle.textContent = `Hi, ${firstName} 👋`;
-      eventsSubtitle.textContent = 'Choose something for your next plan.';
+      eventsSubtitle.textContent = 'Discover events you\'ll love';
     }
   }
 
@@ -100,6 +156,26 @@
     const params = new URLSearchParams();
     params.set('upcoming', 'true');
     if (selectedCategory) params.set('category', selectedCategory);
+    if (searchQuery) params.set('search', searchQuery);
+    if (priceFilter.value) params.set('price', priceFilter.value);
+    if (availabilityFilter.value) params.set('availability', availabilityFilter.value);
+    if (sortFilter.value && sortFilter.value !== 'date') params.set('sort', sortFilter.value);
+    if (dateFilter.value === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      params.set('date', today);
+    } else if (dateFilter.value === 'this-week') {
+      const today = new Date();
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      params.set('date', today.toISOString().split('T')[0]);
+      params.set('dateTo', nextWeek.toISOString().split('T')[0]);
+    } else if (dateFilter.value === 'this-month') {
+      const today = new Date();
+      const nextMonth = new Date(today);
+      nextMonth.setMonth(today.getMonth() + 1);
+      params.set('date', today.toISOString().split('T')[0]);
+      params.set('dateTo', nextMonth.toISOString().split('T')[0]);
+    }
     return `?${params.toString()}`;
   }
 
@@ -132,17 +208,30 @@
     return event && Number.isFinite(Number(event.price)) && Number(event.price) > 0 ? `₹${Number(event.price)}` : 'Free';
   }
 
-  function getSavedEvents() {
-    try { return JSON.parse(localStorage.getItem('eventhub_saved_events') || '[]'); }
-    catch (err) { return []; }
+  let savedEventIds = new Set();
+
+  async function loadSavedEventIds() {
+    if (!Session.isLoggedIn()) {
+      savedEventIds = new Set();
+      return;
+    }
+    try {
+      const res = await Api.getSavedEventIds();
+      savedEventIds = new Set((res.eventIds || []).map(String));
+    } catch (err) {
+      savedEventIds = new Set();
+    }
   }
 
-  function renderEventCard(event) {
+  function renderEventCard(event, containerType = 'main') {
     const spotsLeft = Number(event.capacity || 0) - Number(event.bookedCount || 0);
     const full = spotsLeft <= 0;
-    const safeImg = event.imageUrl ? optimizedImageUrl(event.imageUrl, 500).replace(/"/g, '&quot;') : '';
+    const safeImg = event.imageUrl ? optimizedImageUrl(event.imageUrl, 500).replace(/"/g, '"') : '';
     const date = new Date(event.date);
-    const saved = new Set(getSavedEvents()).has(event.id);
+    const saved = savedEventIds.has(event.id);
+
+    const clubInfo = event.club ? `<span class="event-club">🏷️ ${escapeHtml(event.club.name)}</span>` : '';
+    const organizerInfo = event.organizer ? `<span class="event-organizer">👤 ${escapeHtml(event.organizer.name)}</span>` : '';
 
     return `<article class="event-card">
       <button type="button" class="save-heart ${saved ? 'saved' : ''}" data-save-event="${escapeHtml(event.id)}" aria-label="${saved ? 'Remove saved event' : 'Save event'}">
@@ -159,6 +248,7 @@
           <h3>${escapeHtml(event.title)}</h3>
           <div class="meta"><span>📅 ${formatDate(event.date)}</span><span>📍 ${escapeHtml(event.location)}</span>${distanceBadge(event)}</div>
           <div class="premium-meta"><span class="event-price">${escapeHtml(eventPrice(event))}</span><span class="badge badge-muted">${event.bookedCount || 0}/${event.capacity || 0} booked</span></div>
+          <div class="event-host">${clubInfo}${organizerInfo}</div>
         </div>
         <div class="footer"><span class="event-card-footnote">${full ? 'Join the waitlist from details' : 'Seats available'}</span><span class="btn btn-sm btn-outline event-card-cta">View details <span aria-hidden="true">→</span></span></div>
       </a>
@@ -167,16 +257,50 @@
 
   function bindSaveButtons() {
     document.querySelectorAll('[data-save-event]').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
+      btn.addEventListener('click', async (event) => {
         event.preventDefault(); event.stopPropagation();
         const id = btn.getAttribute('data-save-event');
-        const current = new Set(getSavedEvents());
-        if (current.has(id)) { current.delete(id); showToast('Removed from saved events'); }
-        else { current.add(id); showToast('Saved event'); }
-        localStorage.setItem('eventhub_saved_events', JSON.stringify(Array.from(current)));
-        loadEvents();
+        const wasSaved = savedEventIds.has(id);
+        try {
+          if (wasSaved) {
+            await Api.removeSavedEvent(id);
+            savedEventIds.delete(id);
+            showToast('Removed from saved events');
+          } else {
+            await Api.saveEvent(id);
+            savedEventIds.add(id);
+            showToast('Saved event');
+          }
+          btn.classList.toggle('saved', !wasSaved);
+          btn.querySelector('.heart-icon').textContent = wasSaved ? '♡' : '♥';
+          btn.setAttribute('aria-label', wasSaved ? 'Save event' : 'Remove saved event');
+        } catch (err) {
+          showAlert(alertBox, err.message);
+        }
       });
     });
+  }
+
+  function hasSearchIntent() {
+    return Boolean(
+      searchQuery ||
+      selectedCategory ||
+      dateFilter.value ||
+      priceFilter.value ||
+      availabilityFilter.value ||
+      sortFilter.value !== 'date' ||
+      nearMeActive
+    );
+  }
+
+  function renderSearchPrompt() {
+    resultsSection.classList.remove('hidden-results');
+    resultsSummary.textContent = '';
+    eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;max-width:760px;margin:0 auto;">
+      <div class="icon">🔎</div>
+      <h3>What are you looking for?</h3>
+      <p>Search for an event, club, venue or topic, or choose a category or filter above. Matching events will appear here.</p>
+    </div>`;
   }
 
   function renderSkeletons(count = 6) {
@@ -188,23 +312,27 @@
     resultsSection.classList.remove('hidden-results');
     if (!events.length) {
       resultsSummary.textContent = '0 events found';
-      eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔍</div><h3>No events found</h3><p>Try another category or browse all events.</p></div>`;
+      eventsGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔍</div><h3>No events found</h3><p>Try adjusting your filters or search.</p></div>`;
       return;
     }
     resultsSummary.textContent = `${events.length} event${events.length === 1 ? '' : 's'} found`;
     eventsGrid.innerHTML = events.map(renderEventCard).join('');
     bindSaveButtons();
-    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function loadEvents() {
+    if (!hasSearchIntent()) {
+      renderSearchPrompt();
+      return;
+    }
     try {
       clearAlert(alertBox);
       resultsSection.classList.remove('hidden-results');
       renderSkeletons();
+      await loadSavedEventIds();
       const response = await Api.getEvents(buildQuery());
-      const events = enrichWithDistance(response.events || []);
-      renderEvents(events);
+      allEvents = enrichWithDistance(response.events || []);
+      renderEvents(allEvents);
     } catch (err) {
       resultsSection.classList.remove('hidden-results');
       resultsSummary.textContent = 'Could not load events';
@@ -216,31 +344,54 @@
   async function loadCategories() {
     try {
       const { categories } = await Api.getCategories();
-      categoryDiscovery.innerHTML = categories.map((c) => `
-        <button type="button" class="category-discovery-card" data-category-pick="${escapeHtml(c.name)}">
-          <span class="category-discovery-icon" aria-hidden="true">✦</span>
-          <span class="category-discovery-copy"><strong>${escapeHtml(c.name)}</strong><small>Explore ${escapeHtml(c.name)} events</small></span>
-          <span class="category-discovery-arrow" aria-hidden="true">→</span>
-        </button>`).join('');
+      allCategories = categories.filter(c => c.status === 'active');
+      categoryChips.innerHTML = `
+        <button type="button" class="category-chip ${!selectedCategory ? 'active' : ''}" data-category="" role="tab" aria-selected="${!selectedCategory}">All</button>
+        ${allCategories.map((c) => `
+          <button type="button" class="category-chip ${selectedCategory === c.name ? 'active' : ''}" data-category="${escapeHtml(c.name)}" role="tab" aria-selected="${selectedCategory === c.name}">
+            <span aria-hidden="true">${escapeHtml(c.icon || '📁')}</span> ${escapeHtml(c.name)}
+          </button>`).join('')}
+      `;
 
-      categoryDiscovery.querySelectorAll('[data-category-pick]').forEach((button) => {
+      categoryChips.querySelectorAll('[data-category]').forEach((button) => {
         button.addEventListener('click', () => {
-          selectedCategory = button.getAttribute('data-category-pick') || '';
-          browsingMode = true;
-          resultsSummary.textContent = 'Loading events...';
+          selectedCategory = button.getAttribute('data-category') || '';
+          categoryChips.querySelectorAll('[data-category]').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-category') === selectedCategory);
+            b.setAttribute('aria-selected', b.getAttribute('data-category') === selectedCategory);
+          });
           loadEvents();
         });
       });
     } catch (err) {
-      categoryDiscovery.innerHTML = '<div class="event-discovery-empty"><h3>Categories unavailable</h3><p>Please try again in a moment.</p></div>';
+      categoryChips.innerHTML = '<div class="event-discovery-empty"><h3>Categories unavailable</h3><p>Please try again in a moment.</p></div>';
     }
   }
 
-  browseAllBtn.addEventListener('click', () => {
-    selectedCategory = '';
-    browsingMode = true;
+  function debounce(fn, delay) {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  const debouncedSearch = debounce(() => {
+    searchQuery = eventSearch.value.trim();
     loadEvents();
+  }, 300);
+
+  filterToggle.addEventListener('click', () => {
+    const open = eventFilters.classList.toggle('is-open');
+    filterToggle.setAttribute('aria-expanded', String(open));
+    filterToggle.classList.toggle('active', open);
   });
+
+  eventSearch.addEventListener('input', debouncedSearch);
+  dateFilter.addEventListener('change', loadEvents);
+  priceFilter.addEventListener('change', loadEvents);
+  availabilityFilter.addEventListener('change', loadEvents);
+  sortFilter.addEventListener('change', loadEvents);
 
   nearMeBtn.addEventListener('click', async () => {
     const requestId = ++nearMeRequestId;
@@ -253,14 +404,12 @@
       if (requestId !== nearMeRequestId) return;
       userLocation = { latitude: Number(location.latitude), longitude: Number(location.longitude), accuracy: Number(location.accuracy), quality: location.quality || getLocationAccuracyQuality(Number(location.accuracy)) };
       nearMeActive = Boolean(userLocation.quality && userLocation.quality.sortable);
-      browsingMode = true;
       const accuracyKm = Number(userLocation.accuracy) / 1000;
       if (userLocation.quality.level === 'excellent') locationStatus.textContent = 'Location found. Showing events closest to you first.';
       else if (userLocation.quality.level === 'moderate') locationStatus.textContent = `Location found, but accuracy is moderate (about ±${Math.round(accuracyKm * 10) / 10} km). Distances are approximate.`;
       else { locationStatus.textContent = `Location found, but accuracy is poor (about ±${Math.round(accuracyKm)} km). Nearby sorting is temporarily unavailable.`; nearMeActive = false; }
       nearMeBtn.textContent = nearMeActive ? '✓ Near Me is on' : '↻ Retry Near Me';
       clearLocationBtn.classList.remove('hidden');
-      selectedCategory = '';
       loadEvents();
     } catch (err) {
       if (requestId !== nearMeRequestId) return;
@@ -271,14 +420,15 @@
   });
 
   clearLocationBtn.addEventListener('click', () => {
-    nearMeRequestId += 1; userLocation = null; nearMeActive = false; browsingMode = false;
+    nearMeRequestId += 1; userLocation = null; nearMeActive = false;
     locationStatus.textContent = 'Use your current location only when you want nearby sorting.';
     nearMeBtn.textContent = '📍 Near Me'; clearLocationBtn.classList.add('hidden');
-    resultsSection.classList.add('hidden-results'); eventsGrid.innerHTML = '';
+    loadEvents();
   });
 
   personaliseDiscoveryIntro();
   loadCategories();
+  renderSearchPrompt();
 </script>
 </body>
 </html>

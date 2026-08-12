@@ -1,30 +1,25 @@
 const mongoose = require('mongoose');
 const schemaOptions = require('./schemaOptions');
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: {
-      type: String,
-      required: function () { return !this.googleId; }
-    },
-    googleId: { type: String, unique: true, sparse: true },
-    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
-    emailVerified: { type: Boolean, default: true },
-    emailVerificationToken: { type: String, default: '', select: false },
-    emailVerificationExpires: { type: Date, default: null, select: false },
-    passwordResetToken: { type: String, default: '', select: false },
-    passwordResetExpires: { type: Date, default: null, select: false },
-    avatarUrl: { type: String, default: '' },
-    role: { type: String, enum: ['user', 'organizer', 'admin'], default: 'user' },
-    studentId: { type: String, default: '', trim: true },
-    department: { type: String, default: '', trim: true },
-    year: { type: String, default: '', trim: true },
-    phone: { type: String, default: '', trim: true },
-    status: { type: String, enum: ['active', 'blocked'], default: 'active' }
-  },
-  schemaOptions
-);
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: function () { return !this.googleId; } },
+  googleId: { type: String, unique: true, sparse: true },
+  authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+  emailVerified: { type: Boolean, default: true },
+  emailVerificationToken: { type: String, default: '', select: false },
+  emailVerificationExpires: { type: Date, default: null, select: false },
+  passwordResetToken: { type: String, default: '', select: false },
+  passwordResetExpires: { type: Date, default: null, select: false },
+  avatarUrl: { type: String, default: '' },
+  role: { type: String, enum: ['user', 'organizer', 'club_head', 'admin'], default: 'user' },
+  clubId: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', default: null },
+  studentId: { type: String, default: '', trim: true },
+  department: { type: String, default: '', trim: true },
+  year: { type: String, default: '', trim: true },
+  phone: { type: String, default: '', trim: true },
+  status: { type: String, enum: ['active', 'blocked'], default: 'active' }
+}, schemaOptions);
 
 module.exports = mongoose.model('User', userSchema);

@@ -1,1 +1,102 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notifications - EventHub</title><link rel="stylesheet" href="css/style.css"></head><body><div id="navbar" class="navbar"></div><main class="container" style="max-width:850px"><div class="page-header"><div><span class="eyebrow">UPDATES</span><h1>Notifications</h1><p>Registration, event, club and support updates.</p></div><button class="btn btn-outline" id="read">Mark all read</button></div><div id="alertBox"></div><div id="list"></div></main><script src="js/api.js"></script><script src="js/nav.js"></script><script>requireAuth();renderNavbar('notifications');const list=document.getElementById('list'),alertBox=document.getElementById('alertBox');async function load(){try{const{notifications}=await Api.getNotifications();list.innerHTML=notifications.length?notifications.map(n=>`<a class="card" href="${escapeHtml(n.link||'#')}" style="display:block;margin-bottom:10px;text-decoration:none;${n.readAt?'opacity:.72':''}"><strong>${escapeHtml(n.title)}</strong><p>${escapeHtml(n.message)}</p><span class="muted">${formatDateTime(n.createdAt)}</span></a>`).join(''):`<div class="empty-state"><h3>All caught up</h3><p>You have no notifications.</p></div>`}catch(e){showAlert(alertBox,e.message)}}document.getElementById('read').onclick=async()=>{await Api.markAllNotificationsRead();load()};load();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifications - EventHub</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+<main class="container" style="max-width:850px">
+  <div class="page-header">
+    <div><span class="eyebrow">UPDATES</span><h1>Notifications</h1><p>Registration, event, club and support updates.</p></div>
+    <button class="btn btn-outline" id="read">Mark all read</button>
+  </div>
+  <div id="alertBox"></div>
+  <div id="list"></div>
+</main>
+<script src="js/api.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  requireAuth();
+  renderNavbar('notifications');
+
+  const list = document.getElementById('list');
+  const alertBox = document.getElementById('alertBox');
+
+  function getNotificationIcon(type) {
+    const icons = {
+      booking: '🎟️',
+      event: '📅',
+      club: '👥',
+      support: '💬',
+      announcement: '📢',
+      checkin: '✅',
+      recruitment: '💼'
+    };
+    return icons[type] || '🔔';
+  }
+
+  async function load() {
+    try {
+      const { notifications, unreadCount } = await Api.getNotifications();
+      list.innerHTML = notifications.length
+        ? notifications.map((n) => `
+            <a class="notification-item" href="${escapeHtml(n.link || '#')}" data-notification-id="${escapeHtml(n._id)}" style="display:block;margin-bottom:10px;text-decoration:none;${n.readAt ? 'opacity:.72' : 'border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft)'}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px">
+                <div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0">
+                  <span class="notification-icon" style="font-size:1.2rem;flex-shrink:0;margin-top:2px">${getNotificationIcon(n.type)}</span>
+                  <div style="min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                      <strong style="font-size:.95rem">${escapeHtml(n.title)}</strong>
+                      ${n.readAt ? '' : '<span class="badge badge-warning">New</span>'}
+                    </div>
+                    <p style="margin:4px 0 8px;color:var(--text-soft);font-size:.88rem;line-height:1.5">${escapeHtml(n.message)}</p>
+                    <span class="muted" style="font-size:.74rem">${formatDateTime(n.createdAt)}</span>
+                  </div>
+                </div>
+                ${!n.readAt ? '<span class="notification-dot" style="width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0" aria-hidden="true"></span>' : ''}
+              </div>
+            </a>
+          `).join('')
+        : `<div class="empty-state"><h3>All caught up</h3><p>You have no notifications.</p></div>`;
+
+      list.querySelectorAll('[data-notification-id]').forEach((item) => {
+        item.addEventListener('click', async (event) => {
+          const id = item.dataset.notificationId;
+          if (!id) return;
+          const wasRead = item.querySelector('.badge') === null && !item.querySelector('.notification-dot');
+          if (wasRead) return;
+          event.preventDefault();
+          try {
+            await apiRequest(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PUT' });
+            await refreshNotificationBadge();
+          } finally {
+            const href = item.getAttribute('href');
+            if (href && href !== '#') window.location.href = href;
+            else await load();
+          }
+        });
+      });
+
+      await refreshNotificationBadge();
+    } catch (e) {
+      showAlert(alertBox, e.message);
+    }
+  }
+
+  document.getElementById('read').onclick = async () => {
+    try {
+      await Api.markAllNotificationsRead();
+      await load();
+      await refreshNotificationBadge();
+    } catch (e) {
+      showAlert(alertBox, e.message);
+    }
+  };
+
+  load();
+</script>
+</body>
+</html>

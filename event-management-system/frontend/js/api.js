@@ -117,9 +117,37 @@ const Api = {
   getNotifications: () => apiRequest('/notifications/my'),
   markAllNotificationsRead: () => apiRequest('/notifications/read-all', { method: 'PUT' }),
   getClubs: () => apiRequest('/clubs', { auth: false }),
-  requestClub: (payload) => apiRequest('/clubs/request', { method: 'POST', body: payload }),
   toggleClubFollow: (id) => apiRequest(`/clubs/${id}/follow`, { method: 'POST' }),
-  googleLogin: (credential) => apiRequest('/auth/google', { method: 'POST', body: { credential }, auth: false }),
+  getClub: (idOrSlug) => apiRequest(`/clubs/${encodeURIComponent(idOrSlug)}`, { auth: !!Session.getToken() }),
+  getClubOpportunities: () => apiRequest('/clubs/opportunities', { auth: false }),
+  getFollowedClubAnnouncements: () => apiRequest('/clubs/announcements'),
+  requestNewClub: (payload) => apiRequest('/clubs/request-new', { method: 'POST', body: payload }),
+  applyToOpportunity: (id, payload) => apiRequest(`/clubs/opportunities/${id}/apply`, { method: 'POST', body: payload }),
+  getClubHeadDashboard: () => apiRequest('/club-head/my-club'),
+  updateClubHeadClub: (payload) => apiRequest('/club-head/my-club', { method: 'PUT', body: payload }),
+  getClubHeadOpportunities: () => apiRequest('/club-head/opportunities'),
+  createClubHeadOpportunity: (payload) => apiRequest('/club-head/opportunities', { method: 'POST', body: payload }),
+  updateClubHeadOpportunity: (id,payload) => apiRequest(`/club-head/opportunities/${id}`, { method: 'PUT', body: payload }),
+  deleteClubHeadOpportunity: (id) => apiRequest(`/club-head/opportunities/${id}`, { method: 'DELETE' }),
+  getClubHeadApplications: (query='') => apiRequest(`/club-head/applications${query}`),
+  updateClubHeadApplication: (id,status) => apiRequest(`/club-head/applications/${id}/status`, { method: 'PUT', body: { status } }),
+  getClubHeadAnnouncements: () => apiRequest('/club-head/announcements'),
+  createClubHeadAnnouncement: (payload) => apiRequest('/club-head/announcements', { method: 'POST', body: payload }),
+  deleteClubHeadAnnouncement: (id) => apiRequest(`/club-head/announcements/${id}`, { method: 'DELETE' }),
+  getClubHeadEvents: () => apiRequest('/club-head/events'),
+  createClubHeadEvent: (payload) => apiRequest('/club-head/events', { method: 'POST', body: payload }),
+  updateClubHeadEvent: (id,payload) => apiRequest(`/club-head/events/${id}`, { method: 'PUT', body: payload }),
+  deleteClubHeadEvent: (id) => apiRequest(`/club-head/events/${id}`, { method: 'DELETE' }),
+  getClubHeadMembers: () => apiRequest('/club-head/members'),
+  getAdminClubs: () => apiRequest('/admin/clubs'),
+  createAdminClub: (payload) => apiRequest('/admin/clubs', { method: 'POST', body: payload }),
+  updateAdminClub: (id,payload) => apiRequest(`/admin/clubs/${id}`, { method: 'PUT', body: payload }),
+  assignClubHead: (id,payload) => apiRequest(`/admin/clubs/${id}/assign-head`, { method: 'POST', body: payload }),
+  removeClubHead: (id,payload) => apiRequest(`/admin/clubs/${id}/remove-head`, { method: 'POST', body: payload }),
+  getClubRequests: () => apiRequest('/admin/club-requests'),
+  approveClubRequest: (id) => apiRequest(`/admin/club-requests/${id}/approve`, { method: 'PUT' }),
+  rejectClubRequest: (id,adminNote='') => apiRequest(`/admin/club-requests/${id}/reject`, { method: 'PUT', body: { adminNote } }),
+  googleLogin: (credential, requestedRole) => apiRequest('/auth/google', { method: 'POST', body: { credential, requestedRole }, auth: false }),
   me: () => apiRequest('/auth/me'),
   getPublicConfig: () => apiRequest('/config', { auth: false }),
 
@@ -177,6 +205,8 @@ const Api = {
 
   // Admin dashboard
   getDashboard: () => apiRequest('/admin/dashboard'),
+  getAdminUsers: (query='') => apiRequest(`/admin/users${query}`),
+  updateAdminUserRole: (id,payload) => apiRequest(`/admin/users/${id}/role`, { method: 'PUT', body: payload }),
   geocodeAddress: (address) => apiRequest(`/geocode?address=${encodeURIComponent(address)}`)
 };
 
@@ -481,9 +511,16 @@ function requireOrganizer() {
   }
 }
 
+function getRoleHome(role = Session.getUser()?.role) {
+  if (role === 'admin') return 'admin/dashboard.html';
+  if (role === 'organizer') return 'organizer/dashboard.html';
+  if (role === 'club_head') return 'organizer/club-dashboard.html';
+  return 'events.html';
+}
+
 function redirectIfLoggedIn() {
   if (Session.isLoggedIn()) {
-    window.location.href = Session.isAdmin() ? 'admin/dashboard.html' : 'events.html';
+    window.location.href = getRoleHome();
   }
 }
 
@@ -493,7 +530,7 @@ initThemeSupport();
 // Loads the Google Identity Services script (if needed), then renders a
 // "Continue with Google" button into the given container element.
 // onSuccess receives the parsed { token, user } response from our backend.
-async function initGoogleSignIn(containerId, onSuccess, onError) {
+async function initGoogleSignIn(containerId, onSuccess, onError, getRequestedRole) {
   try {
     const { googleClientId } = await Api.getPublicConfig();
     if (!googleClientId) return; // Google Sign-In not configured on the server; just skip it
@@ -506,7 +543,7 @@ async function initGoogleSignIn(containerId, onSuccess, onError) {
         client_id: googleClientId,
         callback: async (response) => {
           try {
-            const data = await Api.googleLogin(response.credential);
+            const data = await Api.googleLogin(response.credential, typeof getRequestedRole === 'function' ? getRequestedRole() : undefined);
             onSuccess(data);
           } catch (err) {
             onError && onError(err);
@@ -535,3 +572,5 @@ async function initGoogleSignIn(containerId, onSuccess, onError) {
     // Silently skip Google Sign-In if the config request fails (e.g. offline)
   }
 }
+
+function requireClubHead(){ const u=Session.getUser(); if(!Session.isLoggedIn() || !u || u.role!=='club_head'){ window.location.href='../login.html'; return false;} return true; }

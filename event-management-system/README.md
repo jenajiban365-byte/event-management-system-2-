@@ -106,6 +106,8 @@ cp .env.example .env
 Open `.env` and set:
 - `JWT_SECRET` — any long random string
 - `MONGODB_URI` — the connection string you built in Step 1
+- `ADMIN_EMAIL` — your private college-admin email
+- `ADMIN_PASSWORD` — a unique password of at least 12 characters
 
 ### 4. Run the server
 
@@ -119,11 +121,10 @@ You should see:
 MongoDB connected successfully.
 Event Management API server running on http://localhost:5000
 Frontend available at http://localhost:5000
-Default admin login -> email: admin@events.com | password: Admin@123
+Admin credentials are configured through `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` and are never printed by the server.
 ```
 
-The first time it connects, it automatically creates the default admin account, categories, and
-sample events in your database (only if they don't already exist).
+The first time it connects, it bootstraps the admin account from the private `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, plus categories and sample events. The admin password is never hardcoded in the frontend or printed to logs.
 
 Open your browser to:
 
@@ -133,7 +134,7 @@ http://localhost:5000
 
 ### 5. Login
 
-- **Admin:** `admin@events.com` / `Admin@123` (created automatically on first run)
+- **Admin:** use the private credentials configured in `.env`
 - **User:** Register a new account from the Register page.
 
 Your data now lives in MongoDB Atlas — it will **not** be lost when you restart the server,

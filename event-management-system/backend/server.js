@@ -17,6 +17,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const clubRoutes = require('./routes/clubRoutes');
+const clubHeadRoutes = require('./routes/clubHeadRoutes');
 const organizerRoutes = require('./routes/organizerRoutes');
 const savedEventRoutes = require('./routes/savedEventRoutes');
 const geocodeRoutes = require('./routes/geocodeRoutes');
@@ -56,6 +57,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/clubs', clubRoutes);
+app.use('/api/club-head', clubHeadRoutes);
 app.use('/api/organizer', organizerRoutes);
 app.use('/api/saved-events', savedEventRoutes);
 app.use('/api/geocode', geocodeRoutes);
@@ -91,7 +93,7 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`Event Management API server running on http://localhost:${PORT}`);
     console.log(`Frontend available at http://localhost:${PORT}`);
-    console.log(`Default admin login -> email: admin@events.com | password: Admin@123`);
+    console.log('Admin bootstrap credentials are managed through environment variables.');
   });
 }
 

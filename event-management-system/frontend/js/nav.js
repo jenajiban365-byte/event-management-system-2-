@@ -1,54 +1,19 @@
 function avatarHtml(user, extraClass = '') {
   const initial = escapeHtml((user?.name || 'U').charAt(0).toUpperCase());
-
   const avatar = user && user.avatarUrl
     ? `<img class="profile-avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="" />`
     : initial;
-
   return `<span class="profile-avatar ${extraClass}" aria-hidden="true">${avatar}</span>`;
 }
+
 function createMobileToggle(user) {
   const avatar = user ? avatarHtml(user, 'mobile-toggle-avatar') : '';
   return `
-    <button class="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="siteNavLinks">
+    <button class="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobileSiteNavLinks">
       ${avatar}
       <span class="mobile-nav-toggle-icon" aria-hidden="true">☰</span>
     </button>
   `;
-}
-
-function setupMobileNavbar() {
-  const navContainer = document.getElementById('navbar');
-  if (!navContainer) return;
-
-  const toggle = navContainer.querySelector('.mobile-nav-toggle');
-  if (!toggle) return;
-
-  toggle.addEventListener('click', () => {
-    const isOpen = navContainer.classList.toggle('nav-open');
-    toggle.setAttribute('aria-expanded', String(isOpen));
-    toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
-    const icon = toggle.querySelector('.mobile-nav-toggle-icon');
-    if (icon) icon.textContent = isOpen ? '✕' : '☰';
-  });
-
-  navContainer.querySelectorAll('.nav-links a').forEach((link) => {
-    link.addEventListener('click', () => closeMobileNavbar(navContainer));
-  });
-
-  document.addEventListener('click', (event) => {
-    const profile = navContainer.querySelector('.nav-profile');
-    if (profile && !profile.contains(event.target)) profile.classList.remove('open');
-  });
-
-  const profileToggle = navContainer.querySelector('.profile-trigger');
-  if (profileToggle) {
-    profileToggle.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const profile = navContainer.querySelector('.nav-profile');
-      if (profile) profile.classList.toggle('open');
-    });
-  }
 }
 
 function closeMobileNavbar(navContainer) {
@@ -62,114 +27,113 @@ function closeMobileNavbar(navContainer) {
   }
 }
 
-function renderNavbar(activePage) {
+function setupMobileNavbar() {
   const navContainer = document.getElementById('navbar');
   if (!navContainer) return;
 
-  const user = Session.getUser();
-  const loggedIn = Session.isLoggedIn();
+  const toggle = navContainer.querySelector('.mobile-nav-toggle');
+  if (toggle && !toggle.dataset.bound) {
+    toggle.dataset.bound = '1';
+    toggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = navContainer.classList.toggle('nav-open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+      const icon = toggle.querySelector('.mobile-nav-toggle-icon');
+      if (icon) icon.textContent = isOpen ? '✕' : '☰';
+    });
+  }
 
-  const links = [
-    { href: 'events.html', label: 'Discover', key: 'events' },
-    { href: 'organizer/dashboard.html', label: 'Organizer Hub', key: 'organizer', organizerOnly: true },
-    { href: 'saved-events.html', label: 'Saved Events', key: 'saved', authOnly: true },
-    { href: 'my-bookings.html', label: 'My Bookings', key: 'bookings', authOnly: true },
-    { href: 'notifications.html', label: 'Notifications', key: 'notifications', authOnly: true },
-    { href: 'support.html', label: 'My Questions', key: 'support', authOnly: true },
-    { href: 'clubs.html', label: 'Clubs', key: 'clubs' },
-    { href: 'contact.html', label: 'Contact', key: 'contact' }
-  ];
+  navContainer.querySelectorAll('.mobile-nav-links a').forEach((link) => {
+    if (link.dataset.bound) return;
+    link.dataset.bound = '1';
+    link.addEventListener('click', () => closeMobileNavbar(navContainer));
+  });
 
-  const linksHtml = links
-    .filter((l) => !l.authOnly || loggedIn)
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
-    .join('');
+  if (!navContainer.dataset.profileOutsideBound) {
+    navContainer.dataset.profileOutsideBound = '1';
+    document.addEventListener('click', (event) => {
+      const profile = navContainer.querySelector('.nav-profile');
+      if (profile && !profile.contains(event.target)) profile.classList.remove('open');
+    });
+  }
 
-  const greeting = loggedIn && user && user.name
-    ? `Hi, ${escapeHtml(user.name.split(' ')[0])} 👋`
-    : '';
+  const profileToggle = navContainer.querySelector('.profile-trigger');
+  if (profileToggle && !profileToggle.dataset.bound) {
+    profileToggle.dataset.bound = '1';
+    profileToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const profile = navContainer.querySelector('.nav-profile');
+      if (profile) profile.classList.toggle('open');
+    });
+  }
+}
 
-  const rightHtml = loggedIn
-    ? `
-      <div class="nav-profile">
-        <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
-          <span class="profile-avatar-wrap">
-            ${avatarHtml(user)}
-            <span class="nav-notif-dot" data-nav-notif-dot hidden aria-hidden="true"></span>
-          </span>
-          <span class="profile-name">${escapeHtml((user.name || 'User').split(' ')[0])}</span>
-          <span class="profile-chevron" aria-hidden="true">⌄</span>
-        </button>
-        <div class="profile-menu" role="menu">
-          <div class="profile-menu-head">
-            ${avatarHtml(user, 'profile-avatar-lg')}
-            <div>
-              <strong>${escapeHtml(user.name || 'User')}</strong>
-              <span>${escapeHtml(user.email || '')}</span>
-            </div>
-          </div>
-          <div class="profile-menu-greeting">${greeting}</div>
-          <a href="my-bookings.html" role="menuitem">My Bookings</a>
-          <a href="saved-events.html" role="menuitem">Saved Events</a>
-          <a href="notifications.html" role="menuitem">Notifications<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
-          <a href="support.html" role="menuitem">My Questions</a>
-          ${Session.isOrganizer() ? '<a href="organizer/dashboard.html" role="menuitem">Organizer Dashboard</a>' : ''}
-          ${Session.isAdmin() ? '<a href="admin/dashboard.html" role="menuitem">Admin Dashboard</a>' : ''}
-          <a href="profile.html" role="menuitem">Profile</a>
-          <a href="profile.html#settings" role="menuitem">Settings</a>
-          <button id="logoutBtn" type="button" role="menuitem">Sign out</button>
-        </div>
-      </div>
-    `
-    : `
-      <div class="nav-auth">
-        <a class="nav-signin" href="login.html">Sign in</a>
-        <a class="nav-create" href="register.html">Create account</a>
-      </div>
+function navNotificationLink(href, activePage) {
+  return `<a href="${href}" class="${activePage === 'notifications' ? 'active' : ''}">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>`;
+}
+
+function profileMenuHtml(user, prefix = '') {
+  const role = user?.role || 'user';
+  const base = prefix;
+  let items = '';
+
+  if (role === 'club_head') {
+    items = `
+      <a href="${base}organizer/club-dashboard.html" role="menuitem">My Club</a>
+      <a href="${base}organizer/club-dashboard.html#opportunities" role="menuitem">Club Dashboard</a>
+      <a href="${base}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      <a href="${base}profile.html" role="menuitem">Profile</a>
     `;
+  } else if (role === 'organizer') {
+    items = `
+      <a href="${base}organizer/dashboard.html" role="menuitem">Organizer Dashboard</a>
+      <a href="${base}organizer/events.html" role="menuitem">My Events</a>
+      <a href="${base}organizer/registrations.html" role="menuitem">Registrations</a>
+      <a href="${base}organizer/check-in.html" role="menuitem">Check-in</a>
+      <a href="${base}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      <a href="${base}profile.html" role="menuitem">Profile</a>
+      <a href="${base}profile.html#settings" role="menuitem">Settings</a>
+      <a href="${base}events.html" role="menuitem">View Student Site</a>
+    `;
+  } else if (role === 'admin') {
+    items = `
+      <a href="${base}admin/dashboard.html" role="menuitem">Admin Dashboard</a>
+      <a href="${base}admin/events.html" role="menuitem">Events</a>
+      <a href="${base}admin/clubs.html" role="menuitem">Clubs</a>
+      <a href="${base}admin/users.html" role="menuitem">Users</a>
+      <a href="${base}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      <a href="${base}profile.html" role="menuitem">Profile</a>
+      <a href="${base}profile.html#settings" role="menuitem">Settings</a>
+      <a href="${base}events.html" role="menuitem">View Student Site</a>
+    `;
+  } else {
+    items = `
+      <a href="${base}my-bookings.html" role="menuitem">My Bookings</a>
+      <a href="${base}saved-events.html" role="menuitem">Saved Events</a>
+      <a href="${base}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      <a href="${base}support.html" role="menuitem">My Questions</a>
+      <a href="${base}clubs.html" role="menuitem">Clubs</a>
+      <a href="${base}contact.html" role="menuitem">Contact</a>
+      <a href="${base}profile.html" role="menuitem">Profile</a>
+      <a href="${base}profile.html#settings" role="menuitem">Settings</a>
+    `;
+  }
 
-  navContainer.innerHTML = `
-    <div class="navbar-inner">
-      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
-      <div class="desktop-nav">
-        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
-        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
-        ${rightHtml}
+  return `
+    <div class="profile-menu-head">
+      ${avatarHtml(user, 'profile-avatar-lg')}
+      <div>
+        <strong>${escapeHtml(user?.name || 'User')}</strong>
+        <span>${escapeHtml(user?.email || '')}</span>
       </div>
-      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
-      ${createMobileToggle(loggedIn ? user : null)}
     </div>
-    <div class="mobile-nav-links" id="siteNavLinks">
-      ${linksHtml}
-      ${loggedIn ? `
-        <div class="mobile-user-card">
-          ${avatarHtml(user)}
-          <div><strong>${escapeHtml(user.name || 'User')}</strong><span>${escapeHtml(user.email || '')}</span></div>
-        </div>
-        <a href="my-bookings.html" class="${activePage === 'bookings' ? 'active' : ''}">My Bookings</a>
-        <a href="saved-events.html" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>
-        <a href="profile.html" class="${activePage === 'profile' ? 'active' : ''}">Profile</a>
-        <a href="profile.html#settings" class="${activePage === 'settings' ? 'active' : ''}">Settings</a>
-        <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
-      ` : `
-        <div class="mobile-auth-row">
-          <a class="nav-signin" href="login.html">Sign in</a>
-          <a class="nav-create" href="register.html">Create account</a>
-        </div>
-      `}
-    </div>
+    ${items}
+    <button id="logoutBtn" type="button" role="menuitem">Sign out</button>
   `;
+}
 
-  const logout = () => {
-    Session.clear();
-    window.location.href = 'index.html';
-  };
-
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
-
+function bindThemeToggle() {
   function updateThemeQuickToggle() {
     const selected = document.body?.dataset.theme === 'light' ? 'light' : 'dark';
     const buttons = [document.getElementById('themeQuickToggle'), document.getElementById('themeQuickToggleMobile')];
@@ -192,204 +156,290 @@ function renderNavbar(activePage) {
   document.getElementById('themeQuickToggle')?.addEventListener('click', toggleTheme);
   document.getElementById('themeQuickToggleMobile')?.addEventListener('click', toggleTheme);
   updateThemeQuickToggle();
+}
 
+function performLogout(redirectTo = 'index.html') {
+  Session.clear();
+  localStorage.removeItem('eventhub_saved_events');
+  window.location.href = redirectTo;
+}
+
+function renderNavbar(activePage) {
+  const navContainer = document.getElementById('navbar');
+  if (!navContainer) return;
+
+  const user = Session.getUser();
+  const loggedIn = Session.isLoggedIn();
+  const role = user?.role || 'user';
+  const homePrefix = '';
+
+  let linksHtml = '';
+  if (role === 'club_head') {
+    linksHtml = [
+      `<a href="/organizer/club-dashboard.html" class="${activePage === 'club-head' ? 'active' : ''}">My Club</a>`,
+      `<a href="/events.html" class="${activePage === 'events' ? 'active' : ''}">Discover</a>`,
+      navNotificationLink('/notifications.html', activePage),
+      `<a href="/contact.html" class="${activePage === 'contact' ? 'active' : ''}">Contact</a>`
+    ].join('');
+  } else if (role === 'organizer') {
+    linksHtml = [
+      `<a href="organizer/dashboard.html" class="${activePage === 'organizer' ? 'active' : ''}">Organizer Dashboard</a>`,
+      `<a href="organizer/events.html" class="${activePage === 'organizer-events' ? 'active' : ''}">My Events</a>`,
+      `<a href="organizer/registrations.html" class="${activePage === 'organizer-registrations' ? 'active' : ''}">Registrations</a>`,
+      `<a href="organizer/check-in.html" class="${activePage === 'organizer-checkin' ? 'active' : ''}">Check-in</a>`,
+      navNotificationLink('notifications.html', activePage)
+    ].join('');
+  } else if (role === 'admin') {
+    linksHtml = [
+      `<a href="admin/dashboard.html" class="${activePage === 'admin' ? 'active' : ''}">Admin Dashboard</a>`,
+      `<a href="admin/events.html" class="${activePage === 'admin-events' ? 'active' : ''}">Events</a>`,
+      `<a href="admin/clubs.html" class="${activePage === 'admin-clubs' ? 'active' : ''}">Clubs</a>`,
+      `<a href="admin/users.html" class="${activePage === 'admin-users' ? 'active' : ''}">Users</a>`,
+      navNotificationLink('notifications.html', activePage)
+    ].join('');
+  } else {
+    linksHtml = [
+      `<a href="events.html" class="${activePage === 'events' ? 'active' : ''}">Discover</a>`,
+      `<a href="clubs.html" class="${activePage === 'clubs' ? 'active' : ''}">Clubs</a>`,
+      ...(loggedIn ? [
+        `<a href="saved-events.html" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>`,
+        `<a href="my-bookings.html" class="${activePage === 'bookings' ? 'active' : ''}">My Bookings</a>`,
+        navNotificationLink('notifications.html', activePage)
+      ] : []),
+      `<a href="contact.html" class="${activePage === 'contact' ? 'active' : ''}">Contact</a>`
+    ].join('');
+  }
+
+  const mobileSecondaryHtml = role === 'club_head'
+    ? `
+        <a href="/organizer/club-dashboard.html">My Club</a>
+        <a href="/events.html">Discover</a>
+        <a href="/clubs.html">Clubs</a>
+        <a href="/notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+        <a href="/contact.html">Contact</a>
+        <a href="/profile.html">Profile</a>
+      `
+    : role === 'organizer'
+    ? `
+        <a href="organizer/dashboard.html">Organizer Dashboard</a>
+        <a href="organizer/events.html">My Events</a>
+        <a href="organizer/registrations.html">Registrations</a>
+        <a href="organizer/check-in.html">Check-in</a>
+        <a href="notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      `
+    : role === 'admin'
+      ? `
+        <a href="admin/dashboard.html">Admin Dashboard</a>
+        <a href="admin/events.html">Events</a>
+        <a href="admin/clubs.html">Clubs</a>
+        <a href="admin/users.html">Users</a>
+        <a href="notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+      `
+      : `
+        <a href="my-bookings.html">My Bookings</a>
+        <a href="saved-events.html">Saved Events</a>
+        <a href="notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
+        <a href="support.html">My Questions</a>
+        <a href="profile.html">Profile</a>
+        <a href="profile.html#settings">Settings</a>
+      `;
+
+  const rightHtml = loggedIn
+    ? `
+      <div class="nav-profile">
+        <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+          <span class="profile-avatar-wrap">
+            ${avatarHtml(user)}
+            <span class="nav-notif-dot" data-nav-notif-dot hidden aria-hidden="true"></span>
+          </span>
+          <span class="profile-name">${escapeHtml((user.name || 'User').split(' ')[0])}</span>
+          <span class="profile-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="profile-menu" role="menu">
+          ${profileMenuHtml(user, homePrefix)}
+        </div>
+      </div>
+    `
+    : `
+      <div class="nav-auth">
+        <a class="nav-signin" href="login.html">Sign in</a>
+        <a class="nav-create" href="register.html">Create account</a>
+      </div>
+    `;
+
+  navContainer.innerHTML = `
+    <div class="navbar-inner">
+      <a class="brand" href="${role === 'admin' ? 'admin/dashboard.html' : role === 'organizer' ? 'organizer/dashboard.html' : role === 'club_head' ? '/organizer/club-dashboard.html' : 'index.html'}"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
+      <div class="desktop-nav">
+        <div class="nav-links" id="desktopSiteNavLinks">${linksHtml}</div>
+        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
+        ${rightHtml}
+      </div>
+      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
+      ${createMobileToggle(loggedIn ? user : null)}
+    </div>
+    <div class="mobile-nav-links" id="mobileSiteNavLinks">
+      ${linksHtml}
+      ${loggedIn ? `
+        <div class="mobile-user-card">
+          ${avatarHtml(user)}
+          <div><strong>${escapeHtml(user.name || 'User')}</strong><span>${escapeHtml(user.email || '')}</span></div>
+        </div>
+        ${mobileSecondaryHtml}
+        <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
+      ` : `
+        <div class="mobile-auth-row">
+          <a class="nav-signin" href="login.html">Sign in</a>
+          <a class="nav-create" href="register.html">Create account</a>
+        </div>
+      `}
+    </div>
+  `;
+
+  const logout = () => performLogout('/index.html');
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  document.getElementById('mobileLogoutBtn')?.addEventListener('click', logout);
+
+  bindThemeToggle();
   setupMobileNavbar();
-
   if (loggedIn) refreshNotificationBadge();
 }
 
-// Fetches the real unread notification count from the backend and updates
-// every badge element in the header (nav link badge x2 for desktop/mobile,
-// plus the small dot on the avatar). Never shows a count when there are
-// zero unread notifications — badges stay hidden until there's a real number.
 async function refreshNotificationBadge() {
+  if (!Session.isLoggedIn()) return;
   try {
     const { unreadCount } = await Api.getNotifications();
-    const badges = document.querySelectorAll('[data-nav-notif-badge]');
-    const dots = document.querySelectorAll('[data-nav-notif-dot]');
-    const hasUnread = Number(unreadCount) > 0;
-
-    badges.forEach((badge) => {
-      if (hasUnread) {
-        badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
-        badge.hidden = false;
-      } else {
-        badge.hidden = true;
-      }
+    const count = Number(unreadCount) || 0;
+    const hasUnread = count > 0;
+    document.querySelectorAll('[data-nav-notif-badge]').forEach((badge) => {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = !hasUnread;
     });
-    dots.forEach((dot) => { dot.hidden = !hasUnread; });
+    document.querySelectorAll('[data-nav-notif-dot]').forEach((dot) => {
+      dot.hidden = !hasUnread;
+    });
   } catch (err) {
-    // Non-critical — if this fails (e.g. offline), just leave badges hidden rather than erroring the page
   }
 }
 
-function renderOrganizerNavbar(activePage) {
-  const navContainer = document.getElementById('navbar');
-  if (!navContainer) return;
-
-  const user = Session.getUser();
-
-  const links = [
-    { href: 'dashboard.html', label: 'Organizer Hub', key: 'dashboard' },
-    { href: 'events.html', label: 'Events', key: 'events' },
-    { href: 'registrations.html', label: 'Registrations', key: 'registrations' },
-    { href: 'check-in.html', label: 'Check-in', key: 'check-in' },
-    { href: '../notifications.html', label: 'Notifications', key: 'notifications', badge: true }
-  ];
-
-  const linksHtml = links
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${l.badge ? '<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>' : ''}</a>`)
-    .join('');
-
-  navContainer.innerHTML = `
-    <div class="navbar-inner">
-      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎪</span> EventHub Organizer</a>
-      <div class="desktop-nav">
-        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
-        <a class="nav-admin-site" href="../events.html">View Site</a>
-        <div class="nav-profile">
-          <button class="profile-trigger" type="button">${avatarHtml(user || { name: 'O' })}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Organizer')}</span><span class="profile-chevron">⌄</span></button>
-          <div class="profile-menu">
-            <div class="profile-menu-head">${avatarHtml(user || { name: 'O' }, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-            <a href="../events.html">View Site</a>
-            <a href="../profile.html">Profile</a>
-            <button id="logoutBtn" type="button">Sign out</button>
-          </div>
-        </div>
-      </div>
-      ${createMobileToggle(user || { name: 'O' })}
-    </div>
-    <div class="mobile-nav-links" id="siteNavLinks">
-      ${linksHtml}
-      <a href="../events.html">View Site</a>
-      <div class="mobile-user-card">${avatarHtml(user || { name: 'O' })}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-      <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
-    </div>
-  `;
-
-  const logout = () => {
-    Session.clear();
-    window.location.href = '../index.html';
-  };
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
-
-  setupMobileNavbar();
-  refreshNotificationBadge();
+function startNotificationBadgeRefresh() {
+  if (window.__eventHubNotificationRefreshStarted) return;
+  window.__eventHubNotificationRefreshStarted = true;
+  const refresh = () => refreshNotificationBadge();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh();
+  });
+  window.addEventListener('focus', refresh);
+  window.__eventHubNotificationTimer = setInterval(refresh, 30000);
 }
 
 function renderOrganizerNavbar(activePage) {
   const navContainer = document.getElementById('navbar');
   if (!navContainer) return;
-
   const user = Session.getUser();
+  if (!Session.isLoggedIn() || !Session.isOrganizer()) return requireOrganizer();
 
   const links = [
-    { href: 'dashboard.html', label: 'Organizer Hub', key: 'dashboard' },
-    { href: 'events.html', label: 'Events', key: 'events' },
-    { href: 'registrations.html', label: 'Registrations', key: 'registrations' },
-    { href: 'check-in.html', label: 'Check-in', key: 'check-in' }
-  ];
-
-  const linksHtml = links
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}</a>`)
-    .join('');
+    `<a href="dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}">Organizer Dashboard</a>`,
+    `<a href="events.html" class="${activePage === 'events' ? 'active' : ''}">My Events</a>`,
+    `<a href="registrations.html" class="${activePage === 'registrations' ? 'active' : ''}">Registrations</a>`,
+    `<a href="check-in.html" class="${activePage === 'check-in' ? 'active' : ''}">Check-in</a>`,
+    navNotificationLink('../notifications.html', activePage)
+  ].join('');
 
   navContainer.innerHTML = `
     <div class="navbar-inner">
-      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎪</span> EventHub Organizer</a>
+      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
       <div class="desktop-nav">
-        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
-        <a class="nav-admin-site" href="../events.html">View Site</a>
+        <div class="nav-links" id="desktopSiteNavLinks">${links}</div>
+        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
         <div class="nav-profile">
-          <button class="profile-trigger" type="button">${avatarHtml(user || { name: 'O' })}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Organizer')}</span><span class="profile-chevron">⌄</span></button>
-          <div class="profile-menu">
-            <div class="profile-menu-head">${avatarHtml(user || { name: 'O' }, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-            <a href="../events.html">View Site</a>
-            <a href="../profile.html">Profile</a>
-            <button id="logoutBtn" type="button">Sign out</button>
+          <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false"><span class="profile-avatar-wrap">${avatarHtml(user)}<span class="nav-notif-dot" data-nav-notif-dot hidden></span></span><span class="profile-name">${escapeHtml((user?.name || 'Organizer').split(' ')[0])}</span><span class="profile-chevron">⌄</span></button>
+          <div class="profile-menu" role="menu">
+            ${profileMenuHtml(user, '../')}
           </div>
         </div>
       </div>
-      ${createMobileToggle(user || { name: 'O' })}
+      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
+      ${createMobileToggle(user)}
     </div>
-    <div class="mobile-nav-links" id="siteNavLinks">
-      ${linksHtml}
-      <a href="../events.html">View Site</a>
-      <div class="mobile-user-card">${avatarHtml(user || { name: 'O' })}<div><strong>${escapeHtml(user?.name || 'Organizer')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-      <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
-    </div>
+    <div class="mobile-nav-links" id="mobileSiteNavLinks">${links}<a href="../notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a><button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button></div>
   `;
-
-  const logout = () => {
-    Session.clear();
-    window.location.href = '../index.html';
-  };
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
-
-  setupMobileNavbar();
+  document.getElementById('logoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  document.getElementById('mobileLogoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  bindThemeToggle(); setupMobileNavbar(); refreshNotificationBadge();
 }
 
 function renderAdminNavbar(activePage) {
   const navContainer = document.getElementById('navbar');
   if (!navContainer) return;
-
   const user = Session.getUser();
+  if (!Session.isLoggedIn() || !Session.isAdmin()) return requireAdmin();
 
   const links = [
-    { href: 'dashboard.html', label: 'Dashboard', key: 'dashboard' },
-    { href: 'events.html', label: 'Events', key: 'events' },
-    { href: 'categories.html', label: 'Categories', key: 'categories' },
-    { href: 'bookings.html', label: 'Bookings', key: 'bookings' },
-    { href: 'users.html', label: 'Users', key: 'users' },
-    { href: 'clubs.html', label: 'Clubs', key: 'clubs' },
-    { href: 'support.html', label: 'Support Inbox', key: 'support' },
-    { href: '../notifications.html', label: 'Notifications', key: 'notifications', badge: true }
-  ];
-
-  const linksHtml = links
-    .map((l) => `<a href="${l.href}" class="${activePage === l.key ? 'active' : ''}">${l.label}${l.badge ? '<span class="nav-notif-badge" data-nav-notif-badge hidden>0</span>' : ''}</a>`)
-    .join('');
+    `<a href="dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}">Admin Dashboard</a>`,
+    `<a href="events.html" class="${activePage === 'events' ? 'active' : ''}">Events</a>`,
+    `<a href="clubs.html" class="${activePage === 'clubs' ? 'active' : ''}">Clubs</a>`,
+    `<a href="users.html" class="${activePage === 'users' ? 'active' : ''}">Users</a>`,
+    navNotificationLink('../notifications.html', activePage)
+  ].join('');
 
   navContainer.innerHTML = `
     <div class="navbar-inner">
-      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🛠️</span> EventHub Admin</a>
+      <a class="brand" href="dashboard.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
       <div class="desktop-nav">
-        <div class="nav-links" id="siteNavLinks">${linksHtml}</div>
-        <a class="nav-admin-site" href="../events.html">View Site</a>
+        <div class="nav-links" id="desktopSiteNavLinks">${links}</div>
+        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
         <div class="nav-profile">
-          <button class="profile-trigger" type="button">${avatarHtml(user || {name:'A'})}<span class="profile-name">${escapeHtml(user ? user.name.split(' ')[0] : 'Admin')}</span><span class="profile-chevron">⌄</span></button>
-          <div class="profile-menu">
-            <div class="profile-menu-head">${avatarHtml(user || {name:'A'}, 'profile-avatar-lg')}<div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-            <a href="../events.html">View Site</a>
-            <button id="logoutBtn" type="button">Logout</button>
+          <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false"><span class="profile-avatar-wrap">${avatarHtml(user)}<span class="nav-notif-dot" data-nav-notif-dot hidden></span></span><span class="profile-name">${escapeHtml((user?.name || 'Admin').split(' ')[0])}</span><span class="profile-chevron">⌄</span></button>
+          <div class="profile-menu" role="menu">
+            ${profileMenuHtml(user, '../')}
           </div>
         </div>
       </div>
-      ${createMobileToggle(user || { name: 'A' })}
+      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
+      ${createMobileToggle(user)}
     </div>
-    <div class="mobile-nav-links" id="siteNavLinks">
-      ${linksHtml}
-      <a href="../events.html">View Site</a>
-      <div class="mobile-user-card">${avatarHtml(user || {name:'A'})}<div><strong>${escapeHtml(user?.name || 'Admin')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-      <button id="mobileLogoutBtn" type="button" class="mobile-logout">Logout</button>
-    </div>
+    <div class="mobile-nav-links" id="mobileSiteNavLinks">${links}<a href="../notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a><button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button></div>
   `;
-
-  const logout = () => {
-    Session.clear();
-    window.location.href = '../login.html';
-  };
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
-  if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', logout);
-
-  setupMobileNavbar();
-  refreshNotificationBadge();
+  document.getElementById('logoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  document.getElementById('mobileLogoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  bindThemeToggle(); setupMobileNavbar(); refreshNotificationBadge();
 }
+
+function renderClubHeadNavbar(activePage) {
+  const navContainer = document.getElementById('navbar');
+  if (!navContainer) return;
+  const user = Session.getUser();
+  if (!Session.isLoggedIn() || user.role !== 'club_head') return requireAuth();
+
+  const links = [
+    `<a href="club-dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}">My Club</a>`,
+    `<a href="../events.html" class="${activePage === 'events' ? 'active' : ''}">Discover</a>`,
+    navNotificationLink('../notifications.html', activePage)
+  ].join('');
+
+  navContainer.innerHTML = `
+    <div class="navbar-inner">
+      <a class="brand" href="club-dashboard.html"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
+      <div class="desktop-nav">
+        <div class="nav-links" id="desktopSiteNavLinks">${links}</div>
+        <button class="theme-quick-toggle" id="themeQuickToggle" type="button" aria-label="Toggle light and dark theme"></button>
+        <div class="nav-profile">
+          <button class="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false"><span class="profile-avatar-wrap">${avatarHtml(user)}<span class="nav-notif-dot" data-nav-notif-dot hidden></span></span><span class="profile-name">${escapeHtml((user?.name || 'Club Head').split(' ')[0])}</span><span class="profile-chevron">⌄</span></button>
+          <div class="profile-menu" role="menu">
+            ${profileMenuHtml(user, '../')}
+          </div>
+        </div>
+      </div>
+      <button class="theme-quick-toggle mobile-theme-toggle" id="themeQuickToggleMobile" type="button" aria-label="Toggle light and dark theme"></button>
+      ${createMobileToggle(user)}
+    </div>
+    <div class="mobile-nav-links" id="mobileSiteNavLinks">${links}<a href="../notifications.html">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a><button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button></div>
+  `;
+  document.getElementById('logoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  document.getElementById('mobileLogoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
+  bindThemeToggle(); setupMobileNavbar(); refreshNotificationBadge();
+}
+
+startNotificationBadgeRefresh();

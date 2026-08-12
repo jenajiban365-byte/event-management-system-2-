@@ -1,0 +1,8 @@
+EventHub V10 final changes:
+- Public registration remains Student-only; Organizer/Club Head/Admin cannot self-register.
+- Added one-time `npm run reset-users` command. It deletes all existing users, clears user-owned records and stale club/user references, then creates one fresh College Admin from ADMIN_EMAIL/ADMIN_PASSWORD.
+- Removed duplicate mobile secondary "View Student Site" entries while keeping the profile-menu item.
+- Admin booking graph is fully responsive on mobile and no longer forces horizontal scrolling.
+- Existing Discover, Clubs, Follow, recruitment/application, Club Admin, authentication, password reset, email verification, Google login, bookings, notifications and role protection code was left intact.
+- Static checks: all backend JS files and all inline HTML scripts pass Node syntax checks.
+- Full Jest suite could not be executed in this build environment because npm dependency installation timed out; do not treat that as a test failure.

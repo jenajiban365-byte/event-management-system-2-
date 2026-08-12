@@ -22,27 +22,53 @@
       </div>
 
       <div id="alertBox"></div>
-      <form id="loginForm">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" class="form-control" placeholder="Your password" required />
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Sign in</button>
-      </form>
-      <p style="text-align:right;margin:10px 0 0;font-size:.85rem"><a href="forgot-password.html">Forgot password?</a></p>
-      <div id="verificationActions" style="display:none;margin-top:14px"></div>
 
-      <div class="auth-divider">or</div>
-      <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
+      <section id="roleChooser" aria-labelledby="roleChooserTitle">
+        <div style="margin:4px 0 14px">
+          <h2 id="roleChooserTitle" style="margin:0 0 5px;font-size:1.25rem">How do you want to continue?</h2>
+          <p class="muted" style="margin:0">Choose the workspace that matches your account.</p>
+        </div>
+        <div class="grid grid-3" style="gap:10px">
+          <button type="button" class="card role-choice" data-role="student" style="text-align:left;cursor:pointer">
+            <strong>🎓 Student</strong>
+            <span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Discover events, join clubs, save events and manage bookings.</span>
+          </button>
+          <button type="button" class="card role-choice" data-role="organizer" style="text-align:left;cursor:pointer">
+            <strong>📋 Organizer</strong>
+            <span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Create events, manage registrations and attendance.</span>
+          </button>
+          <button type="button" class="card role-choice" data-role="club_head" style="text-align:left;cursor:pointer"><strong>👑 Club Head</strong><span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Manage your assigned club, recruitment, members and club events.</span></button>
+          <button type="button" class="card role-choice" data-role="admin" style="text-align:left;cursor:pointer">
+            <strong>🛡️ Admin</strong>
+            <span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Manage students, clubs, organizers and approvals.</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="credentialsBox" style="display:none;margin-top:18px">
+        <div class="section-heading-row" style="margin-bottom:12px">
+          <div><strong id="selectedRoleLabel">Student</strong><div class="muted" style="font-size:.78rem">Sign in to your EventHub account.</div></div>
+          <button type="button" class="btn btn-outline" id="changeRoleBtn">Change</button>
+        </div>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" class="form-control" placeholder="Your password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Continue as Student</button>
+        </form>
+        <p style="text-align:right;margin:10px 0 0;font-size:.85rem"><a href="forgot-password.html">Forgot password?</a></p>
+        <div id="verificationActions" style="display:none;margin-top:14px"></div>
+
+        <div class="auth-divider">or</div>
+        <div id="googleSignInBtn" style="display:flex;justify-content:center"></div>
+      </section>
     </div>
 
-    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:14px;">
-      Admin demo login: admin@events.com / Admin@123
-    </p>
   </div>
 </div>
 
@@ -52,23 +78,53 @@
   renderNavbar('login');
   redirectIfLoggedIn();
 
+  const roleChooser = document.getElementById('roleChooser');
+  const credentialsBox = document.getElementById('credentialsBox');
+  const selectedRoleLabel = document.getElementById('selectedRoleLabel');
+  const changeRoleBtn = document.getElementById('changeRoleBtn');
   const form = document.getElementById('loginForm');
   const alertBox = document.getElementById('alertBox');
   const submitBtn = document.getElementById('submitBtn');
   const verificationActions = document.getElementById('verificationActions');
+  let selectedRole = '';
+
+  const roleLabels = { student: 'Student', organizer: 'Organizer', club_head: 'Club Head', admin: 'College Admin' };
+  const roleButtons = [...document.querySelectorAll('.role-choice')];
+
+  function selectRole(role) {
+    selectedRole = role;
+    roleButtons.forEach((button) => button.classList.toggle('active', button.dataset.role === role));
+    roleChooser.style.display = 'none';
+    credentialsBox.style.display = 'block';
+    selectedRoleLabel.textContent = roleLabels[role];
+    submitBtn.textContent = `Continue as ${roleLabels[role]}`;
+    clearAlert(alertBox);
+  }
+
+  roleButtons.forEach((button) => button.addEventListener('click', () => selectRole(button.dataset.role)));
+  changeRoleBtn.addEventListener('click', () => {
+    credentialsBox.style.display = 'none';
+    roleChooser.style.display = 'block';
+    clearAlert(alertBox);
+  });
+
+  function finishLogin(data) {
+    Session.setSession(data.token, data.user);
+    window.location.href = getRoleHome(data.user.role);
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert(alertBox);
+    if (!selectedRole) return;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in...';
 
     try {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const data = await Api.login({ email, password });
-      Session.setSession(data.token, data.user);
-      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
+      const data = await Api.login({ email, password, requestedRole: selectedRole });
+      finishLogin(data);
     } catch (err) {
       showAlert(alertBox, err.message);
       if (err.status === 403 && err.message.toLowerCase().includes('verify')) {
@@ -76,24 +132,28 @@
         verificationActions.style.display = 'block';
         verificationActions.innerHTML = `<button type="button" class="btn btn-outline btn-block" id="resendBtn">Resend verification email</button>`;
         document.getElementById('resendBtn').addEventListener('click', async () => {
-          const btn = document.getElementById('resendBtn'); btn.disabled = true;
-          try { const result = await Api.resendVerification(email); showAlert(alertBox, result.message, 'success'); }
-          catch (e) { showAlert(alertBox, e.message); }
-          finally { btn.disabled = false; }
+          const btn = document.getElementById('resendBtn');
+          btn.disabled = true;
+          try {
+            const result = await Api.resendVerification(email);
+            showAlert(alertBox, result.message, 'success');
+          } catch (e) {
+            showAlert(alertBox, e.message);
+          } finally {
+            btn.disabled = false;
+          }
         });
       }
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Sign in';
+      submitBtn.textContent = `Continue as ${roleLabels[selectedRole]}`;
     }
   });
 
   initGoogleSignIn(
     'googleSignInBtn',
-    (data) => {
-      Session.setSession(data.token, data.user);
-      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
-    },
-    (err) => showAlert(alertBox, err.message)
+    (data) => finishLogin(data),
+    (err) => showAlert(alertBox, err.message),
+    () => selectedRole
   );
 </script>
 </body>
