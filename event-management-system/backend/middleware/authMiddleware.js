@@ -12,7 +12,7 @@ async function protect(req, res, next) {
     if (user.status === 'blocked') return res.status(403).json({ message: 'Your account has been blocked. Contact admin.' });
     req.user = {
       id: user.id, name: user.name, email: user.email, role: user.role,
-      avatarUrl: user.avatarUrl || '', emailVerified: user.emailVerified !== false,
+      avatarUrl: user.avatarUrl || '', chatAvatarUrl: user.chatAvatarUrl || '', chatAvatarId: user.chatAvatarId || '', emailVerified: user.emailVerified !== false,
       clubId: user.clubId || null, department: user.department || '', year: user.year || '',
       studentId: user.studentId || '', phone: user.phone || ''
     };

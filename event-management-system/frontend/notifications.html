@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Notifications - EventHub</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=37">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -80,6 +85,16 @@
         });
       });
 
+      // Opening this page is itself "reading" your notifications — the
+      // unread badge on the navbar should clear as soon as you land here,
+      // not stay stuck until you click every item individually or hit
+      // "Mark all read" by hand. The list above was already rendered from
+      // the pre-read data fetched at the top of load(), so items you
+      // haven't looked at yet still show their "New" tag for this view;
+      // only the badge count clears.
+      if (unreadCount > 0) {
+        try { await Api.markAllNotificationsRead(); } catch (_) {}
+      }
       await refreshNotificationBadge();
     } catch (e) {
       showAlert(alertBox, e.message);

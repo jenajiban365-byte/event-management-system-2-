@@ -1,0 +1,172 @@
+/* EventHub V63 — site-wide mobile pass
+   Loaded LAST. Mobile-only layout corrections; desktop styling remains unchanged. */
+@media (max-width: 899px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  body { min-width:0; }
+  *, *::before, *::after { box-sizing:border-box; }
+
+  /* ---------- NAVBAR ---------- */
+  #navbar.navbar { width:100%; padding:9px 12px !important; overflow:visible; }
+  #navbar .navbar-inner {
+    width:100% !important; min-width:0 !important; min-height:52px !important;
+    gap:10px !important; display:flex !important; align-items:center !important;
+  }
+  #navbar .brand { min-width:0 !important; flex:1 1 auto !important; gap:8px !important; font-size:1.35rem !important; }
+  #navbar .brand-mark { width:42px !important; height:42px !important; min-width:42px !important; border-radius:14px !important; }
+  #navbar .brand-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #navbar .desktop-nav { display:none !important; visibility:hidden !important; width:0 !important; overflow:hidden !important; }
+  #navbar .mobile-nav-toggle {
+    display:grid !important; place-items:center !important; flex:0 0 44px !important;
+    width:44px !important; height:44px !important; min-width:44px !important;
+    margin:0 !important; padding:0 !important; border:1px solid #17202b !important;
+    border-radius:13px !important; background:#fffdf8 !important; color:#17202b !important;
+    font-size:1.2rem !important; line-height:1 !important; box-shadow:2px 3px 0 #17202b !important;
+  }
+  #navbar .mobile-nav-links {
+    left:10px !important; right:10px !important; top:calc(100% + 7px) !important;
+    width:auto !important; max-height:calc(100dvh - 78px) !important; overflow-y:auto !important;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    border-radius:18px !important; padding:10px !important;
+  }
+  #navbar .mobile-nav-primary a,
+  #navbar .mobile-nav-secondary a,
+  #navbar .mobile-logout { min-height:46px !important; display:flex !important; align-items:center !important; }
+  #navbar .mobile-user-card { min-width:0 !important; }
+
+  /* ---------- PAGE WIDTH / TYPOGRAPHY ---------- */
+  .container, .page-shell, .form-page-shell, .ehr, .group-shell-v2 {
+    width:calc(100% - 24px) !important; max-width:100% !important; margin-left:auto !important; margin-right:auto !important;
+  }
+  .container { padding-left:0 !important; padding-right:0 !important; }
+  h1 { overflow-wrap:anywhere; }
+  p, h2, h3, h4, label, strong, span { max-width:100%; }
+  .page-header, .section-heading, .section-heading-row, .results-toolbar, .section-heading-row {
+    min-width:0 !important; max-width:100% !important;
+  }
+  .page-header { gap:14px !important; }
+
+  /* ---------- SEARCH / FILTERS ---------- */
+  .search-wrapper, .groups-search-wrap, .club-search-field, .hero-search,
+  .ehr-searchwrap, .ehc-search, .search-panel, .filters, .filters-bar { min-width:0 !important; max-width:100% !important; }
+  .search-input, .groups-search, .club-search-field input, .hero-search input,
+  .ehr-searchwrap input, .ehc-search input, .search-panel input,
+  .filters input[type="search"], .filters-bar input[type="search"] {
+    width:100% !important; max-width:100% !important; min-width:0 !important;
+    height:50px !important; min-height:50px !important; font-size:16px !important;
+    padding-left:44px !important; padding-right:42px !important;
+  }
+  .hero-search { grid-template-columns:1fr !important; gap:9px !important; }
+  .hero-search .btn, .filter-toggle { width:100% !important; }
+  .groups-discovery-inner { width:calc(100% - 24px) !important; max-width:100% !important; }
+  .groups-search-wrap { width:100% !important; }
+
+  /* ---------- GRIDS / CARDS ---------- */
+  #eventsGrid, .grid.grid-3, .grid.grid-2, .club-grid, .clubs-grid, .clubs-list,
+  .groups-grid-v2, .spotlight-grid, .dashboard-grid, .admin-grid {
+    grid-template-columns:1fr !important; min-width:0 !important;
+  }
+  .event-card, .club-card, .group-card, .card, .stat-card, .notification-card,
+  .announcement-card, .opportunity-card, .support-card { min-width:0 !important; max-width:100% !important; }
+  .event-card h3, .club-card h3, .group-card h3 { overflow-wrap:anywhere !important; }
+  .event-card .thumb { max-width:100%; }
+  .event-card .body, .event-card .footer { min-width:0; }
+
+  /* ---------- BUTTONS / TOOLBARS ---------- */
+  .btn { min-height:44px !important; max-width:100%; white-space:normal !important; }
+  .action-row, .event-detail-actions, .booking-actions, .hero-actions, .ehr-bulk, .club-card-actions {
+    display:flex !important; flex-wrap:wrap !important; min-width:0 !important;
+  }
+  .action-row .btn, .event-detail-actions .btn, .booking-actions .btn { flex:1 1 140px; }
+  .results-toolbar { display:flex !important; flex-direction:column !important; align-items:stretch !important; gap:12px !important; }
+  .results-toolbar > * { min-width:0 !important; max-width:100% !important; }
+
+  /* ---------- FORMS ---------- */
+  .form-grid, .form-grid-2, .eh-form-two, .connect-grid, .auth-layout { grid-template-columns:1fr !important; }
+  .form-group, .form-control, select, textarea, input { min-width:0 !important; max-width:100%; }
+  textarea { resize:vertical; }
+  .form-group.full { grid-column:1 !important; }
+  .create-event-card, .event-form-card { padding:18px !important; max-width:100% !important; }
+  .section-heading { flex-direction:column !important; align-items:flex-start !important; }
+  .registration-question-row { grid-template-columns:1fr !important; }
+
+  /* ---------- GROUPS ---------- */
+  .groups-hero-v2 { padding:32px 16px 26px !important; overflow:hidden !important; }
+  .groups-hero-v2-inner { grid-template-columns:1fr !important; gap:22px !important; min-width:0 !important; }
+  .groups-hero-copy { min-width:0 !important; }
+  .groups-hero-copy h1 { font-size:clamp(2.8rem,13vw,4.4rem) !important; line-height:.94 !important; }
+  .groups-hero-copy p { font-size:1rem !important; line-height:1.65 !important; }
+  .groups-hero-pills { display:flex !important; flex-wrap:wrap !important; gap:7px !important; }
+  .groups-hero-pills span { max-width:100%; }
+  .groups-hero-art { min-height:210px !important; width:100% !important; }
+  .groups-art-main { width:100% !important; min-height:185px !important; }
+  .groups-art-float.one { right:0 !important; top:5% !important; }
+  .groups-art-float.two { left:0 !important; bottom:0 !important; }
+  .groups-discovery-bar { padding:22px 0 8px !important; }
+  .groups-discovery-inner { display:block !important; }
+  .groups-grid-v2 { padding:0 !important; margin-top:18px !important; }
+  .group-shell-v2 { padding:0 !important; }
+  .group-cover-v2 { height:190px !important; }
+  .group-identity-v2 { grid-template-columns:1fr !important; padding:0 14px 18px !important; margin-top:-30px !important; }
+  .group-identity-copy { padding-top:0 !important; }
+  .group-identity-copy h1 { font-size:clamp(2.2rem,11vw,3rem) !important; }
+  .group-hero-actions { width:100% !important; }
+  .group-hero-actions .btn { flex:1 1 140px !important; }
+  .group-post-v2, .group-composer-v2, .group-side-card-v2 { padding:15px !important; }
+
+  /* ---------- ORGANIZER / ADMIN ---------- */
+  .ehr-hero { padding:20px !important; }
+  .ehr-hero-actions { width:100% !important; display:grid !important; grid-template-columns:1fr !important; }
+  .ehr-toolbar { align-items:stretch !important; }
+  .ehr-chips { max-width:100%; overflow-x:auto; flex-wrap:nowrap !important; }
+  .ehr-tablewrap, .table-wrap { max-width:100% !important; overflow-x:auto !important; }
+  .ehr-table, .data-table { min-width:760px !important; }
+  .event-pass { width:min(94vw,420px) !important; }
+
+  /* ---------- MODALS ---------- */
+  .modal-overlay, .eh-studio-scrim, .eh-avatar-gallery-scrim, .eh-camera-scrim { padding:8px !important; }
+  .modal-box, .member-modal-card, .eh-studio, .eh-avatar-gallery, .eh-camera {
+    width:100% !important; max-width:100% !important; max-height:94dvh !important; overflow:auto !important;
+    border-radius:22px !important;
+  }
+  .eh-studio-stage { width:min(360px,100%) !important; }
+
+  /* ---------- CHAT ---------- */
+  .chat-shell { width:100% !important; padding:0 !important; }
+  .chat-app { grid-template-columns:1fr !important; min-width:0 !important; }
+  .chat-list-panel { max-height:310px !important; border-right:0 !important; border-bottom:1px solid #dce3e7 !important; }
+  .chat-main { min-width:0 !important; min-height:500px !important; }
+  .conversation-list { max-height:230px !important; }
+  .message-stream { min-width:0 !important; overflow-x:hidden !important; padding:18px 12px !important; }
+  .message-bubble { max-width:86% !important; overflow-wrap:anywhere !important; }
+  .message-composer { min-width:0 !important; gap:6px !important; padding:9px !important; }
+  .message-composer input, .message-composer textarea { min-width:0 !important; width:100% !important; font-size:16px !important; }
+  .eh-emoji-popover { right:8px !important; bottom:68px !important; width:min(360px,calc(100vw - 16px)) !important; }
+
+  /* ---------- MEDIA ---------- */
+  img, video, canvas, iframe, svg { max-width:100%; }
+  .site-footer { width:calc(100% - 24px) !important; margin-left:auto !important; margin-right:auto !important; }
+}
+
+@media (max-width:480px) {
+  #navbar .brand-text { font-size:1.28rem !important; }
+  #navbar .brand-mark { width:40px !important; height:40px !important; min-width:40px !important; }
+  #navbar .mobile-nav-toggle { flex-basis:42px !important; width:42px !important; min-width:42px !important; height:42px !important; }
+  .container, .page-shell, .form-page-shell, .ehr, .group-shell-v2 { width:calc(100% - 20px) !important; }
+  .groups-hero-v2 { padding-left:14px !important; padding-right:14px !important; }
+  .groups-hero-copy h1 { font-size:clamp(2.55rem,12.5vw,3.7rem) !important; }
+  .page-header h1 { font-size:clamp(2.25rem,12vw,3.2rem) !important; }
+  .hero h1 { font-size:clamp(2.65rem,13.5vw,4rem) !important; }
+  .btn { width:auto; }
+  .action-row .btn, .event-detail-actions .btn, .booking-actions .btn { flex-basis:100%; }
+  .event-card .thumb { height:190px !important; }
+  .eh-emoji-grid { grid-template-columns:repeat(6,1fr) !important; }
+  .eh-sticker-grid { grid-template-columns:repeat(2,1fr) !important; }
+}
+
+@media (max-width:360px) {
+  #navbar .brand-text { font-size:1.16rem !important; }
+  #navbar .navbar-inner { gap:7px !important; }
+  .container, .page-shell, .form-page-shell, .ehr, .group-shell-v2 { width:calc(100% - 16px) !important; }
+  .groups-hero-copy h1 { font-size:2.45rem !important; }
+  .groups-hero-copy p { font-size:.94rem !important; }
+}

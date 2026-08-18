@@ -11,7 +11,12 @@
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#f5f0df" />
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -22,6 +27,21 @@
     <div class="live-badge" id="liveBadge">✦ Loading campus moments…</div>
     <h1>Your campus is <span class="accent-text">alive.</span></h1>
     <p class="subtitle">Find the event, club or opportunity that makes you want to show up. Search, save, book — all in one place.</p>
+
+    <div class="hero-visual" aria-label="EventHub preview">
+      <div class="hero-visual-card">
+        <div class="hero-visual-top">
+          <span class="hero-visual-kicker">WHAT'S HAPPENING</span>
+          <span class="hero-visual-club">✦ CAMPUS LIFE</span>
+        </div>
+        <div class="hero-event-preview">
+          <span class="preview-tag">TONIGHT</span>
+          <h3>Campus After Dark</h3>
+          <p>Music · Games · People you haven't met yet</p>
+          <div class="hero-preview-meta"><span>🎟 Registration</span><span>📍 Campus</span><span>👥 Limited seats</span></div>
+        </div>
+      </div>
+    </div>
 
     <form class="hero-search" id="heroSearchForm" role="search">
       <label class="visually-hidden" for="heroSearchInput">Search events, clubs or venues</label>
@@ -60,7 +80,7 @@
   <section class="home-section home-clubs-section" aria-labelledby="homeClubsHeading">
     <div class="section-heading-row">
       <div><span class="eyebrow">MEET THE CAMPUS</span><h2 id="homeClubsHeading">Find your people.</h2><p class="home-section-lede">A quick look at the clubs shaping campus life. Sign in when you find one you want to follow.</p></div>
-      <a class="btn btn-outline btn-sm" href="clubs.html">See all clubs →</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-outline btn-sm" href="clubs.html">See all clubs →</a><a class="btn btn-primary btn-sm" href="groups.html">Campus Groups →</a></div>
     </div>
     <div id="homeClubsRail" class="home-clubs-grid"><div class="home-rail-empty">Loading clubs…</div></div>
   </section>
@@ -92,6 +112,7 @@
       <h3>Discover</h3>
       <a href="events.html">Events</a>
       <a href="clubs.html">Clubs</a>
+      <a href="groups.html">Campus Groups</a>
       <a href="saved-events.html">Saved events</a>
     </nav>
     <nav aria-label="Account">

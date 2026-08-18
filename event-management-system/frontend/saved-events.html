@@ -7,17 +7,44 @@
 <meta name="description" content="Your saved EventHub events." />
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#fffaf0" />
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+<link rel="stylesheet" href="css/saved-events-premium.css?v=53">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
 <main class="container saved-events-page">
-  <div class="page-header saved-page-header">
-    <div><div class="eyebrow">YOUR LIST</div><h1>Saved Events</h1><p>Keep the events you care about in one place.</p></div>
-    <a class="btn btn-outline" href="events.html">← Discover more</a>
-  </div>
+  <section class="saved-library-hero" aria-labelledby="savedTitle">
+    <div class="saved-library-copy">
+      <div class="saved-library-kicker">YOUR PERSONAL EVENT LIBRARY</div>
+      <h1 id="savedTitle">Saved for later.</h1>
+      <p>Keep the events you care about close. Your saved list stays private, organized and ready whenever you are.</p>
+    </div>
+    <div class="saved-library-stat" aria-live="polite">
+      <strong id="savedCount">0</strong>
+      <span>saved events</span>
+    </div>
+  </section>
+
   <div id="alertBox"></div>
-  <div id="savedSummary" class="saved-summary"></div>
+
+  <section class="saved-library-actions" aria-label="Saved event controls">
+    <div class="saved-library-label"><span class="saved-library-dot"></span><span id="savedSummary">Loading saved events…</span></div>
+    <div class="saved-library-tools">
+      <select id="savedSort" class="saved-sort" aria-label="Sort saved events">
+        <option value="date">Soonest first</option>
+        <option value="title">A–Z</option>
+        <option value="saved">Recently saved</option>
+      </select>
+      <button id="refreshSaved" class="btn btn-outline btn-sm" type="button">↻ Refresh</button>
+      <a class="btn btn-primary btn-sm" href="events.html">Discover events →</a>
+    </div>
+  </section>
+
   <div id="savedGrid" class="grid grid-3" aria-live="polite"></div>
 </main>
 <footer class="site-footer">EventHub &mdash; Event Management System</footer>
@@ -27,19 +54,25 @@
   renderNavbar('saved');
   const savedGrid = document.getElementById('savedGrid');
   const savedSummary = document.getElementById('savedSummary');
+  const savedCount = document.getElementById('savedCount');
+  const savedSort = document.getElementById('savedSort');
+  const refreshSaved = document.getElementById('refreshSaved');
   const alertBox = document.getElementById('alertBox');
+  let savedEventsCache = [];
 
   function eventPrice(e) { return Number(e.price) > 0 ? `₹${Number(e.price)}` : 'Free'; }
+  function eventDateValue(e) { const d = new Date(e.date); return Number.isNaN(d.getTime()) ? Number.MAX_SAFE_INTEGER : d.getTime(); }
 
   function card(e) {
     const spots = Number(e.capacity || 0) - Number(e.bookedCount || 0);
     const full = spots <= 0;
     const date = new Date(e.date);
-    const img = e.imageUrl ? `<img src="${optimizedImageUrl(e.imageUrl, 600).replace(/"/g, '"')}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />` : `<span class="cat-badge">${escapeHtml((e.category || 'E').charAt(0))}</span>`;
+    const safeImg = e.imageUrl ? optimizedImageUrl(e.imageUrl, 700).replace(/"/g, '&quot;') : '';
+    const img = safeImg ? `<img src="${safeImg}" alt="${escapeHtml(e.title)}" loading="lazy" decoding="async" class="thumb-img" />` : `<span class="cat-badge" aria-hidden="true">${escapeHtml((e.category || 'E').charAt(0))}</span>`;
     return `<article class="event-card saved-event-card">
       <button class="save-heart saved" type="button" data-remove-saved="${escapeHtml(e.id)}" aria-label="Remove ${escapeHtml(e.title)} from saved events"><span class="heart-icon">♥</span></button>
       <a href="event-details.html?id=${encodeURIComponent(e.id)}" class="event-card-link">
-        <div class="thumb">${img}<div class="event-date-chip"><strong>${date.toLocaleDateString(undefined, {day: '2-digit'})}</strong><span>${date.toLocaleDateString(undefined, {month: 'short'})}</span></div><span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spots + ' left'}</span></div>
+        <div class="thumb">${img}<div class="event-date-chip"><strong>${date.toLocaleDateString(undefined, {day:'2-digit'})}</strong><span>${date.toLocaleDateString(undefined, {month:'short'})}</span></div><span class="badge spots-badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Full' : spots + ' left'}</span></div>
         <div class="body">
           <div class="event-card-topline"><span class="badge badge-primary">${escapeHtml(e.category || 'Event')}</span><span class="event-time">${escapeHtml(e.time || '')}</span></div>
           <h3>${escapeHtml(e.title)}</h3>
@@ -51,35 +84,51 @@
     </article>`;
   }
 
+  function renderSaved() {
+    const mode = savedSort.value;
+    const list = [...savedEventsCache].sort((a,b) => mode === 'title' ? String(a.title||'').localeCompare(String(b.title||'')) : eventDateValue(a)-eventDateValue(b));
+    savedCount.textContent = list.length;
+    savedSummary.textContent = `${list.length} saved event${list.length === 1 ? '' : 's'}`;
+    if (!list.length) {
+      savedGrid.innerHTML = `<div class="saved-empty" style="grid-column:1/-1"><div class="saved-empty-icon">♡</div><h2>Your saved library is empty</h2><p>Tap the heart on an event you want to keep. It will appear here with its date, venue and registration status.</p><a class="btn btn-primary" href="events.html">Explore events →</a></div>`;
+      return;
+    }
+    savedGrid.innerHTML = list.map(card).join('');
+    savedGrid.querySelectorAll('[data-remove-saved]').forEach(btn => {
+      btn.addEventListener('click', async (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        btn.disabled = true;
+        try {
+          await Api.removeSavedEvent(btn.dataset.removeSaved);
+          savedEventsCache = savedEventsCache.filter(e => e.id !== btn.dataset.removeSaved);
+          renderSaved();
+          showToast('Removed from saved events');
+        } catch (err) {
+          btn.disabled = false;
+          showAlert(alertBox, err.message);
+        }
+      });
+    });
+  }
+
   async function loadSaved() {
+    refreshSaved.disabled = true;
     try {
       const res = await Api.getSavedEvents();
-      const savedEvents = (res.savedEvents || []).map(se => se.event).filter(Boolean);
-      savedSummary.textContent = `${savedEvents.length} saved event${savedEvents.length === 1 ? '' : 's'}`;
-      if (!savedEvents.length) {
-        savedGrid.innerHTML = `<div class="saved-empty" style="grid-column:1/-1"><div class="saved-empty-icon">♡</div><h2>Your saved list is empty</h2><p>Tap the heart on any event you want to keep for later.</p><a class="btn btn-primary" href="events.html">Explore events</a></div>`;
-        return;
-      }
-      savedGrid.innerHTML = savedEvents.map(card).join('');
-      savedGrid.querySelectorAll('[data-remove-saved]').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.preventDefault(); e.stopPropagation();
-          const id = btn.dataset.removeSaved;
-          try {
-            await Api.removeSavedEvent(id);
-            showToast('Removed from saved events');
-            loadSaved();
-          } catch (err) {
-            showAlert(alertBox, err.message);
-          }
-        });
-      });
+      savedEventsCache = (res.savedEvents || []).map(se => se.event).filter(Boolean);
+      renderSaved();
     } catch (err) {
+      savedEventsCache = [];
+      savedCount.textContent = '—';
       savedSummary.textContent = 'Unable to load saved events';
       showAlert(alertBox, err.message);
+    } finally {
+      refreshSaved.disabled = false;
     }
   }
 
+  savedSort.addEventListener('change', renderSaved);
+  refreshSaved.addEventListener('click', loadSaved);
   loadSaved();
 </script>
 </body>

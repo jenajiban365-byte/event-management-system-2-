@@ -9,7 +9,10 @@ router.get('/', protect, async (req, res) => {
     const saved = await SavedEvent.find({ user: req.user.id })
       .populate({ path: 'event', populate: [{ path: 'club', select: 'name logoUrl' }, { path: 'organizer', select: 'name' }] })
       .sort({ createdAt: -1 });
-    res.json({ savedEvents: saved.filter((item) => item.event && item.event.status === 'published') });
+    const available = saved.filter((item) => item.event && item.event.status === 'published');
+    const staleIds = saved.filter((item) => !item.event || item.event.status !== 'published').map(item => item._id);
+    if (staleIds.length) await SavedEvent.deleteMany({ _id: { $in: staleIds } });
+    res.json({ savedEvents: available });
   } catch (err) { res.status(500).json({ message: 'Server error fetching saved events.', error: err.message }); }
 });
 

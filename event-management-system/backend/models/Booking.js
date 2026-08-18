@@ -8,7 +8,12 @@ const bookingSchema = new mongoose.Schema(
     status: { type: String, enum: ['confirmed', 'pending', 'cancelled', 'rejected'], default: 'confirmed' },
     checkInCode: { type: String, unique: true, sparse: true },
     checkedInAt: { type: Date, default: null },
-    attendanceStatus: { type: String, enum: ['not_checked_in', 'checked_in'], default: 'not_checked_in' }
+    attendanceStatus: { type: String, enum: ['not_checked_in', 'checked_in'], default: 'not_checked_in' },
+    registrationAnswers: { type: [{ question: String, answer: String }], default: [] },
+    registrationProfile: {
+      name: { type: String, default: '' }, email: { type: String, default: '' }, studentId: { type: String, default: '' },
+      department: { type: String, default: '' }, year: { type: String, default: '' }, phone: { type: String, default: '' }
+    }
   },
   schemaOptions
 );

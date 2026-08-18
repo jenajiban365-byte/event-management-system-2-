@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Campus Group — EventHub</title><link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
+</head>
+<body class="eh-page-group group-page"><div id="navbar"></div><main class="group-shell-v2" id="app"><div class="loading-state">Opening your campus group…</div></main>
+<script src="js/api.js"></script><script src="js/nav.js"></script>
+<script>
+(async function(){
+ buildNavbar({activePage:'groups',role:'user',home:'index.html'});
+ if(!Session.isLoggedIn()){location.href='login.html?redirect='+encodeURIComponent(location.href);return;}
+ const id=new URLSearchParams(location.search).get('id')||''; const app=document.getElementById('app'); const esc=window.escapeHtml||(v=>String(v??''));
+ if(!id){app.innerHTML='<div class="groups-empty"><h3>Group not found</h3><p>The group link is missing or no longer available.</p></div>';return;}
+ let data; try{data=await Api.getGroup(id);}catch(e){app.innerHTML=`<div class="groups-empty"><h3>Couldn’t open this group</h3><p>${esc(e.message)}</p></div>`;return;}
+ const {group,club,posts=[]}=data; const logo=club.logoUrl||''; const cover=group.coverImage||club.coverImage||'';
+ function postHtml(p){
+   const ev=p.event;
+   return `<article class="group-post-v2 ${p.pinned?'is-pinned':''}" data-post-type="${esc(p.type||'announcement')}">
+      <div class="post-accent"></div>
+      <div class="group-post-v2-head"><div class="post-author"><div class="group-avatar-v2">${p.author?.avatarUrl?`<img src="${esc(p.author.avatarUrl)}" alt="">`:esc((p.author?.name||'G').charAt(0))}</div><div><strong>${esc(p.author?.name||'Group admin')}</strong><span>${new Date(p.createdAt).toLocaleString()}</span></div></div><span class="post-type-badge">${p.pinned?'📌 Pinned · ':''}${esc(p.type||'announcement')}</span></div>
+      <h2>${esc(p.title)}</h2>${p.content?`<p class="group-post-copy">${esc(p.content)}</p>`:''}
+      ${ev?`<div class="group-event-card-v2"><div class="event-card-kicker">🎟️ EVENT DROP</div><strong>${esc(ev.title)}</strong><div class="event-mini-meta"><span>📅 ${esc(ev.date)}</span><span>🕖 ${esc(ev.time)}</span><span>📍 ${esc(ev.location)}</span><span>👥 ${Math.max(0,(ev.capacity||0)-(ev.bookedCount||0))} spots left</span></div><div class="group-post-actions"><a class="btn btn-primary btn-sm" href="event-form.html?id=${encodeURIComponent(ev.id)}">Register now →</a><a class="btn btn-outline btn-sm" href="event-details.html?id=${encodeURIComponent(ev.id)}">View event</a></div></div>`:''}
+      ${(!ev&&p.link)?`<div class="group-post-actions"><a class="btn btn-primary btn-sm" href="${esc(p.link)}">Open link →</a></div>`:''}
+      ${group.isAdmin?`<div class="group-admin-actions"><button class="btn btn-outline btn-sm pin-post" data-post="${esc(p.id)}">${p.pinned?'Unpin':'Pin'}</button><button class="btn btn-outline btn-sm delete-post" data-post="${esc(p.id)}">Delete</button></div>`:''}
+   </article>`;
+ }
+ app.innerHTML=`
+ <section class="group-hero-v2">
+   <div class="group-cover-v2" ${cover?`style="background-image:url('${esc(cover)}')"`:''}><div class="group-cover-overlay"></div><div class="group-cover-top"><a class="group-back" href="groups.html">← All groups</a><span class="group-official-badge">✦ OFFICIAL CAMPUS GROUP</span></div></div>
+   <div class="group-identity-v2"><div class="group-logo-hero">${logo?`<img src="${esc(logo)}" alt="">`:esc((group.name||'G').charAt(0))}</div><div class="group-identity-copy"><span class="group-card-category">${esc(club.category||'CAMPUS COMMUNITY')}</span><h1>${esc(group.name)}</h1><p>${esc(club.description||group.description||'A place for the club community.')}</p><div class="group-stat-row"><span>👥 <b>${group.memberCount}</b> members</span><span>📣 Official updates</span><span>📝 Event forms</span></div></div><div class="group-hero-actions"><button id="membershipBtn" class="btn ${group.isMember?'btn-outline':'btn-primary'}">${group.isMember?'Leave group':'Join group'}</button><a class="btn btn-outline" href="club-details.html?id=${encodeURIComponent(club.id)}">View club</a></div></div>
+ </section>
+ <section class="group-connect-banner"><div class="group-connect-icon">💬</div><div><span class="groups-section-kicker">CAMPUS CONNECT</span><h2>Meet someone. Start a conversation.</h2><p>See who is in this community, open their profile and message them without sharing your phone number.</p></div><a class="btn btn-primary" href="chat.html">Open my chats →</a></section>
+ <div class="group-tabs-v2"><button class="group-tab active" data-filter="all">All updates</button><button class="group-tab" data-filter="announcement">Announcements</button><button class="group-tab" data-filter="event">Events</button><button class="group-tab" data-filter="form">Forms</button></div>
+ <div class="group-layout-v2"><section class="group-feed-v2">
+ <section class="group-people-v2"><div class="group-people-head"><div><span class="groups-section-kicker">PEOPLE IN THIS GROUP</span><h2>Your campus people, right here.</h2><p>See names, open a profile, discover shared communities and start a private chat.</p></div><span class="group-people-count">${group.memberCount}</span></div><div class="member-directory-grid"></div></section>
+ ${group.isAdmin?`<div class="group-composer-v2"><div class="composer-top"><div><span class="groups-kicker">GROUP ADMIN</span><h2>Share something useful.</h2><p>Post once. Everyone who joined gets the update.</p></div><span class="composer-icon">✦</span></div><div class="form-grid"><label>Post type<select id="postType"><option value="announcement">Announcement</option><option value="form">Registration / Link</option></select></label><label>Title<input id="postTitle" placeholder="e.g. SIH registrations are open"></label></div><label style="display:block;margin-top:12px">Message<textarea id="postContent" placeholder="Write a clear update for your students…"></textarea></label><label style="display:block;margin-top:12px">Optional link<input id="postLink" placeholder="https://… or event-form.html?id=…"></label><button id="publishPost" class="btn btn-primary" style="margin-top:14px">Publish to group →</button></div>`:''}
+ ${posts.length?posts.map(postHtml).join(''):`<div class="groups-empty"><span>✦</span><h3>Your group is ready.</h3><p>The first announcement, event or registration form will appear here.</p></div>`}
+ </section><aside class="group-sidebar-v2">
+   <div class="group-side-card-v2 highlight"><span class="side-icon">🔔</span><h3>What belongs here?</h3><p>Important club updates, event drops, opportunities and registration forms. No forwards. No spam.</p></div>
+   <div class="group-side-card-v2"><span class="groups-section-kicker">GROUP ADMINS</span><h3>People running this space</h3>${(group.admins||[]).map(u=>`<button class="group-member-row-v2 member-open-btn" data-member="${esc(u._id||u.id)}" type="button"><div class="group-avatar-v2">${u.avatarUrl?`<img src="${esc(u.avatarUrl)}" alt="">`:esc((u.name||'U').charAt(0))}</div><div><strong>${esc(u.name)}</strong><span>${esc(u.role==='club_head'?'Club Head':u.role==='organizer'?'Organizer':'Group Admin')}</span></div></button>`).join('')||'<p class="muted">No admins configured.</p>'}</div>
+   <div class="group-side-card-v2 mini"><strong>One group. Less noise.</strong><p>Join once and stay in the loop whenever this club publishes something important.</p></div>
+ </aside></div>`;
+ const currentUserId=String(Session.getUser()?.id||Session.getUser()?._id||'');
+ const uidOf=u=>String(u?._id||u?.id||'');
+ const memberMap=new Map();
+ [...(group.members||[]),...(group.admins||[])].forEach(u=>{const k=uidOf(u);if(k)memberMap.set(k,u);});
+ const directoryMembers=[...(group.members||[]),...(group.admins||[])].filter((u,i,a)=>{const k=uidOf(u);return k&&k!==currentUserId&&a.findIndex(x=>uidOf(x)===k)===i;});
+ const directory=document.querySelector('.group-people-v2 .member-directory-grid');
+ if(directory){
+   directory.innerHTML=directoryMembers.length?directoryMembers.map(u=>`<button class="member-profile-card" data-member="${esc(uidOf(u))}" type="button">
+     <div class="group-avatar-v2">${u.avatarUrl?`<img src="${esc(u.avatarUrl)}" alt="${esc(u.name||'Student')}">`:esc((u.name||'U').charAt(0).toUpperCase())}</div>
+     <div class="member-profile-copy"><strong>${esc(u.name||'Student')}</strong><span>${esc([u.department,u.year].filter(Boolean).join(' · ')||'Student')}</span></div>
+     <span class="member-connect">Open profile →</span>
+   </button>`).join(''):'<div class="member-empty">No other members yet. Be the first to invite a friend.</div>';
+ }
+ const countEl=document.querySelector('.group-people-count'); if(countEl) countEl.textContent=String(group.memberCount||directoryMembers.length);
+ const memberModal=document.createElement('div');
+ memberModal.className='member-modal'; memberModal.hidden=true;
+ memberModal.innerHTML=`<div class="member-modal-backdrop"></div><div class="member-modal-card" role="dialog" aria-modal="true"><button class="member-modal-close" type="button" aria-label="Close">×</button><div id="memberModalBody"></div></div>`;
+ document.body.appendChild(memberModal);
+ const memberBody=memberModal.querySelector('#memberModalBody');
+ const closeMemberModal=()=>{memberModal.hidden=true;};
+ memberModal.querySelector('.member-modal-close').onclick=closeMemberModal;
+ memberModal.querySelector('.member-modal-backdrop').onclick=closeMemberModal;
+ document.querySelectorAll('[data-member]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const targetId=String(btn.dataset.member||'');
+   const u=memberMap.get(targetId);
+   if(!u){
+     console.warn('EventHub: member not found for',targetId,memberMap);
+     return;
+   }
+   const roleLabel=u.role==='club_head'?'Club Head':u.role==='organizer'?'Organizer':(group.admins||[]).some(a=>uidOf(a)===targetId)?'Group Admin':'Student';
+   memberBody.innerHTML=`
+     <div class="member-modal-avatar">${u.avatarUrl?`<img src="${esc(u.avatarUrl)}" alt="${esc(u.name||'Student')}">`:esc((u.name||'U').charAt(0).toUpperCase())}</div>
+     <span class="groups-section-kicker">CAMPUS CONNECT</span>
+     <h2>${esc(u.name||'Student')}</h2>
+     <p class="member-modal-meta">${esc([u.department,u.year].filter(Boolean).join(' · ')||'EventHub student')}</p>
+     <div class="member-modal-info"><span>✦ ${roleLabel}</span></div>
+     <div id="memberSharedGroups" class="member-shared-groups"><span>Finding groups you share…</span></div>
+     <div class="member-modal-actions">
+       <button id="openMemberChat" class="btn btn-primary member-message-btn" type="button">💬 Message ${esc((u.name||'').split(' ')[0]||'them')} →</button>
+       <button id="closeMemberProfile" class="btn btn-outline member-message-btn" type="button">Close</button>
+     </div>`;
+   memberModal.hidden=false;
+   const sharedBox=document.getElementById('memberSharedGroups');
+   Api.getSharedGroups(targetId).then(r=>{
+     if(!sharedBox)return;
+     const groups=r.groups||[];
+     sharedBox.innerHTML=groups.length?`<strong style="width:100%;font-size:.78rem">${groups.length===1?'1 group':' '+groups.length+' groups'} in common</strong>`+groups.map(g=>`<span>${esc(g.name)}</span>`).join(''):'<span>No other groups in common yet</span>';
+   }).catch(()=>{if(sharedBox)sharedBox.innerHTML='<span>Shared groups unavailable</span>';});
+   document.getElementById('closeMemberProfile').onclick=closeMemberModal;
+   document.getElementById('openMemberChat').onclick=async()=>{
+     const chatBtn=document.getElementById('openMemberChat'); chatBtn.disabled=true; chatBtn.textContent='Opening chat…';
+     try{
+       const r=await Api.startConversation(targetId,group.id);
+       const conversationId=r.conversation?.id||r.conversation?._id;
+       if(!conversationId) throw new Error('Could not create the conversation.');
+       location.href=`chat.html?conversation=${encodeURIComponent(conversationId)}`;
+     }catch(e){
+       chatBtn.disabled=false; chatBtn.textContent=`💬 Message ${(u.name||'').split(' ')[0]||'them'} →`;
+       alert(e.message||'Could not open chat.');
+     }
+   };
+ }));
+
+ const membership=document.getElementById('membershipBtn'); membership.addEventListener('click',async()=>{membership.disabled=true;try{const r=group.isMember?await Api.leaveGroup(group.id):await Api.joinGroup(group.id);group.isMember=r.isMember;group.memberCount=r.memberCount;membership.className='btn '+(group.isMember?'btn-outline':'btn-primary');membership.textContent=group.isMember?'Leave group':'Join group';}catch(e){alert(e.message)}finally{membership.disabled=false}});
+ document.querySelectorAll('.group-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.group-tab').forEach(x=>x.classList.remove('active'));tab.classList.add('active');const f=tab.dataset.filter;document.querySelectorAll('.group-post-v2').forEach(card=>{card.hidden=f!=='all'&&card.dataset.postType!==f;});}));
+ document.querySelectorAll('.pin-post').forEach(b=>b.addEventListener('click',async()=>{try{await Api.toggleGroupPostPin(group.id,b.dataset.post);location.reload()}catch(e){alert(e.message)}}));
+ document.querySelectorAll('.delete-post').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Delete this post?'))return;try{await Api.deleteGroupPost(group.id,b.dataset.post);location.reload()}catch(e){alert(e.message)}}));
+ const pub=document.getElementById('publishPost'); if(pub) pub.addEventListener('click',async()=>{pub.disabled=true;try{await Api.createGroupPost(group.id,{type:document.getElementById('postType').value,title:document.getElementById('postTitle').value,content:document.getElementById('postContent').value,link:document.getElementById('postLink').value});location.reload()}catch(e){alert(e.message);pub.disabled=false}});
+})();
+</script></body></html>

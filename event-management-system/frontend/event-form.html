@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Registration — EventHub</title><link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<style>
+.form-ticket{margin:22px auto;max-width:420px;background:linear-gradient(135deg,#0f2740,#115b58);color:#fff;border-radius:20px;padding:22px 20px;box-shadow:0 18px 40px rgba(15,35,55,.28);position:relative;overflow:hidden}
+.form-ticket:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 90% 10%,rgba(255,183,46,.35),transparent 35%);pointer-events:none}
+.form-ticket .tk-kicker{font-size:.68rem;letter-spacing:.14em;font-weight:800;opacity:.75}
+.form-ticket h2{margin:6px 0 4px;font:700 1.35rem Georgia,serif}
+.form-ticket .tk-meta{font-size:.82rem;opacity:.9;line-height:1.45;margin-bottom:14px}
+.form-ticket .tk-code{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.35);border-radius:12px;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;letter-spacing:.08em}
+.form-ticket .tk-code button{border:0;background:#ffb72e;color:#142131;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer}
+.form-progress{display:flex;gap:8px;margin:0 0 18px}
+.form-progress span{height:4px;flex:1;border-radius:99px;background:#e5ece8}
+.form-progress span.on{background:#0d9488}
+.form-question{background:#f7faf8;border:1px solid #dce6e2;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.form-question label{display:block;font-weight:700;margin-bottom:8px;color:#1a2a32}
+.form-helper{font-size:.75rem;color:#6b7c86;margin-top:6px}
+.form-profile-note{background:linear-gradient(90deg,#e8f7f3,#f4f8ff);border:1px solid #c5e4db;border-radius:14px;padding:14px 16px;margin-bottom:18px}
+</style>
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+<link rel="stylesheet" href="css/v59-final-ui.css?v=591">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
+</head>
+<body class="eh-page-event-form event-form-page"><div id="navbar"></div><main class="form-page-shell" id="app"><div class="loading-state">Loading registration form…</div></main>
+<script src="js/api.js"></script><script src="js/nav.js"></script>
+<script>
+(async function(){
+ buildNavbar({activePage:'events',role:'user',home:'index.html'});
+ if(!Session.isLoggedIn()){location.href='login.html?redirect='+encodeURIComponent(location.href);return;}
+ const id=new URLSearchParams(location.search).get('id'); const app=document.getElementById('app'); const esc=window.escapeHtml || (v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+ if(!id){app.innerHTML='<div class="empty-state">Registration form not found.</div>';return;}
+ let event,user,bookingResult=null;
+ try{const r=await Api.getEvent(id);event=r.event;const me=await Api.me();user=me.user;}catch(e){app.innerHTML=`<div class="empty-state">${esc(e.message)}</div>`;return;}
+ const qs=Array.isArray(event.customRegistrationQuestions)?event.customRegistrationQuestions:[];
+ const spots=Math.max(0,(event.capacity||0)-(event.bookedCount||0));
+ const inputFor=(q,i)=>{const req=q.required!==false?'required':''; if(q.type==='file')return `<input class="form-control" type="file" data-q="${i}" ${req} accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip">`; if(q.type==='email')return `<input class="form-control" type="email" data-q="${i}" ${req} placeholder="you@example.com">`; if(q.type==='number')return `<input class="form-control" type="number" data-q="${i}" ${req}>`; if(q.type==='date')return `<input class="form-control" type="date" data-q="${i}" ${req}>`; if(q.type==='url')return `<input class="form-control" type="url" data-q="${i}" ${req} placeholder="https://…">`; if(q.type==='textarea')return `<textarea class="form-control" data-q="${i}" ${req} placeholder="Your answer"></textarea>`; if(q.type==='select')return `<select class="form-control" data-q="${i}" ${req}><option value="">Choose an option</option>${(q.options||[]).map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`; if(q.type==='checkbox')return `<label class="check-row"><input type="checkbox" data-q="${i}"> I agree / confirm</label>`; return `<input class="form-control" data-q="${i}" ${req} placeholder="Your answer">`;};
+ const ticketCode=(seed)=>{const base=String(seed||Date.now()).replace(/\W/g,'').toUpperCase().slice(-6);return 'EH-'+base+(Math.random().toString(36).slice(2,5).toUpperCase());};
+ const answerValue=(i)=>{const el=document.querySelector(`[data-q="${i}"]`);if(!el)return '';if(el.type==='checkbox')return el.checked?'Yes':'';if(el.type==='file')return el.files?.[0]?.name||'';return String(el.value||'').trim();};
+ const isVisible=(q,i)=>{const dep=q.showWhen?.questionIndex;if(dep===null||dep===undefined||dep===''||Number(dep)<0||Number(dep)>=i)return true;return answerValue(Number(dep))===String(q.showWhen.equals||'');};
+ const applyLogic=()=>{qs.forEach((q,i)=>{const card=document.querySelector(`[data-question-card="${i}"]`);if(!card)return;const visible=isVisible(q,i);card.hidden=!visible;const el=card.querySelector(`[data-q="${i}"]`);if(el){if(visible && q.required!==false)el.setAttribute('required','required');else el.removeAttribute('required');}});const visible=qs.filter((q,i)=>isVisible(q,i));const answered=visible.filter((q,i)=>answerValue(qs.indexOf(q)));const pct=visible.length?Math.round((answered.length/visible.length)*100):100;document.querySelectorAll('.form-progress span').forEach((bar,i,arr)=>bar.classList.toggle('on',i<Math.max(1,Math.ceil(pct/34))));const status=document.getElementById('progressText');if(status)status.textContent=`${answered.length} of ${visible.length} answered`};
+ app.innerHTML=`<section class="event-form-hero"><span class="form-kicker">CAMPUS SMART FORM</span><h1>${esc(event.title)}</h1><p>${esc(event.description)}</p><div class="group-meta"><span class="group-pill">📅 ${esc(event.date)} · ${esc(event.time||'')}</span><span class="group-pill">📍 ${esc(event.location)}</span><span class="group-pill">👥 ${spots} spots left</span>${event.registrationDeadline?`<span class="group-pill">⏳ Deadline ${esc(event.registrationDeadline)}</span>`:''}</div></section><section class="event-form-card"><div class="form-progress-wrap"><div class="form-progress"><span class="on"></span><span></span><span></span></div><span id="progressText" class="form-progress-label">0 of ${qs.length} answered</span></div><div class="form-profile-note"><strong>✓ Your EventHub profile is already attached</strong><div class="profile-line"><span class="profile-chip">👤 ${esc(user?.name||'Student')}</span><span class="profile-chip">✉ ${esc(user?.email||'')}</span>${user?.department?`<span class="profile-chip">🎓 ${esc(user.department)}</span>`:''}${user?.year?`<span class="profile-chip">Year ${esc(user.year)}</span>`:''}</div><div class="form-helper">No Google Form retyping — organizers receive your campus profile together with your answers.</div></div>${qs.length?qs.map((q,i)=>`<div class="form-question" data-question-card="${i}" data-question-number="${i+1}"><div class="question-label-row"><label class="question-label">${esc(q.question)} ${q.required!==false?'<span class="required-star">*</span>':''}</label>${q.required!==false?'<span class="question-required-badge">Required</span>':''}</div><div class="question-type-hint">${({text:'Short answer',textarea:'Long answer',select:'Choose one',checkbox:'Confirmation',email:'Email',number:'Number',date:'Date',url:'Website / URL',file:'File upload'})[q.type]||'Answer'}</div>${inputFor(q,i)}${q.type==='select'?'<div class="form-helper">Choose one of the organizer-provided options.</div>':''}${q.type==='file'?'<div class="form-helper">📎 Attach an image, PDF or document. It will be stored with your registration.</div>':''}${q.showWhen?.questionIndex!=null?`<div class="form-helper">✨ This question appears based on your previous answer.</div>`:''}</div>`).join(''):`<div class="form-question" data-question-card="0" data-question-number="1"><div class="question-label-row"><label class="question-label">Anything the organizer should know?</label><span class="question-required-badge" style="background:#eef6f4;color:#397469">Optional</span></div><textarea class="form-control" data-q="0" placeholder="Add an optional note for the organizer"></textarea></div>`}<div class="smart-submit-bar"><div class="submit-note">Your registration is saved securely to EventHub.</div><div class="submit-actions"><a class="btn btn-outline" href="event-details.html?id=${encodeURIComponent(event.id)}">← Back to event</a><button id="submitForm" class="btn btn-primary">Submit registration →</button></div></div><div id="formMsg" style="margin-top:16px"></div></section>`;
+ document.querySelectorAll('[data-q]').forEach(el=>el.addEventListener('input',applyLogic));
+ document.querySelectorAll('[data-q]').forEach(el=>el.addEventListener('change',applyLogic));
+ applyLogic();
+ document.getElementById('submitForm').addEventListener('click',async()=>{
+   const btn=document.getElementById('submitForm'),msg=document.getElementById('formMsg');btn.disabled=true;
+   const answers=[];const uploads=[];
+   for(let i=0;i<qs.length;i++){
+     const q=qs[i];if(!isVisible(q,i))continue;const el=document.querySelector(`[data-q="${i}"]`);let answer='';
+     if(q.type==='file'){const file=el?.files?.[0];if(file){uploads.push({i,file});answer=`${file.name}`;}}
+     else answer=answerValue(i);
+     answers.push({question:q.question,answer});
+   }
+   if(qs.some((q,i)=>isVisible(q,i)&&q.required!==false&&!answers.find(a=>a.question===q.question)?.answer)){msg.innerHTML='<div class="alert alert-error">Please complete every required question.</div>';btn.disabled=false;return;}
+   try{
+     if(uploads.length){btn.textContent='Uploading files…';for(const item of uploads){const uploaded=await Api.uploadRegistrationAttachment(event.id,item.file);const a=answers.find(x=>x.question===qs[item.i].question);if(a)a.answer=JSON.stringify({name:item.file.name,url:uploaded.attachment.url,size:item.file.size,contentType:item.file.type});}}
+     btn.textContent='Saving registration…';
+     const res=await Api.createBooking(event.id,answers);bookingResult=res?.booking||res||{};const code=bookingResult.checkInCode||ticketCode(bookingResult.id||user?.id||event.id);
+     app.innerHTML=`<section class="event-form-card form-success"><div class="success-icon">✓</div><span class="form-kicker">YOU'RE IN</span><h1>Registration confirmed.</h1><p class="muted">Saved on EventHub — not a random Google Form link. Show this digital ticket at the venue or keep it in My Bookings.</p><div class="form-ticket"><div class="tk-kicker">EVENTHUB DIGITAL TICKET</div><h2>${esc(event.title)}</h2><div class="tk-meta">${esc(event.date)}${event.time?' · '+esc(event.time):''}<br>📍 ${esc(event.location)}<br>${esc(user?.name||'Student')} · ${esc(user?.department||'')}</div><div class="tk-code"><span id="ticketCode">${esc(code)}</span><button type="button" id="copyTicket">Copy</button></div></div><div class="group-post-actions" style="justify-content:center;flex-wrap:wrap;gap:10px"><a class="btn btn-primary" href="my-bookings.html">View my booking</a><a class="btn btn-outline" href="event-details.html?id=${encodeURIComponent(event.id)}">Event buddies →</a><a class="btn btn-outline" href="events.html">Discover more</a></div></section>`;
+     const copyBtn=document.getElementById('copyTicket');if(copyBtn)copyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(code);copyBtn.textContent='Copied';}catch(_){copyBtn.textContent='Select & copy';}};
+   }catch(e){
+     if(e.status===409){
+       msg.innerHTML='<div class="alert alert-success"><strong>You are already registered for this event.</strong><br>Your digital pass is safely stored in My Bookings.</div><div style="margin-top:10px"><a class="btn btn-primary" href="my-bookings.html">View my booking →</a></div>';
+       btn.textContent='Already registered';
+       btn.disabled=true;
+     }else{
+       msg.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;
+       btn.disabled=false;
+       btn.textContent='Submit registration →';
+     }
+   }
+ });
+})();
+</script></body></html>

@@ -1,1 +1,355 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Registrations - EventHub</title><link rel="stylesheet" href="../css/style.css"></head><body><div id="navbar" class="navbar"></div><main class="container"><div class="page-header"><div><span class="eyebrow">ORGANIZER</span><h1>Registrations</h1><p>See who registered for your campus events.</p></div><button class="btn btn-outline" id="exportCsv">Export CSV</button></div><div id="alertBox"></div><div class="form-group" style="max-width:520px"><label>Choose event</label><select id="eventSelect" class="form-control"></select></div><div class="card" style="margin:18px 0"><h3>Send announcement</h3><div class="form-grid"><div class="form-group"><label>Title</label><input id="announcementTitle" class="form-control" placeholder="Venue update"></div><div class="form-group"><label>Audience</label><select id="announcementAudience" class="form-control"><option value="registrants">Registered students</option><option value="followers">Club followers</option><option value="both">Both</option></select></div><div class="form-group full"><label>Message</label><textarea id="announcementMessage" class="form-control" rows="3" placeholder="Your event has moved to Seminar Hall..."></textarea></div><div class="form-group full"><button class="btn btn-primary" id="sendAnnouncement">Send announcement</button></div></div></div><div class="table-wrap" style="margin-top:20px"><table class="data-table"><thead><tr><th>Student</th><th>Email</th><th>Student ID</th><th>Department</th><th>Status</th><th>Action</th><th>Check-in</th></tr></thead><tbody id="body"></tbody></table></div></main><script src="../js/api.js"></script><script src="../js/nav.js"></script><script>requireOrganizer();renderOrganizerNavbar('registrations');const select=document.getElementById('eventSelect'),body=document.getElementById('body'),alertBox=document.getElementById('alertBox');let currentBookings=[];let events=[];async function init(){try{events=(await Api.getOrganizerEvents()).events;select.innerHTML=events.map(e=>`<option value="${e.id}">${escapeHtml(e.title)} — ${formatDate(e.date)}</option>`).join('');const id=new URLSearchParams(location.search).get('event');if(id&&events.some(e=>e.id===id))select.value=id;await load()}catch(e){showAlert(alertBox,e.message)}}async function load(){if(!select.value)return;try{const {bookings}=await Api.getOrganizerRegistrations(select.value);currentBookings=bookings;body.innerHTML=bookings.length?bookings.map(b=>`<tr><td>${escapeHtml(b.user?.name||'Unknown')}</td><td>${escapeHtml(b.user?.email||'')}</td><td>${escapeHtml(b.user?.studentId||'—')}</td><td>${escapeHtml(b.user?.department||'—')}</td><td><span class="badge ${b.status==='confirmed'?'badge-success':b.status==='pending'?'badge-warning':'badge-danger'}">${b.status}</span></td><td>${b.status==='pending'?`<button class="btn btn-primary btn-sm" data-approve="${b.id}">Approve</button> <button class="btn btn-danger btn-sm" data-reject="${b.id}">Reject</button>`:'—'}</td><td>${b.checkedInAt?'<span class="badge badge-success">Checked in</span>':`<span class="badge badge-muted">Not yet</span>`}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">No registrations yet.</td></tr>'}catch(e){showAlert(alertBox,e.message)}document.querySelectorAll('[data-approve]').forEach(b=>b.onclick=async()=>{try{await Api.updateOrganizerRegistration(b.dataset.approve,'confirmed');load()}catch(e){showAlert(alertBox,e.message)}});document.querySelectorAll('[data-reject]').forEach(b=>b.onclick=async()=>{try{await Api.updateOrganizerRegistration(b.dataset.reject,'rejected');load()}catch(e){showAlert(alertBox,e.message)}})}document.getElementById('exportCsv').onclick=()=>{if(!currentBookings.length)return;const rows=[['Name','Email','Student ID','Department','Status','Checked In'],...currentBookings.map(b=>[b.user?.name||'',b.user?.email||'',b.user?.studentId||'',b.user?.department||'',b.status,b.checkedInAt?'Yes':'No'])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='eventhub-registrations.csv';a.click();URL.revokeObjectURL(a.href)};document.getElementById('sendAnnouncement').onclick=async()=>{try{await Api.announceOrganizerEvent(select.value,{title:announcementTitle.value.trim(),message:announcementMessage.value.trim(),audience:announcementAudience.value});showAlert(alertBox,'Announcement sent.','success');announcementTitle.value='';announcementMessage.value='';}catch(e){showAlert(alertBox,e.message)}};select.onchange=load;init();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Registrations — EventHub Organizer</title>
+<meta name="description" content="Modern organizer console to review, approve, search, export and announce to event registrations.">
+<link rel="stylesheet" href="../css/style.css?v=44">
+<link rel="stylesheet" href="../css/registrations.css?v=45">
+
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
+</head>
+<body>
+<div id="navbar" class="navbar"></div>
+
+<main class="ehr">
+  <section class="ehr-hero">
+    <div>
+      <span class="ehr-kicker">Organizer console</span>
+      <h1>Registrations</h1>
+      <p>Review who’s coming, approve requests in bulk, search the roster instantly and export a clean attendee sheet.</p>
+    </div>
+    <div class="ehr-hero-actions">
+      <button class="ehr-btn ehr-btn-line" id="refreshBtn" type="button">⟳ Refresh</button>
+      <button class="ehr-btn ehr-btn-line" id="printRoster" type="button">🖨 Print roster</button>
+      <button class="ehr-btn ehr-btn-solid" id="exportCsv" type="button">↓ Export CSV</button>
+    </div>
+  </section>
+
+  <div id="alertBox"></div>
+
+  <div class="ehr-grid-top">
+    <div class="ehr-card ehr-field">
+      <label for="eventSelect">Choose event</label>
+      <select id="eventSelect"></select>
+      <p class="ehr-help" id="eventMeta">Pick an event to open its live attendee roster.</p><div id="eventState" class="ehr-event-state"></div>
+    </div>
+    <div class="ehr-card ehr-field">
+      <label for="registrationSearch">Find an attendee</label>
+      <div class="ehr-searchwrap" style="max-width:none"><input id="registrationSearch" type="search" placeholder="Name, email, student ID, department, phone…"></div>
+      <p class="ehr-help">Search filters the table live. Selection and bulk actions respect the current filter.</p>
+    </div>
+  </div>
+
+  <div class="ehr-stats" id="stats"></div>
+
+  <div class="ehr-toolbar">
+    <div class="ehr-chips" id="filterChips">
+      <button class="ehr-chip on" type="button" data-filter="all">All</button>
+      <button class="ehr-chip" type="button" data-filter="pending">Pending</button>
+      <button class="ehr-chip" type="button" data-filter="confirmed">Confirmed</button>
+      <button class="ehr-chip" type="button" data-filter="rejected">Rejected / cancelled</button>
+      <button class="ehr-chip" type="button" data-filter="checkedin">Checked in</button>
+    </div>
+    <div class="ehr-searchwrap" style="max-width:none;flex:0 0 auto;min-width:0">
+      <span class="ehr-help" id="resultCount"></span>
+    </div>
+  </div>
+
+  <div id="bulkBar" class="ehr-bulk" hidden>
+    <strong id="bulkCount">0 selected</strong>
+    <span class="ehr-bulk-spacer"></span>
+    <button class="ehr-btn ehr-btn-brand" type="button" id="bulkApprove">✓ Approve selected</button>
+    <button class="ehr-btn ehr-btn-danger" type="button" id="bulkReject">✕ Reject selected</button>
+    <button class="ehr-btn ehr-btn-line" type="button" id="bulkClear">Clear</button>
+  </div>
+
+  <div class="ehr-tablewrap">
+    <table class="ehr-table">
+      <thead>
+        <tr>
+          <th class="no-sort" style="width:44px"><input type="checkbox" class="ehr-check" id="selectAll" aria-label="Select all"></th>
+          <th data-sort="name">Student</th>
+          <th data-sort="email">Email</th>
+          <th data-sort="studentId">Student ID</th>
+          <th data-sort="department">Department</th>
+          <th class="no-sort">Registration answers</th>
+          <th data-sort="status">Status</th>
+          <th data-sort="checkedIn">Check-in</th>
+          <th class="no-sort">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="body"><tr><td colspan="9"><div class="ehr-skel"></div><div class="ehr-skel"></div></td></tr></tbody>
+    </table>
+  </div>
+
+  <section class="ehr-card ehr-announce">
+    <span class="ehr-kicker">Broadcast</span>
+    <h3>Send an announcement</h3>
+    <p class="ehr-help">Notifies attendees inside EventHub instantly — perfect for venue changes and reminders.</p>
+    <div class="ehr-row">
+      <div class="ehr-field"><label for="announcementTitle">Title</label><input id="announcementTitle" placeholder="Venue update"></div>
+      <div class="ehr-field"><label for="announcementAudience">Audience</label>
+        <select id="announcementAudience">
+          <option value="registrants">Registered students</option>
+          <option value="followers">Club followers</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+    </div>
+    <div class="ehr-field" style="margin-top:12px"><label for="announcementMessage">Message</label><textarea id="announcementMessage" placeholder="Your event has moved to Seminar Hall B…"></textarea></div>
+    <div style="margin-top:12px"><button class="ehr-btn ehr-btn-brand" id="sendAnnouncement" type="button">Send announcement</button></div>
+  </section>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/nav.js"></script>
+<script>
+(function(){
+  'use strict';
+  requireOrganizer();
+  renderOrganizerNavbar('registrations');
+
+  const esc = window.escapeHtml || (v => String(v ?? ''));
+  const $ = id => document.getElementById(id);
+  const select = $('eventSelect'), body = $('body'), alertBox = $('alertBox');
+
+  let events = [], bookings = [], selected = new Set();
+  let filter = 'all', query = '', sortKey = 'name', sortDir = 1;
+
+  const person = b => ({
+    name: b.user?.name || b.registrationProfile?.name || 'Unknown',
+    email: b.user?.email || b.registrationProfile?.email || '',
+    studentId: b.user?.studentId || b.registrationProfile?.studentId || '',
+    department: b.user?.department || b.registrationProfile?.department || '',
+    year: b.user?.year || b.registrationProfile?.year || '',
+    phone: b.registrationProfile?.phone || b.user?.phone || ''
+  });
+
+  function notify(msg, type = 'error'){
+    alertBox.innerHTML = `<div class="ehr-alert ${type === 'error' ? 'error' : 'success'}">${esc(msg)}</div>`;
+    if(type !== 'error') setTimeout(() => { alertBox.innerHTML = ''; }, 4000);
+  }
+
+  function visible(){
+    const q = query.toLowerCase();
+    return bookings.filter(b => {
+      const p = person(b);
+      if(filter === 'pending' && b.status !== 'pending') return false;
+      if(filter === 'confirmed' && b.status !== 'confirmed') return false;
+      if(filter === 'rejected' && !['rejected','cancelled'].includes(b.status)) return false;
+      if(filter === 'checkedin' && !b.checkedInAt) return false;
+      if(!q) return true;
+      return [p.name, p.email, p.studentId, p.department, p.year, p.phone]
+        .some(v => String(v || '').toLowerCase().includes(q));
+    }).sort((a, b) => {
+      const pa = person(a), pb = person(b);
+      const val = k => k === 'status' ? (k in a ? a.status : '') : k === 'checkedIn' ? (a.checkedInAt ? 1 : 0) : pa[k];
+      let x, y;
+      if(sortKey === 'status'){ x = a.status; y = b.status; }
+      else if(sortKey === 'checkedIn'){ x = a.checkedInAt ? 1 : 0; y = b.checkedInAt ? 1 : 0; }
+      else { x = String(pa[sortKey] || '').toLowerCase(); y = String(pb[sortKey] || '').toLowerCase(); }
+      return x > y ? sortDir : x < y ? -sortDir : 0;
+    });
+  }
+
+  function renderStats(){
+    const total = bookings.length;
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+    const pending = bookings.filter(b => b.status === 'pending').length;
+    const checked = bookings.filter(b => b.checkedInAt).length;
+    const ev = events.find(e => String(e.id) === String(select.value));
+    const capacity = ev?.capacity || 0;
+    const fill = capacity ? Math.min(100, Math.round((confirmed + pending) / capacity * 100)) : 0;
+    $('stats').innerHTML = `
+      <div class="ehr-stat"><span>Registrations</span><strong>${total}</strong>${capacity ? `<small>${fill}% of ${capacity} seats</small><div class="ehr-bar"><i style="width:${fill}%"></i></div>` : '<small>All submissions</small>'}</div>
+      <div class="ehr-stat ok"><span>Confirmed</span><strong>${confirmed}</strong><small>Ready for check-in</small></div>
+      <div class="ehr-stat warn"><span>Pending</span><strong>${pending}</strong><small>${pending ? 'Needs your review' : 'Nothing waiting'}</small></div>
+      <div class="ehr-stat"><span>Checked in</span><strong>${checked}</strong><small>${confirmed ? Math.round(checked / confirmed * 100) : 0}% attendance</small></div>`;
+  }
+
+  function renderBulk(){
+    const bar = $('bulkBar');
+    bar.hidden = selected.size === 0;
+    $('bulkCount').textContent = `${selected.size} selected`;
+  }
+
+  function renderTable(){
+    const rows = visible();
+    $('resultCount').textContent = `${rows.length} of ${bookings.length} shown`;
+    if(!rows.length){
+      body.innerHTML = `<tr><td colspan="9"><div class="ehr-empty"><strong>Nothing to show</strong>${bookings.length ? 'No registrations match this filter.' : 'No one has registered for this event yet.'}</div></td></tr>`;
+      $('selectAll').checked = false;
+      return;
+    }
+    body.innerHTML = rows.map(b => {
+      const p = person(b);
+      const answers = (b.registrationAnswers || []).length
+        ? `<div class="ehr-answers">${b.registrationAnswers.map(a => `<div><b>${esc(a.question)}:</b> ${esc(a.answer || '—')}</div>`).join('')}</div>`
+        : '<span class="ehr-help">—</span>';
+      return `<tr class="${selected.has(b.id) ? 'sel' : ''}">
+        <td><input type="checkbox" class="ehr-check" data-pick="${esc(b.id)}" ${selected.has(b.id) ? 'checked' : ''} aria-label="Select ${esc(p.name)}"></td>
+        <td><div class="ehr-person"><div class="ehr-av">${esc((p.name || 'S').charAt(0).toUpperCase())}</div><div><strong>${esc(p.name)}</strong><span>${esc([p.year && p.year + ' year', p.department, p.phone].filter(Boolean).join(' · ') || 'Student')}</span></div></div></td>
+        <td>${esc(p.email || '—')}</td>
+        <td>${esc(p.studentId || '—')}</td>
+        <td>${esc(p.department || '—')}</td>
+        <td>${answers}</td>
+        <td><span class="ehr-badge ${esc(b.status)}">${esc(b.status)}</span></td>
+        <td>${b.checkedInAt ? '<span class="ehr-badge confirmed">Checked in</span>' : '<span class="ehr-badge muted">Not yet</span>'}</td>
+        <td><div class="ehr-rowactions">
+          ${b.status !== 'confirmed' ? `<button class="ehr-mini ok" data-approve="${esc(b.id)}">Approve</button>` : ''}
+          ${['rejected','cancelled'].includes(b.status) ? '' : `<button class="ehr-mini no" data-reject="${esc(b.id)}">Reject</button>`}
+          ${b.status === 'confirmed' && !b.checkedInAt ? '' : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('[data-pick]').forEach(cb => cb.addEventListener('change', () => {
+      if(cb.checked) selected.add(cb.dataset.pick); else selected.delete(cb.dataset.pick);
+      cb.closest('tr').classList.toggle('sel', cb.checked);
+      renderBulk();
+    }));
+    body.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => setStatus([btn.dataset.approve], 'confirmed')));
+    body.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => setStatus([btn.dataset.reject], 'rejected')));
+    $('selectAll').checked = rows.every(r => selected.has(r.id));
+    renderBulk();
+  }
+
+  async function setStatus(ids, status){
+    try{
+      if(ids.length === 1) await Api.updateOrganizerRegistration(ids[0], status);
+      else{
+        const r = await Api.bulkUpdateOrganizerRegistrations(ids, status);
+        notify(r.message || 'Updated.', 'success');
+      }
+      selected.clear();
+      await load();
+      if(ids.length === 1) notify(`Registration ${status}.`, 'success');
+    }catch(e){ notify(e.message); }
+  }
+
+  async function load(){
+    if(!select.value) return;
+    body.innerHTML = '<tr><td colspan="9"><div class="ehr-skel"></div><div class="ehr-skel"></div></td></tr>';
+    try{
+      const r = await Api.getOrganizerRegistrations(select.value);
+      bookings = r.bookings || [];
+      const ev = events.find(e => String(e.id) === String(select.value));
+      $('eventMeta').textContent = ev ? `${formatDate(ev.date)}${ev.time ? ' · ' + ev.time : ''}${ev.location ? ' · ' + ev.location : ''}` : '';
+      $('eventState').innerHTML = ev ? `<span class="ehr-status-pill ${ev.status==='published'?'live':'pending'}">${esc((ev.lifecycle||ev.status||'event').replace(/_/g,' '))}</span>${ev.status!=='published'?'<span class="ehr-help">This event is not public yet. Approve it from the admin panel before students can register.</span>':''}` : '';
+      renderStats();
+      renderTable();
+    }catch(e){ notify(e.message); body.innerHTML = ''; }
+  }
+
+  async function init(){
+    try{
+      events = (await Api.getOrganizerEvents()).events || [];
+      if(!events.length){
+        select.innerHTML = '<option value="">No events yet</option>';
+        $('eventState').innerHTML = '<span class="ehr-help">All EventHub events appear here, including admin-created and club-created events.</span>';
+        body.innerHTML = '<tr><td colspan="9"><div class="ehr-empty"><strong>No events yet</strong>Choose any campus event to view its registrations, export the roster, and check attendees in.</div></td></tr>';
+        return;
+      }
+      select.innerHTML = events.map(e => {
+        const scope = e.managementSource === 'club_event' ? (e.club?.name ? ` · ${e.club.name}` : ' · Club event') : e.managementSource === 'created_by_you' ? ' · Created by you' : ' · Campus event';
+        return `<option value="${esc(e.id)}">${esc(e.title)} — ${esc(formatDate(e.date))}${esc(scope)} · ${esc((e.lifecycle||e.status||'event').replace(/_/g,' '))}</option>`;
+      }).join('');
+      const id = new URLSearchParams(location.search).get('event');
+      if(id && events.some(e => String(e.id) === String(id))) select.value = id;
+      await load();
+    }catch(e){ notify(e.message); }
+  }
+
+  /* ---- wiring ---- */
+  select.addEventListener('change', () => { selected.clear(); load(); });
+  $('refreshBtn').addEventListener('click', load);
+  $('registrationSearch').addEventListener('input', e => { query = e.target.value.trim(); renderTable(); });
+  $('filterChips').addEventListener('click', e => {
+    const btn = e.target.closest('[data-filter]');
+    if(!btn) return;
+    filter = btn.dataset.filter;
+    document.querySelectorAll('#filterChips .ehr-chip').forEach(c => c.classList.toggle('on', c === btn));
+    renderTable();
+  });
+  document.querySelectorAll('.ehr-table th[data-sort]').forEach(th => th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    sortDir = sortKey === key ? -sortDir : 1;
+    sortKey = key;
+    renderTable();
+  }));
+  $('selectAll').addEventListener('change', e => {
+    const rows = visible();
+    if(e.target.checked) rows.forEach(r => selected.add(r.id));
+    else rows.forEach(r => selected.delete(r.id));
+    renderTable();
+  });
+  $('bulkClear').addEventListener('click', () => { selected.clear(); renderTable(); });
+  $('bulkApprove').addEventListener('click', () => selected.size && setStatus([...selected], 'confirmed'));
+  $('bulkReject').addEventListener('click', () => {
+    if(selected.size && confirm(`Reject ${selected.size} registration(s)?`)) setStatus([...selected], 'rejected');
+  });
+
+  $('exportCsv').addEventListener('click', () => {
+    const rows = visible();
+    if(!rows.length) return notify('Nothing to export.');
+    const questions = [...new Set(rows.flatMap(b => (b.registrationAnswers || []).map(a => a.question)))];
+    const data = [['Name','Email','Student ID','Department','Year','Phone','Status','Checked In', ...questions],
+      ...rows.map(b => {
+        const p = person(b);
+        const ans = Object.fromEntries((b.registrationAnswers || []).map(a => [a.question, a.answer]));
+        return [p.name, p.email, p.studentId, p.department, p.year, p.phone, b.status, b.checkedInAt ? 'Yes' : 'No', ...questions.map(q => ans[q] || '')];
+      })];
+    const csv = data.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'eventhub-registrations.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  $('printRoster').addEventListener('click', () => {
+    const rows = visible().filter(b => b.status !== 'rejected');
+    if(!rows.length) return notify('Nothing to print.');
+    const ev = events.find(e => String(e.id) === String(select.value));
+    const trs = rows.map((b, i) => {
+      const p = person(b);
+      return `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td>${esc(p.email)}</td><td>${esc(p.studentId || '—')}</td><td>${esc(p.department || '—')}</td><td>${esc(p.year || '—')}</td><td>${esc(p.phone || '—')}</td><td></td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<!doctype html><html><head><title>EventHub Roster — ${esc(ev?.title || 'Event')}</title><style>
+      body{font-family:'Segoe UI',Arial,sans-serif;padding:26px;color:#0d1b2a}
+      h1{margin:0 0 4px;font-size:20px}p{color:#5b6b7c;margin:0}
+      .meta{margin:14px 0 18px;padding:12px 14px;background:#f4f7fb;border-radius:10px;font-size:12px}
+      table{width:100%;border-collapse:collapse;font-size:11px}
+      th,td{border:1px solid #cfd8de;padding:7px;text-align:left}th{background:#eef3f7}
+      @media print{body{padding:10px}}
+    </style></head><body>
+      <h1>${esc(ev?.title || 'Event')} — Attendee Roster</h1>
+      <p>Generated from EventHub · ${new Date().toLocaleString()}</p>
+      <div class="meta"><b>Date:</b> ${esc(ev?.date || '')} &nbsp; <b>Time:</b> ${esc(ev?.time || '')} &nbsp; <b>Attendees:</b> ${rows.length}</div>
+      <table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th><th>Department</th><th>Year</th><th>Phone</th><th>Signature</th></tr></thead><tbody>${trs}</tbody></table>
+      <script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();
+  });
+
+  $('sendAnnouncement').addEventListener('click', async () => {
+    const title = $('announcementTitle').value.trim(), message = $('announcementMessage').value.trim();
+    if(!title || !message) return notify('Add a title and a message first.');
+    try{
+      const r = await Api.announceOrganizerEvent(select.value, { title, message, audience: $('announcementAudience').value });
+      notify(r.message || 'Announcement sent.', 'success');
+      $('announcementTitle').value = '';
+      $('announcementMessage').value = '';
+    }catch(e){ notify(e.message); }
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

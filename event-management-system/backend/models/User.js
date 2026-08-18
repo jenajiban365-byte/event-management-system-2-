@@ -13,13 +13,19 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: { type: String, default: '', select: false },
   passwordResetExpires: { type: Date, default: null, select: false },
   avatarUrl: { type: String, default: '' },
+  chatAvatarUrl: { type: String, default: '' },
+  // Stable ID for the separate Campus Chat character. Stored per account, never shared.
+  chatAvatarId: { type: String, default: '' },
   role: { type: String, enum: ['user', 'organizer', 'club_head', 'admin'], default: 'user' },
   clubId: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', default: null },
   studentId: { type: String, default: '', trim: true },
   department: { type: String, default: '', trim: true },
   year: { type: String, default: '', trim: true },
   phone: { type: String, default: '', trim: true },
-  status: { type: String, enum: ['active', 'blocked'], default: 'active' }
+  status: { type: String, enum: ['active', 'blocked'], default: 'active' },
+  eventBuddyOptIn: { type: Boolean, default: false },
+  campusConnectOptIn: { type: Boolean, default: true },
+  lastActiveAt: { type: Date, default: null }
 }, schemaOptions);
 
 module.exports = mongoose.model('User', userSchema);

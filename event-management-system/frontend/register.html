@@ -1,190 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Create Account - EventHub</title>
-<link rel="stylesheet" href="css/style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create your EventHub account</title>
+<meta name="description" content="Join EventHub as a student in seconds, or request organizer / club head access from your college admin.">
+<link rel="stylesheet" href="css/style.css?v=44">
+<link rel="stylesheet" href="css/auth-modern.css?v=44">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
 
-<div class="auth-wrapper">
-  <div class="auth-card">
-    <div class="auth-icon">🎫</div>
-    <h1>EventHub</h1>
-    <p class="tagline">Create an account to start discovering events.</p>
+<main class="eha">
+  <!-- showcase -->
+  <section class="eha-show">
+    <div>
+      <span class="eha-kicker">EventHub · Campus</span>
+      <h1>Everything happening<br>on campus, in one place.</h1>
+      <p>Discover events, book a seat in one tap, join campus groups and chat privately with the people you meet.</p>
+    </div>
+    <div class="eha-feats">
+      <div class="eha-feat"><i>🎟️</i><div><strong>One-tap registration</strong><span>Digital passes with QR check-in — no printouts.</span></div></div>
+      <div class="eha-feat"><i>👥</i><div><strong>Campus groups</strong><span>Find your people around the events you love.</span></div></div>
+      <div class="eha-feat"><i>💬</i><div><strong>Private chat</strong><span>Message students you share a group with. No phone numbers.</span></div></div>
+    </div>
+    <div class="eha-trust">
+      <div><strong>60s</strong><span>To sign up</span></div>
+      <div><strong>0₹</strong><span>Free for students</span></div>
+      <div><strong>🔒</strong><span>Verified email</span></div>
+    </div>
+  </section>
 
-    <div class="auth-box">
-      <div class="auth-tabs">
-        <a href="login.html">Sign in</a>
-        <a href="register.html" class="active">Create account</a>
-      </div>
+  <!-- form panel -->
+  <section class="eha-panel">
+    <span class="eha-kicker">Create account</span>
+    <h2 id="panelTitle">Join EventHub</h2>
+    <p class="eha-sub" id="panelSub">Pick how you’ll be using EventHub.</p>
 
-      <div id="alertBox"></div>
-      <div id="verificationBox" style="display:none;" class="card" aria-live="polite"></div>
-
-      <section id="roleChooser" aria-labelledby="roleChooserTitle">
-        <div style="margin:4px 0 14px">
-          <h2 id="roleChooserTitle" style="margin:0 0 5px;font-size:1.25rem">What type of account are you creating?</h2>
-          <p class="muted" style="margin:0">Choose the workspace that matches your role.</p>
-        </div>
-        <div class="grid grid-1" style="gap:10px">
-          <button type="button" class="card role-choice" data-role="student" style="text-align:left;cursor:pointer">
-            <strong>🎓 Student</strong>
-            <span class="muted" style="display:block;margin-top:5px;font-size:.78rem">Discover events, follow clubs, save events, book events and apply to opportunities.</span>
-          </button>
-        </div>
-        <div class="card" style="margin-top:12px;padding:14px;background:var(--surface-muted,rgba(255,255,255,.04));">
-          <strong>🔐 Organizer &amp; Club Head accounts</strong>
-          <p class="muted" style="margin:6px 0 0;font-size:.82rem;line-height:1.5">These roles are assigned by the College Admin. They cannot be self-created, which protects EventHub from unauthorized access to event and club management.</p>
-        </div>
-      </section>
-
-      <section id="credentialsBox" style="display:none;margin-top:18px">
-        <div class="section-heading-row" style="margin-bottom:12px">
-          <div><strong id="selectedRoleLabel">Student</strong><div class="muted" style="font-size:.78rem">Create your EventHub account.</div></div>
-          <button type="button" class="btn btn-outline" id="changeRoleBtn">Change</button>
-        </div>
-        <form id="registerForm">
-          <div class="form-group">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" class="form-control" placeholder="Jane Doe" required />
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" class="form-control" placeholder="you@example.com" required />
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" class="form-control" placeholder="At least 6 characters" required minlength="6" />
-          </div>
-          <div class="form-group">
-            <label for="confirmPassword">Confirm Password</label>
-            <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter password" required minlength="6" />
-          </div>
-          <div class="form-group">
-            <label for="studentId">Student ID (optional)</label>
-            <input type="text" id="studentId" class="form-control" placeholder="Your student ID" />
-          </div>
-          <div class="form-group">
-            <label for="department">Department (optional)</label>
-            <input type="text" id="department" class="form-control" placeholder="Computer Science, ECE, etc." />
-          </div>
-          <div class="form-group">
-            <label for="year">Year (optional)</label>
-            <input type="text" id="year" class="form-control" placeholder="1st, 2nd, 3rd, 4th" />
-          </div>
-          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create Account as Student</button>
-        </form>
-
-        <div class="auth-divider">or</div>
-        <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
-      </section>
+    <div class="eha-steps" id="steps">
+      <span class="eha-step on" data-step="1"><b>1</b> Account type</span><hr>
+      <span class="eha-step" data-step="2"><b>2</b> Your details</span><hr>
+      <span class="eha-step" data-step="3"><b>3</b> Verify</span>
     </div>
 
-    <p style="text-align:center; font-size:0.78rem; color:var(--text-muted); margin-top:14px;">
-      Admin accounts are created by the platform administrator only.
-    </p>
-  </div>
-</div>
+    <div id="alertBox"></div>
+
+    <!-- STEP 1 -->
+    <div id="stepRole">
+      <div class="eha-roles">
+        <button type="button" class="eha-role primary" data-role="student">
+          <i>🎓</i><div><strong>Student</strong><span>Discover and book events, join groups, follow clubs, chat privately and apply to opportunities.</span></div><em>→</em>
+        </button>
+        <button type="button" class="eha-role" data-role="organizer">
+          <i>🎪</i><div><strong>Event organizer</strong><span>Run events for a club. Access is granted by your college admin — request it here.</span></div><em>→</em>
+        </button>
+        <button type="button" class="eha-role" data-role="club_head">
+          <i>🏛️</i><div><strong>Club head</strong><span>Lead a campus club, manage members and approve organizers. Admin-assigned role.</span></div><em>→</em>
+        </button>
+      </div>
+      <div class="eha-note">
+        <strong>Why organizer &amp; club head are request-only</strong>
+        These roles can publish events and message the whole campus, so the College Admin assigns them. Request access below and we’ll route it to the admin team.
+      </div>
+      <p class="eha-foot">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+
+    <!-- STEP 2 : student signup -->
+    <div id="stepStudent" hidden>
+      <div class="eha-row-between" style="margin-bottom:14px">
+        <div><strong style="font-size:.95rem">🎓 Student account</strong><div class="eha-sub" style="margin:2px 0 0">Verified with your email address.</div></div>
+        <button type="button" class="eha-link-btn" data-back>← Change</button>
+      </div>
+      <form class="eha-form" id="registerForm" novalidate>
+        <div class="eha-f" id="fName"><label for="name">Full name</label><input id="name" type="text" placeholder="Jane Doe" autocomplete="name" required><small></small></div>
+        <div class="eha-f" id="fEmail"><label for="email">College email</label><input id="email" type="email" placeholder="you@college.edu" autocomplete="email" required><small></small></div>
+        <div class="eha-two">
+          <div class="eha-f" id="fPass">
+            <label for="password">Password</label>
+            <div class="eha-pwwrap"><input id="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" required minlength="6"><button type="button" class="eha-eye" id="togglePw" aria-label="Show password">👁</button></div>
+            <div class="eha-meter" id="meter"><i></i><i></i><i></i><i></i></div>
+            <small id="pwHint">Use 8+ characters with a number for a strong password.</small>
+          </div>
+          <div class="eha-f" id="fConfirm"><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" placeholder="Re-enter password" autocomplete="new-password" required minlength="6"><small></small></div>
+        </div>
+        <details class="eha-optional">
+          <summary>Add campus details (optional — helps clubs verify you)</summary>
+          <div class="eha-two">
+            <div class="eha-f"><label for="studentId">Student ID</label><input id="studentId" placeholder="e.g. 22CS1043"></div>
+            <div class="eha-f"><label for="department">Department</label><input id="department" placeholder="Computer Science"></div>
+          </div>
+          <div class="eha-f" style="margin-top:13px"><label for="year">Year</label>
+            <select id="year"><option value="">Prefer not to say</option><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option><option>Postgraduate</option></select>
+          </div>
+        </details>
+        <button type="submit" class="eha-cta" id="submitBtn">Create my student account</button>
+      </form>
+      <div class="eha-divider" id="divider">or</div>
+      <div id="googleSignInBtn" style="display:flex;justify-content:center"></div>
+      <p class="eha-foot">By creating an account you agree to EventHub’s campus community guidelines.</p>
+    </div>
+
+    <!-- STEP 2 alt : access request -->
+    <div id="stepRequest" hidden>
+      <div class="eha-row-between" style="margin-bottom:14px">
+        <div><strong style="font-size:.95rem" id="requestRoleTitle">Request access</strong><div class="eha-sub" style="margin:2px 0 0">Sent straight to your College Admin.</div></div>
+        <button type="button" class="eha-link-btn" data-back>← Change</button>
+      </div>
+      <form class="eha-form" id="requestForm" novalidate>
+        <div class="eha-f"><label for="reqName">Full name</label><input id="reqName" placeholder="Jane Doe" required></div>
+        <div class="eha-f"><label for="reqEmail">College email</label><input id="reqEmail" type="email" placeholder="you@college.edu" required></div>
+        <div class="eha-two">
+          <div class="eha-f"><label for="reqClub">Club / department</label><input id="reqClub" placeholder="Robotics Club" required></div>
+          <div class="eha-f"><label for="reqPhone">Phone (optional)</label><input id="reqPhone" placeholder="+91…"></div>
+        </div>
+        <div class="eha-f"><label for="reqWhy">What will you organize?</label><textarea id="reqWhy" rows="4" placeholder="We run 3 tech events a semester and need to publish and check in attendees." required></textarea></div>
+        <button type="submit" class="eha-cta" id="requestBtn">Send access request</button>
+      </form>
+      <div class="eha-note" style="margin-top:16px">
+        <strong>Tip</strong> Create a student account too — the admin upgrades your existing account, so you never lose your bookings.
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="stepDone" hidden>
+      <div class="eha-done">
+        <div class="eha-orb" id="doneIcon">📬</div>
+        <h2 id="doneTitle">Check your inbox</h2>
+        <p id="doneText"></p>
+        <button type="button" class="eha-cta" id="resendBtn" style="max-width:280px">Resend verification email</button>
+        <a class="eha-link-btn" href="login.html" style="margin-top:6px">Go to sign in →</a>
+      </div>
+    </div>
+  </section>
+</main>
 
 <script src="js/api.js"></script>
 <script src="js/nav.js"></script>
 <script>
+(function(){
+  'use strict';
   renderNavbar('register');
   redirectIfLoggedIn();
 
-  const form = document.getElementById('registerForm');
-  const alertBox = document.getElementById('alertBox');
-  const submitBtn = document.getElementById('submitBtn');
-  const verificationBox = document.getElementById('verificationBox');
-  const roleChooser = document.getElementById('roleChooser');
-  const credentialsBox = document.getElementById('credentialsBox');
-  const selectedRoleLabel = document.getElementById('selectedRoleLabel');
-  const changeRoleBtn = document.getElementById('changeRoleBtn');
-  const roleButtons = [...document.querySelectorAll('.role-choice')];
+  const esc = window.escapeHtml || (v => String(v ?? ''));
+  const $ = id => document.getElementById(id);
+  const alertBox = $('alertBox');
+  const views = { role: $('stepRole'), student: $('stepStudent'), request: $('stepRequest'), done: $('stepDone') };
+  let signupEmail = '';
 
-  const roleLabels = { student: 'Student' };
+  function notify(msg, type = 'error'){
+    alertBox.innerHTML = `<div class="eha-alert ${type === 'error' ? 'error' : 'success'}">${esc(msg)}</div>`;
+    if(type === 'success') setTimeout(() => { alertBox.innerHTML = ''; }, 6000);
+  }
+  const clearNotice = () => { alertBox.innerHTML = ''; };
 
-  function selectRole(role) {
-    selectedRole = role;
-    roleButtons.forEach((button) => button.classList.toggle('active', button.dataset.role === role));
-    roleChooser.style.display = 'none';
-    credentialsBox.style.display = 'block';
-    selectedRoleLabel.textContent = roleLabels[role];
-    submitBtn.textContent = 'Create Student Account';
-    clearAlert(alertBox);
+  function setStep(n){
+    document.querySelectorAll('.eha-step').forEach(s => s.classList.toggle('on', Number(s.dataset.step) <= n));
+  }
+  function show(view){
+    Object.values(views).forEach(v => { v.hidden = true; });
+    views[view].hidden = false;
+    clearNotice();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  let selectedRole = '';
-  roleButtons.forEach((button) => button.addEventListener('click', () => selectRole(button.dataset.role)));
-  changeRoleBtn.addEventListener('click', () => {
-    credentialsBox.style.display = 'none';
-    roleChooser.style.display = 'block';
-    clearAlert(alertBox);
+  /* ---- step 1 ---- */
+  document.querySelectorAll('.eha-role').forEach(btn => btn.addEventListener('click', () => {
+    const role = btn.dataset.role;
+    if(role === 'student'){
+      $('panelTitle').textContent = 'Create your student account';
+      $('panelSub').textContent = 'Takes under a minute. Only your name and email are required.';
+      setStep(2); show('student');
+      requestAnimationFrame(() => window.__eventHubGoogleRenderers?.googleSignInBtn?.());
+      $('name').focus();
+    }else{
+      const label = role === 'organizer' ? 'Event organizer access' : 'Club head access';
+      $('panelTitle').textContent = label;
+      $('panelSub').textContent = 'Tell the admin about your club — they’ll assign the role to your account.';
+      $('requestRoleTitle').textContent = (role === 'organizer' ? '🎪 ' : '🏛️ ') + label;
+      $('requestForm').dataset.role = role;
+      setStep(2); show('request');
+      $('reqName').focus();
+    }
+  }));
+  document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => {
+    $('panelTitle').textContent = 'Join EventHub';
+    $('panelSub').textContent = 'Pick how you’ll be using EventHub.';
+    setStep(1); show('role');
+  }));
+
+  /* ---- password UX ---- */
+  const pw = $('password'), meter = $('meter'), hint = $('pwHint');
+  function score(v){
+    let s = 0;
+    if(v.length >= 6) s++;
+    if(v.length >= 10) s++;
+    if(/[0-9]/.test(v) && /[a-zA-Z]/.test(v)) s++;
+    if(/[^A-Za-z0-9]/.test(v)) s++;
+    return Math.min(s, 4);
+  }
+  pw.addEventListener('input', () => {
+    const s = score(pw.value);
+    meter.className = 'eha-meter' + (pw.value ? ' s' + s : '');
+    hint.textContent = !pw.value ? 'Use 8+ characters with a number for a strong password.'
+      : ['Too short — 6 characters minimum.', 'Weak password.', 'Decent — add a number or symbol.', 'Strong password.', 'Excellent password.'][s];
+  });
+  $('togglePw').addEventListener('click', () => {
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+    $('togglePw').textContent = pw.type === 'password' ? '👁' : '🙈';
   });
 
-  form.addEventListener('submit', async (e) => {
+  function fieldError(wrapId, message){
+    const wrap = $(wrapId);
+    wrap.classList.toggle('bad', !!message);
+    const small = wrap.querySelector('small');
+    if(small && wrapId !== 'fPass'){ small.textContent = message || ''; small.className = message ? 'err' : ''; }
+    return !message;
+  }
+  $('confirmPassword').addEventListener('input', () => {
+    fieldError('fConfirm', $('confirmPassword').value && $('confirmPassword').value !== pw.value ? 'Passwords do not match.' : '');
+  });
+  $('email').addEventListener('blur', () => {
+    const v = $('email').value.trim();
+    fieldError('fEmail', v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Enter a valid email address.' : '');
+  });
+
+  /* ---- student signup ---- */
+  $('registerForm').addEventListener('submit', async e => {
     e.preventDefault();
-    clearAlert(alertBox);
+    clearNotice();
+    const name = $('name').value.trim();
+    const email = $('email').value.trim();
+    const password = pw.value;
+    const confirm = $('confirmPassword').value;
 
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const studentId = document.getElementById('studentId').value.trim();
-    const department = document.getElementById('department').value.trim();
-    const year = document.getElementById('year').value.trim();
+    let valid = true;
+    valid = fieldError('fName', name ? '' : 'Tell us your name.') && valid;
+    valid = fieldError('fEmail', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Enter a valid email address.') && valid;
+    valid = fieldError('fPass', password.length >= 6 ? '' : 'Minimum 6 characters.') && valid;
+    valid = fieldError('fConfirm', password === confirm ? '' : 'Passwords do not match.') && valid;
+    if(!valid) return notify('Please fix the highlighted fields.');
 
-    if (password !== confirmPassword) {
-      showAlert(alertBox, 'Passwords do not match.');
-      return;
-    }
-
-    if (!selectedRole) {
-      showAlert(alertBox, 'Please select a role first.');
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating account...';
-
-    try {
-      const data = await Api.register({ name, email, password, role: selectedRole, studentId, department, year });
-      if (data.requiresVerification) {
-        form.style.display = 'none';
-        document.querySelector('.auth-divider').style.display = 'none';
-        document.getElementById('googleSignInBtn').style.display = 'none';
-        verificationBox.style.display = 'block';
-        verificationBox.innerHTML = `<strong>Check your inbox.</strong><p style="margin:8px 0 14px;color:var(--text-muted)">${escapeHtml(data.message)}</p><button type="button" class="btn btn-outline btn-block" id="resendVerificationBtn">Resend verification email</button>`;
-        document.getElementById('resendVerificationBtn').addEventListener('click', async () => {
-          const btn = document.getElementById('resendVerificationBtn'); btn.disabled = true;
-          try { const result = await Api.resendVerification(email); showAlert(alertBox, result.message, 'success'); }
-          catch (err) { showAlert(alertBox, err.message); }
-          finally { btn.disabled = false; }
-        });
-        showAlert(alertBox, data.message, 'success');
-        submitBtn.disabled = false; submitBtn.textContent = 'Create Account';
+    const btn = $('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Creating your account…';
+    try{
+      const data = await Api.register({
+        name, email, password, role: 'student',
+        studentId: $('studentId').value.trim(),
+        department: $('department').value.trim(),
+        year: $('year').value.trim()
+      });
+      signupEmail = email;
+      if(data.requiresVerification){
+        setStep(3); show('done');
+        $('doneTitle').textContent = 'Check your inbox';
+        $('doneText').textContent = data.message || `We sent a verification link to ${email}. Confirm it and you’re in.`;
         return;
       }
       Session.setSession(data.token, data.user);
-      window.location.href = 'events.html';
-    } catch (err) {
-      showAlert(alertBox, err.message);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Create Student Account';
+      location.href = 'events.html';
+    }catch(err){
+      notify(err.message);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Create my student account';
     }
+  });
+
+  $('resendBtn').addEventListener('click', async () => {
+    const btn = $('resendBtn');
+    btn.disabled = true;
+    try{
+      const r = await Api.resendVerification(signupEmail);
+      notify(r.message || 'Verification email sent.', 'success');
+    }catch(err){ notify(err.message); }
+    finally{ btn.disabled = false; }
+  });
+
+  /* ---- access request ---- */
+  $('requestForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearNotice();
+    const role = $('requestForm').dataset.role === 'club_head' ? 'Club Head' : 'Organizer';
+    const name = $('reqName').value.trim(), email = $('reqEmail').value.trim();
+    const club = $('reqClub').value.trim(), why = $('reqWhy').value.trim(), phone = $('reqPhone').value.trim();
+    if(!name || !email || !club || !why) return notify('Fill in name, email, club and what you plan to organize.');
+    const btn = $('requestBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try{
+      await Api.submitContactForm({
+        name, email,
+        subject: `${role} access request — ${club}`,
+        message: `Role requested: ${role}\nClub / department: ${club}\nPhone: ${phone || 'not provided'}\n\n${why}`
+      });
+      setStep(3); show('done');
+      $('doneIcon').textContent = '✅';
+      $('doneTitle').textContent = 'Request sent';
+      $('doneText').textContent = `Your ${role.toLowerCase()} request is with the College Admin. Create a student account meanwhile — they’ll upgrade the same account.`;
+      $('resendBtn').textContent = 'Create a student account instead';
+      $('resendBtn').onclick = () => { $('doneIcon').textContent = '📬'; setStep(2); show('student'); $('resendBtn').textContent = 'Resend verification email'; };
+    }catch(err){ notify(err.message); }
+    finally{ btn.disabled = false; btn.textContent = 'Send access request'; }
   });
 
   initGoogleSignIn(
     'googleSignInBtn',
-    (data) => {
-      Session.setSession(data.token, data.user);
-      window.location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html';
-    },
-    (err) => showAlert(alertBox, err.message)
+    data => { Session.setSession(data.token, data.user); location.href = data.user.role === 'admin' ? 'admin/dashboard.html' : 'events.html'; },
+    err => notify(err.message)
   );
+})();
 </script>
 </body>
 </html>

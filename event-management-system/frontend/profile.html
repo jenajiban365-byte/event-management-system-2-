@@ -4,49 +4,87 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>My Profile - EventHub</title>
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
 
-<div class="container" style="max-width:560px;">
-  <div class="page-header">
-    <div>
-      <h1>My Profile</h1>
-      <p>Update your account details.</p>
+<main class="eh-profile-page">
+  <section class="eh-profile-hero">
+    <div class="eh-profile-orbit"></div>
+    <div class="eh-profile-hero-copy">
+      <span class="eh-profile-kicker">CAMPUS IDENTITY</span>
+      <h1>Make your EventHub<br><em>profile feel like you.</em></h1>
+      <p>Your profile is your campus identity — the photo people recognize, the details you choose to share, and the connections you build.</p>
     </div>
-  </div>
+    <div class="eh-profile-hero-stat"><span>PRIVATE BY DEFAULT</span><strong>✦</strong><small>Email stays private. You control discovery.</small></div>
+  </section>
 
-  <div class="card">
-    <div id="alertBox"></div>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-      <div id="avatarPreview" class="profile-avatar profile-avatar-lg" style="width:72px;height:72px;font-size:1.5rem;overflow:hidden;"></div>
-      <div style="flex:1"><label for="avatarFile">Profile picture</label><input id="avatarFile" class="form-control" type="file" accept="image/png,image/jpeg,image/webp"/><small style="color:var(--text-muted)">PNG, JPG or WebP. Max 2 MB.</small></div>
+  <section class="eh-profile-grid">
+    <div class="eh-profile-card eh-profile-card-main">
+      <div id="alertBox"></div>
+      <div class="eh-profile-photo-row">
+        <div class="eh-profile-photo-wrap">
+          <div id="avatarPreview" class="profile-avatar profile-avatar-lg eh-profile-photo"></div>
+          <label class="eh-photo-camera" for="avatarFile" title="Change profile photo">＋</label>
+        </div>
+        <div class="eh-profile-photo-copy">
+          <span class="eh-profile-label">PROFILE PHOTO</span>
+          <h2>Show up as you.</h2>
+          <p>Upload any image format supported by your browser. EventHub streams the original file directly to storage, so there is no old 2 MB / 3 MB profile-photo limit.</p>
+          <input id="avatarFile" class="eh-hidden-input" type="file" accept="image/*" />
+          <label for="avatarFile" class="eh-upload-btn">📷 Choose a new photo</label>
+        </div>
+      </div>
+
+      <form id="profileForm" class="eh-profile-form">
+        <div class="eh-form-heading"><span>YOUR DETAILS</span><h2>Keep it current.</h2></div>
+        <div class="eh-form-two">
+          <div class="form-group"><label for="name">Full Name</label><input type="text" id="name" class="form-control" required /></div>
+          <div class="form-group"><label for="email">Email</label><input type="email" id="email" class="form-control" required /></div>
+        </div>
+
+        <div class="eh-connect-card">
+          <div class="eh-connect-icon">✦</div>
+          <div class="eh-connect-copy"><span class="eh-profile-label">CAMPUS CONNECT</span><h3>Choose how social you want to be.</h3><p>Your email and phone number are never shown publicly.</p></div>
+          <div class="eh-connect-options">
+            <label><input id="campusConnectOptIn" type="checkbox"> <span><b>Discoverable profile</b><small>Let students discover and message you.</small></span></label>
+            <label><input id="eventBuddyOptIn" type="checkbox"> <span><b>Event Buddy</b><small>Appear to other opt-in attendees.</small></span></label>
+          </div>
+        </div>
+
+        <details class="eh-password-card">
+          <summary>🔐 Change password <span>Optional</span></summary>
+          <div class="eh-form-two">
+            <div class="form-group"><label for="currentPassword">Current Password</label><input type="password" id="currentPassword" class="form-control" placeholder="Required only to change password" /></div>
+            <div class="form-group"><label for="newPassword">New Password</label><input type="password" id="newPassword" class="form-control" placeholder="Leave blank to keep current password" minlength="6" /></div>
+          </div>
+        </details>
+
+        <button type="submit" class="eh-save-profile" id="submitBtn"><span>Save profile</span><b>↗</b></button>
+      </form>
     </div>
-    <form id="profileForm">
-      <div class="form-group">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" class="form-control" required />
-      </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" class="form-control" required />
-      </div>
 
-      <div class="section-title" style="font-size:1rem; margin:24px 0 12px;">Change Password (optional)</div>
-      <div class="form-group">
-        <label for="currentPassword">Current Password</label>
-        <input type="password" id="currentPassword" class="form-control" placeholder="Required only to change password" />
+    <aside class="eh-profile-side">
+      <div class="eh-profile-side-card eh-profile-preview-card">
+        <span class="eh-profile-label">PROFILE PREVIEW</span>
+        <div class="eh-mini-profile"><div id="miniAvatar" class="eh-mini-avatar">U</div><div><strong id="miniName">Student</strong><span>EventHub student</span></div></div>
+        <div class="eh-preview-rule"></div>
+        <p>Only the information you choose to share should travel beyond this profile.</p>
+        <div class="eh-preview-chips"><span>🎓 Campus</span><span>💬 Chat</span><span>🤝 Events</span></div>
       </div>
-      <div class="form-group">
-        <label for="newPassword">New Password</label>
-        <input type="password" id="newPassword" class="form-control" placeholder="Leave blank to keep current password" minlength="6" />
+      <div class="eh-profile-side-card">
+        <span class="eh-profile-label">GOOD TO KNOW</span>
+        <ul class="eh-profile-list"><li><b>01</b><span>Your photo can be large — EventHub streams it instead of buffering it in JSON.</span></li><li><b>02</b><span>Private contact details stay private.</span></li><li><b>03</b><span>You can turn campus discovery off whenever you want.</span></li></ul>
       </div>
-
-      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Save Changes</button>
-    </form>
-  </div>
-</div>
+    </aside>
+  </section>
+</main>
 
 <footer class="site-footer">EventHub &mdash; Event Management System</footer>
 
@@ -62,10 +100,16 @@
   const avatarFile = document.getElementById('avatarFile');
   const avatarPreview = document.getElementById('avatarPreview');
   let avatarUrl = '';
+  let selectedAvatarFile = null;
 
   function renderAvatar(user) {
     const value = user.avatarUrl || '';
-    avatarPreview.innerHTML = value ? `<img src="${escapeHtml(value)}" alt="Profile picture" style="width:100%;height:100%;object-fit:cover" />` : escapeHtml((user.name || 'U').charAt(0).toUpperCase());
+    const initial = (user.name || 'U').charAt(0).toUpperCase();
+    avatarPreview.innerHTML = value ? `<img src="${escapeHtml(value)}" alt="Profile picture" />` : escapeHtml(initial);
+    const mini = document.getElementById('miniAvatar');
+    if(mini) mini.innerHTML = value ? `<img src="${escapeHtml(value)}" alt="" />` : escapeHtml(initial);
+    const miniName = document.getElementById('miniName');
+    if(miniName) miniName.textContent = user.name || 'Student';
   }
 
   async function loadProfile() {
@@ -74,6 +118,8 @@
       document.getElementById('name').value = user.name;
       document.getElementById('email').value = user.email;
       avatarUrl = user.avatarUrl || '';
+      document.getElementById('campusConnectOptIn').checked = user.campusConnectOptIn !== false;
+      document.getElementById('eventBuddyOptIn').checked = user.eventBuddyOptIn === true;
       renderAvatar(user);
     } catch (err) {
       showAlert(alertBox, err.message);
@@ -84,10 +130,13 @@
     e.preventDefault();
     clearAlert(alertBox);
 
+    let uploadedAvatarUrl = avatarUrl;
     const payload = {
-      avatarUrl,
+      avatarUrl: uploadedAvatarUrl,
       name: document.getElementById('name').value.trim(),
-      email: document.getElementById('email').value.trim()
+      email: document.getElementById('email').value.trim(),
+      campusConnectOptIn: document.getElementById('campusConnectOptIn').checked,
+      eventBuddyOptIn: document.getElementById('eventBuddyOptIn').checked
     };
     const newPassword = document.getElementById('newPassword').value;
     const currentPassword = document.getElementById('currentPassword').value;
@@ -97,9 +146,15 @@
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.textContent = selectedAvatarFile ? 'Uploading photo...' : 'Saving...';
 
     try {
+      if (selectedAvatarFile) {
+        const upload = await Api.uploadProfilePhoto(selectedAvatarFile);
+        uploadedAvatarUrl = upload.avatarUrl;
+        payload.avatarUrl = uploadedAvatarUrl;
+      }
+      submitBtn.textContent = 'Saving...';
       const { user } = await Api.updateProfile(payload);
       const token = Session.getToken();
       Session.setSession(token, { ...Session.getUser(), name: user.name, email: user.email, avatarUrl: user.avatarUrl || '' });
@@ -117,13 +172,21 @@
 
   avatarFile.addEventListener('change', () => {
     const file = avatarFile.files && avatarFile.files[0];
-    if (!file) return;
-    if (!['image/png','image/jpeg','image/webp'].includes(file.type) ||  (file.size > 2 * 1024 * 1024) ) {
-      avatarFile.value = ''; showAlert(alertBox, 'Choose a PNG, JPG or WebP image smaller than 2MB.'); return;
+    if (!file) {
+      selectedAvatarFile = null;
+      return;
     }
-    const reader = new FileReader();
-    reader.onload = () => { avatarUrl = reader.result; renderAvatar({ name: document.getElementById('name').value, avatarUrl }); };
-    reader.readAsDataURL(file);
+    if (!file.type || !file.type.startsWith('image/')) {
+      avatarFile.value = '';
+      selectedAvatarFile = null;
+      showAlert(alertBox, 'Choose an image file.');
+      return;
+    }
+
+    selectedAvatarFile = file;
+    const previewUrl = URL.createObjectURL(file);
+    avatarPreview.innerHTML = `<img src="${previewUrl}" alt="Profile picture preview" style="width:100%;height:100%;object-fit:cover" />`;
+    avatarPreview.querySelector('img')?.addEventListener('load', () => URL.revokeObjectURL(previewUrl), { once: true });
   });
 
   loadProfile();

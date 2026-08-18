@@ -4,7 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Manage Events - EventHub Admin</title>
-<link rel="stylesheet" href="../css/style.css" />
+<link rel="stylesheet" href="../css/style.css?v=37" />
+
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -23,7 +28,7 @@
   <div class="table-wrap">
     <table class="data-table">
       <thead>
-        <tr><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Coordinates</th><th>Bookings</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Title</th><th>Club</th><th>Category</th><th>Date</th><th>Location</th><th>Coordinates</th><th>Bookings</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody id="eventsBody"></tbody>
     </table>
@@ -119,6 +124,9 @@
   const modalTitle = document.getElementById('modalTitle');
   const modalAlertBox = document.getElementById('modalAlertBox');
   const categorySelect = document.getElementById('category');
+  const clubSelect = document.getElementById('clubId');
+  const organizerSelect = document.getElementById('organizerId');
+  let clubsCache = [], organizersCache = [];
 
   let categoriesCache = [];
   const locationInput = document.getElementById('location');
@@ -173,6 +181,8 @@
       document.getElementById('title').value = event.title;
       document.getElementById('description').value = event.description;
       document.getElementById('category').value = event.category;
+      clubSelect.value = event.club?.id || event.club?._id || event.club || '';
+      organizerSelect.value = event.organizer?.id || event.organizer?._id || event.organizer || '';
       document.getElementById('capacity').value = event.capacity;
       document.getElementById('date').value = event.date;
       document.getElementById('time').value = event.time;
@@ -186,6 +196,8 @@
     } else {
       modalTitle.textContent = 'Add New Event';
       document.getElementById('eventId').value = '';
+      clubSelect.value = '';
+      organizerSelect.value = '';
       document.getElementById('status').value = 'published';
     }
     eventModal.classList.remove('hidden');
@@ -218,6 +230,12 @@
     const { categories } = await Api.getCategories();
     categoriesCache = categories;
     categorySelect.innerHTML = categories.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    const clubResult = await Api.getAdminClubs();
+    clubsCache = clubResult.clubs || [];
+    clubSelect.innerHTML = '<option value="">Campus-wide / no club</option>' + clubsCache.map(c => `<option value="${escapeHtml(c.id || c._id)}">${escapeHtml(c.name)}</option>`).join('');
+    const userResult = await Api.getAdminUsers('?role=organizer');
+    organizersCache = userResult.users || [];
+    organizerSelect.innerHTML = '<option value="">Use club organizer / admin</option>' + organizersCache.map(u => `<option value="${escapeHtml(u.id || u._id)}">${escapeHtml(u.name)} · ${escapeHtml(u.email || '')}</option>`).join('');
   }
 
   function statusBadge(status) {
@@ -230,12 +248,13 @@
 
   function renderEvents() {
     if (!eventsCache.length) {
-      eventsBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No events yet. Click "Add New Event" to create one.</td></tr>`;
+      eventsBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No events yet. Click "Add New Event" to create one.</td></tr>`;
       return;
     }
     eventsBody.innerHTML = eventsCache.map((e) => `
       <tr>
         <td>${escapeHtml(e.title)}</td>
+        <td>${escapeHtml(e.club?.name || e.club || 'Campus-wide')}</td>
         <td>${escapeHtml(e.category)}</td>
         <td>${formatDate(e.date)}</td>
         <td>${escapeHtml(e.location)}</td>
@@ -244,6 +263,7 @@
         <td>${statusBadge(e.status)}</td>
         <td>
           <div class="action-row">
+            ${e.club ? `<a class="btn btn-outline btn-sm" href="../organizer/registrations.html?event=${e.id}">Registrations</a>` : ''}
             <button class="btn btn-outline btn-sm" data-edit="${e.id}">Edit</button>
             <button class="btn btn-danger btn-sm" data-delete="${e.id}">Delete</button>
           </div>
@@ -296,6 +316,8 @@
       latitude: document.getElementById('latitude').value.trim(),
       longitude: document.getElementById('longitude').value.trim(),
       imageUrl: document.getElementById('imageUrl').value.trim(),
+      clubId: clubSelect.value || '',
+      organizerId: organizerSelect.value || '',
       status: document.getElementById('status').value
     };
     const eventId = document.getElementById('eventId').value;

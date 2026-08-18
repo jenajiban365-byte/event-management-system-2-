@@ -4,7 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Sign In - EventHub</title>
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -97,6 +102,7 @@
     roleButtons.forEach((button) => button.classList.toggle('active', button.dataset.role === role));
     roleChooser.style.display = 'none';
     credentialsBox.style.display = 'block';
+    requestAnimationFrame(() => window.__eventHubGoogleRenderers?.googleSignInBtn?.());
     selectedRoleLabel.textContent = roleLabels[role];
     submitBtn.textContent = `Continue as ${roleLabels[role]}`;
     clearAlert(alertBox);

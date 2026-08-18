@@ -1,5 +1,21 @@
 /* EventHub shared navigation — single source of truth for desktop + mobile. */
 
+/* Every page loads nav.js, so it doubles as the bootstrapper for the
+   site-wide search experience (live suggestions + ⌘K quick search) —
+   this way no individual page has to remember to include it. */
+(function loadSearchExperience() {
+  if (document.getElementById('eh-search-css')) return;
+  const link = document.createElement('link');
+  link.id = 'eh-search-css';
+  link.rel = 'stylesheet';
+  link.href = '/css/eh-search.css';
+  document.head.appendChild(link);
+  const script = document.createElement('script');
+  script.src = '/js/eh-search.js';
+  script.defer = true;
+  document.head.appendChild(script);
+})();
+
 function avatarHtml(user, extraClass = '') {
   const initial = escapeHtml((user?.name || 'U').charAt(0).toUpperCase());
   const avatar = user?.avatarUrl
@@ -23,6 +39,9 @@ function roleLinks(role, activePage, prefix = '') {
     return [
       `<a href="${prefix}organizer/club-dashboard.html" class="${activePage === 'club-head' ? 'active' : ''}">My Club</a>`,
       `<a href="${prefix}events.html" class="${activePage === 'events' ? 'active' : ''}">Discover</a>`,
+      `<a href="${prefix}groups.html" class="${activePage === 'groups' ? 'active' : ''}">Groups</a>`,
+      `<a href="${prefix}chat.html" class="${activePage === 'chat' ? 'active' : ''}">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>`,
+      `<a href="${prefix}organizer/create-event.html" class="${activePage === 'create-event' ? 'active' : ''}">Create Event</a>`,
       navNotificationLink(`${prefix}notifications.html`, activePage),
       `<a href="${prefix}contact.html" class="${activePage === 'contact' ? 'active' : ''}">Contact</a>`
     ].join('');
@@ -31,6 +50,8 @@ function roleLinks(role, activePage, prefix = '') {
     return [
       `<a href="${prefix}organizer/dashboard.html" class="${activePage === 'organizer' ? 'active' : ''}">Dashboard</a>`,
       `<a href="${prefix}organizer/events.html" class="${activePage === 'organizer-events' ? 'active' : ''}">My Events</a>`,
+      `<a href="${prefix}groups.html" class="${activePage === 'groups' ? 'active' : ''}">Groups</a>`,
+      `<a href="${prefix}chat.html" class="${activePage === 'chat' ? 'active' : ''}">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>`,
       `<a href="${prefix}organizer/registrations.html" class="${activePage === 'organizer-registrations' ? 'active' : ''}">Registrations</a>`,
       navNotificationLink(`${prefix}notifications.html`, activePage)
     ].join('');
@@ -39,19 +60,24 @@ function roleLinks(role, activePage, prefix = '') {
     return [
       `<a href="${prefix}admin/dashboard.html" class="${activePage === 'admin' ? 'active' : ''}">Dashboard</a>`,
       `<a href="${prefix}admin/events.html" class="${activePage === 'admin-events' ? 'active' : ''}">Events</a>`,
+      `<a href="${prefix}admin/pending-events.html" class="${activePage === 'admin-approvals' ? 'active' : ''}">Approvals <span class="nav-chat-badge" data-nav-approvals-badge hidden>0</span></a>`,
       `<a href="${prefix}admin/clubs.html" class="${activePage === 'admin-clubs' ? 'active' : ''}">Clubs</a>`,
+      `<a href="${prefix}groups.html" class="${activePage === 'groups' ? 'active' : ''}">Groups</a>`,
+      `<a href="${prefix}chat.html" class="${activePage === 'chat' ? 'active' : ''}">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>`,
       `<a href="${prefix}admin/users.html" class="${activePage === 'admin-users' ? 'active' : ''}">Users</a>`,
       navNotificationLink(`${prefix}notifications.html`, activePage)
     ].join('');
   }
   return [
     `<a href="${prefix}events.html" class="${activePage === 'events' ? 'active' : ''}">Discover</a>`,
-    `<a href="${prefix}clubs.html" class="${activePage === 'clubs' ? 'active' : ''}">Clubs</a>`,
     ...(Session.isLoggedIn() ? [
+      `<a href="${prefix}groups.html" class="${activePage === 'groups' ? 'active' : ''}">Groups</a>`,
+      `<a href="${prefix}chat.html" class="${activePage === 'chat' ? 'active' : ''}">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>`,
       `<a href="${prefix}saved-events.html" class="${activePage === 'saved' ? 'active' : ''}">Saved Events</a>`,
       `<a href="${prefix}my-bookings.html" class="${activePage === 'bookings' ? 'active' : ''}">My Bookings</a>`,
       navNotificationLink(`${prefix}notifications.html`, activePage)
-    ] : []),
+    ] : [
+    ]),
     `<a href="${prefix}contact.html" class="${activePage === 'contact' ? 'active' : ''}">Contact</a>`
   ].join('');
 }
@@ -63,12 +89,16 @@ function profileMenuHtml(user, prefix = '') {
     items = `
       <a href="${prefix}organizer/club-dashboard.html" role="menuitem">My Club</a>
       <a href="${prefix}organizer/club-dashboard.html#opportunities" role="menuitem">Club Dashboard</a>
+      <a href="${prefix}organizer/create-event.html" role="menuitem">Create Event</a>
+      <a href="${prefix}groups.html" role="menuitem">Groups</a>
+      <a href="${prefix}chat.html" role="menuitem">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>
       <a href="${prefix}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
       <a href="${prefix}profile.html" role="menuitem">Profile</a>`;
   } else if (role === 'organizer') {
     items = `
       <a href="${prefix}organizer/dashboard.html" role="menuitem">Organizer Dashboard</a>
       <a href="${prefix}organizer/events.html" role="menuitem">My Events</a>
+      <a href="${prefix}groups.html" role="menuitem">Groups</a>
       <a href="${prefix}organizer/registrations.html" role="menuitem">Registrations</a>
       <a href="${prefix}organizer/check-in.html" role="menuitem">Check-in</a>
       <a href="${prefix}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
@@ -77,7 +107,9 @@ function profileMenuHtml(user, prefix = '') {
     items = `
       <a href="${prefix}admin/dashboard.html" role="menuitem">Admin Dashboard</a>
       <a href="${prefix}admin/events.html" role="menuitem">Events</a>
+      <a href="${prefix}admin/pending-events.html" role="menuitem">Approvals</a>
       <a href="${prefix}admin/clubs.html" role="menuitem">Clubs</a>
+      <a href="${prefix}groups.html" role="menuitem">Groups</a>
       <a href="${prefix}admin/users.html" role="menuitem">Users</a>
       <a href="${prefix}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
       <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
@@ -87,7 +119,8 @@ function profileMenuHtml(user, prefix = '') {
       <a href="${prefix}saved-events.html" role="menuitem">Saved Events</a>
       <a href="${prefix}notifications.html" role="menuitem">Notifications <span class="nav-notif-badge" data-nav-notif-badge hidden>0</span></a>
       <a href="${prefix}support.html" role="menuitem">My Questions</a>
-      <a href="${prefix}clubs.html" role="menuitem">Clubs</a>
+      <a href="${prefix}groups.html" role="menuitem">Groups</a>
+      <a href="${prefix}chat.html" role="menuitem">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>
       <a href="${prefix}profile.html" role="menuitem">Profile</a>
       <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
   }
@@ -100,6 +133,32 @@ function profileMenuHtml(user, prefix = '') {
     <button id="logoutBtn" type="button" class="profile-menu-logout" role="menuitem">Sign out</button>`;
 }
 
+function mobileSecondaryLinks(user, prefix = '') {
+  const role = user?.role || 'user';
+  if (role === 'club_head') {
+    return `
+      <a href="${prefix}chat.html" role="menuitem">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>
+      <a href="${prefix}profile.html" role="menuitem">Profile</a>
+      <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
+  }
+  if (role === 'organizer') {
+    return `
+      <a href="${prefix}organizer/check-in.html" role="menuitem">Check-in</a>
+      <a href="${prefix}profile.html" role="menuitem">Profile</a>
+      <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
+  }
+  if (role === 'admin') {
+    return `
+      <a href="${prefix}chat.html" role="menuitem">Chat <span class="nav-chat-badge" data-nav-chat-badge hidden>0</span></a>
+      <a href="${prefix}profile.html" role="menuitem">Profile</a>
+      <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
+  }
+  return `
+    <a href="${prefix}support.html" role="menuitem">My Questions</a>
+    <a href="${prefix}profile.html" role="menuitem">Profile</a>
+    <a href="${prefix}profile.html#settings" role="menuitem">Settings</a>`;
+}
+
 function mobileMenuHtml(user, links, prefix = '') {
   const loggedIn = Session.isLoggedIn();
   return `
@@ -107,9 +166,7 @@ function mobileMenuHtml(user, links, prefix = '') {
       <div class="mobile-nav-primary">${links}</div>
       ${loggedIn ? `
         <div class="mobile-user-card">${avatarHtml(user)}<div><strong>${escapeHtml(user?.name || 'User')}</strong><span>${escapeHtml(user?.email || '')}</span></div></div>
-        <div class="mobile-nav-secondary">
-          ${profileMenuHtml(user, prefix).replace(/<div class="profile-menu-head">[\s\S]*?<\/div>\s*<div class="profile-menu-links">/, '').replace(/<\/div>\s*<button id="logoutBtn"[\s\S]*?<\/button>\s*$/, '')}
-        </div>
+        <div class="mobile-nav-secondary">${mobileSecondaryLinks(user, prefix)}</div>
         <button id="mobileLogoutBtn" type="button" class="mobile-logout">Sign out</button>
       ` : `
         <div class="mobile-auth-row"><a class="nav-signin" href="${prefix}login.html">Sign in</a><a class="nav-create" href="${prefix}register.html">Create account</a></div>
@@ -193,6 +250,7 @@ function buildNavbar({ activePage, role = 'user', prefix = '', home = 'index.htm
     </div>` : `
     <div class="nav-auth"><a class="nav-signin" href="${prefix}login.html">Sign in</a><a class="nav-create" href="${prefix}register.html">Create account</a></div>`;
 
+  navContainer.classList.add('navbar');
   navContainer.innerHTML = `
     <div class="navbar-inner">
       <a class="brand" href="${prefix}${home}"><span class="brand-mark" aria-hidden="true">🎫</span><span class="brand-text">EventHub</span></a>
@@ -204,7 +262,40 @@ function buildNavbar({ activePage, role = 'user', prefix = '', home = 'index.htm
   document.getElementById('logoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
   document.getElementById('mobileLogoutBtn')?.addEventListener('click', () => performLogout('/index.html'));
   setupMobileNavbar();
-  if (loggedIn) refreshNotificationBadge();
+  if (loggedIn) {
+    refreshNotificationBadge();
+    refreshChatBadge();
+    refreshApprovalsBadge();
+    syncNavbarSession();
+  }
+}
+
+let __eventHubSessionSyncStarted = false;
+async function syncNavbarSession() {
+  if (__eventHubSessionSyncStarted || !Session.isLoggedIn() || typeof Api?.me !== 'function') return;
+  __eventHubSessionSyncStarted = true;
+  try {
+    const result = await Api.me();
+    const freshUser = result?.user;
+    const currentUser = Session.getUser();
+    if (!freshUser) return;
+    const changed = !currentUser ||
+      currentUser.role !== freshUser.role ||
+      String(currentUser.clubId || '') !== String(freshUser.clubId || '') ||
+      currentUser.name !== freshUser.name ||
+      currentUser.email !== freshUser.email;
+    if (changed) {
+      Session.setSession(Session.getToken(), freshUser);
+      const role = freshUser.role || 'user';
+      const page = document.body?.className?.match(/eh-page-([a-z0-9_-]+)/i)?.[1] || 'page';
+      const activePage = page === 'page' ? '' : page;
+      const prefix = window.location.pathname.includes('/organizer/') || window.location.pathname.includes('/admin/') ? '../' : '';
+      const home = role === 'admin' ? `${prefix}dashboard.html` : role === 'organizer' ? `${prefix}dashboard.html` : role === 'club_head' ? `${prefix}club-dashboard.html` : `${prefix}index.html`;
+      buildNavbar({ activePage, role, prefix, home });
+    }
+  } catch (_) {
+    // Keep the locally cached session when offline.
+  }
 }
 
 function renderNavbar(activePage) {
@@ -236,8 +327,10 @@ function renderClubHeadNavbar(activePage) {
 async function refreshNotificationBadge() {
   if (!Session.isLoggedIn()) return;
   try {
-    const result = await Api.getNotifications();
-    const count = Number(result?.unreadCount) || 0;
+    const result = typeof Api.getUnreadNotificationCount === 'function'
+      ? await Api.getUnreadNotificationCount()
+      : await Api.getNotifications();
+    const count = Number(result?.count ?? result?.unreadCount) || 0;
     document.querySelectorAll('[data-nav-notif-badge]').forEach((badge) => {
       badge.textContent = count > 99 ? '99+' : String(count);
       badge.hidden = count <= 0;
@@ -246,10 +339,34 @@ async function refreshNotificationBadge() {
   } catch (_) {}
 }
 
+async function refreshChatBadge() {
+  if (!Session.isLoggedIn() || typeof Api?.getUnreadChatCount !== 'function') return;
+  try {
+    const result = await Api.getUnreadChatCount();
+    const count = Number(result?.count) || 0;
+    document.querySelectorAll('[data-nav-chat-badge]').forEach((badge) => {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = count <= 0;
+    });
+  } catch (_) {}
+}
+
+async function refreshApprovalsBadge() {
+  if (!Session.isLoggedIn() || !Session.isAdmin() || typeof Api?.getPendingEvents !== 'function') return;
+  try {
+    const result = await Api.getPendingEvents();
+    const count = (result?.events || []).length;
+    document.querySelectorAll('[data-nav-approvals-badge]').forEach((badge) => {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = count <= 0;
+    });
+  } catch (_) {}
+}
+
 function startNotificationBadgeRefresh() {
   if (window.__eventHubNotificationRefreshStarted) return;
   window.__eventHubNotificationRefreshStarted = true;
-  const refresh = () => refreshNotificationBadge();
+  const refresh = () => { refreshNotificationBadge(); refreshChatBadge(); refreshApprovalsBadge(); };
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
   window.addEventListener('focus', refresh);
   window.__eventHubNotificationTimer = setInterval(refresh, 30000);

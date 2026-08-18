@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Club Details - EventHub</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=37">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -195,7 +200,7 @@
 
     try {
       const res = await Api.getClub(clubId);
-      currentClub = res.club;
+      currentClub = { ...(res.club || {}), clubHeads: res.clubHeads || [], members: res.members || [] };
       isFollowing = currentClub.isFollowing;
       renderClubHeader();
       renderOverview();
@@ -452,13 +457,14 @@
     }
   }
 
-  function renderMemberCard(member) {
-    return `<div class="member-card">
-      <div class="member-avatar">${escapeHtml(member.name.charAt(0).toUpperCase())}</div>
-      <strong>${escapeHtml(member.name)}</strong>
-      <span class="muted">${escapeHtml(member.email)}</span>
+  function renderMemberCard(member, isClubHead = false) {
+    return `<div class="member-card${isClubHead ? ' member-card-head' : ''}">
+      <div class="member-avatar">${escapeHtml((member.name || '?').charAt(0).toUpperCase())}</div>
+      <strong>${escapeHtml(member.name || 'Unknown user')}</strong>
+      <span class="muted member-email">${escapeHtml(member.email || 'Email unavailable')}</span>
       ${member.department ? `<span class="muted">🏢 ${escapeHtml(member.department)}</span>` : ''}
       ${member.year ? `<span class="muted">📚 ${escapeHtml(member.year)}</span>` : ''}
+      ${isClubHead ? '<span class="member-role-badge">CLUB HEAD</span>' : ''}
     </div>`;
   }
 
@@ -467,7 +473,7 @@
     const members = currentClub.members || [];
 
     if (clubHeads.length) {
-      document.getElementById('clubHeadsGrid').innerHTML = clubHeads.map(renderMemberCard).join('');
+      document.getElementById('clubHeadsGrid').innerHTML = clubHeads.map((member) => renderMemberCard(member, true)).join('');
     } else {
       document.getElementById('clubHeadsGrid').innerHTML = '<p class="muted">No club heads assigned.</p>';
     }

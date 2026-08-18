@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Groups — EventHub</title>
+<meta name="description" content="Join official campus groups and stay close to the events, announcements and forms that matter.">
+<link rel="stylesheet" href="css/style.css">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
+</head>
+<body class="eh-page-groups groups-page">
+<div id="navbar"></div>
+<section class="groups-hero-v2">
+  <div class="groups-hero-v2-inner">
+    <div class="groups-hero-copy">
+      <span class="groups-kicker">CAMPUS GROUPS</span>
+      <h1>Your campus,<br><em>in one place.</em></h1>
+      <p>Join the official spaces behind your favourite clubs. Get the important announcements, event drops and registration forms — without the WhatsApp chaos.</p>
+      <div class="groups-hero-pills"><span>✦ Official groups</span><span>🔔 Important updates</span><span>📝 Event forms</span></div>
+    </div>
+    <div class="groups-hero-art" aria-hidden="true">
+      <div class="groups-art-card groups-art-main"><span class="art-label">TODAY ON CAMPUS</span><strong>Something worth<br>showing up for.</strong><small>Events · people · communities</small></div>
+      <div class="groups-art-card groups-art-float one">🎟️ <b>New event</b></div>
+      <div class="groups-art-card groups-art-float two">💬 <b>Club update</b></div>
+    </div>
+  </div>
+</section>
+<section class="groups-discovery-bar">
+  <div class="groups-discovery-inner">
+    <div><span class="groups-section-kicker">EXPLORE</span><h2>Find your campus people.</h2></div>
+    <div class="groups-search-wrap">
+  <span class="groups-search-icon" aria-hidden="true">⌕</span>
+  <input id="groupSearch" class="groups-search" placeholder="Search a club, community or category…" autocomplete="off" aria-label="Search groups">
+  <button id="clearGroupSearch" class="groups-search-clear" type="button" aria-label="Clear search" hidden>×</button>
+</div>
+  </div>
+</section>
+
+<section class="club-pulse-strip" aria-label="Club pulse"><div class="club-pulse-head"><div><span class="groups-section-kicker">CLUB PULSE</span><h2>What’s active on campus.</h2></div><span>Slide to explore →</span></div><div id="clubPulseRail" class="club-pulse-rail"><div class="groups-empty">Loading club pulse…</div></div></section>
+
+<div class="groups-results-bar"><span id="groupsResultCount">Loading groups…</span><span class="groups-results-hint">Search when you know what you’re looking for.</span></div><main class="groups-grid-v2" id="groupsGrid"><div class="loading-state">Loading your campus groups…</div></main>
+<script src="js/api.js"></script><script src="js/nav.js"></script>
+<script>
+(async function(){
+  buildNavbar({activePage:'groups', role:'user', home:'index.html'});
+  if(!Session.isLoggedIn()){ window.location.href='login.html?redirect=groups.html'; return; }
+  const grid=document.getElementById('groupsGrid'), search=document.getElementById('groupSearch'), clearSearch=document.getElementById('clearGroupSearch'), resultCount=document.getElementById('groupsResultCount');
+  let groups=[];
+  const esc=window.escapeHtml || (v=>String(v??''));
+  function render(){
+    const q=search.value.trim().toLowerCase();
+    const list=groups.filter(g=>!q || [g.name,g.description,g.club?.name,g.club?.category].some(v=>String(v||'').toLowerCase().includes(q))); resultCount.textContent=`${list.length} ${list.length===1?'group':'groups'}${q?` matching “${q}”`:''}`; clearSearch.hidden=!q;
+    if(!list.length){grid.innerHTML='<div class="groups-empty"><span>⌕</span><h3>No groups found</h3><p>Try another club name, category or keyword.</p></div>';return;}
+    grid.innerHTML=list.map((g,i)=>{
+      const logo=g.club?.logoUrl || '';
+      const cover=g.coverImage || g.club?.coverImage || '';
+      return `<article class="group-card-v2 accent-${i%4}">
+        <div class="group-card-cover" ${cover?`style="background-image:url('${esc(cover)}')"`:''}>
+          <span class="group-live-badge">● OFFICIAL</span>
+          <div class="group-card-cover-shade"></div>
+        </div>
+        <div class="group-card-v2-body">
+          <div class="group-logo-v2">${logo?`<img src="${esc(logo)}" alt="">`:esc((g.name||'G').charAt(0))}</div>
+          <div class="group-card-title-row"><div><span class="group-card-category">${esc(g.club?.category||'CAMPUS COMMUNITY')}</span><h3>${esc(g.name)}</h3></div><span class="group-member-count">👥 ${g.memberCount||0}</span></div>
+          <p>${esc(g.description || 'The official campus space for this community.')}</p>
+          <div class="group-card-meta"><span>📣 Official updates</span><span>📝 Event forms</span></div>
+          <div class="group-card-actions-v2"><a class="btn btn-outline" href="group.html?id=${encodeURIComponent(g.id)}">Open group</a><button class="btn ${g.isMember?'btn-outline':'btn-primary'} join-btn" data-id="${esc(g.id)}">${g.isMember?'Joined ✓':'Join group'}</button></div>
+        </div>
+      </article>`;
+    }).join('');
+    grid.querySelectorAll('.join-btn').forEach(btn=>btn.addEventListener('click',async()=>{
+      btn.disabled=true; const g=groups.find(x=>String(x.id)===String(btn.dataset.id));
+      try { const r=g.isMember?await Api.leaveGroup(btn.dataset.id):await Api.joinGroup(btn.dataset.id); g.isMember=r.isMember; g.memberCount=r.memberCount; render(); }
+      catch(e){ alert(e.message); btn.disabled=false; }
+    }));
+  }
+  try { const r=await Api.getGroups(); groups=r.groups||[]; render(); }
+  catch(e){grid.innerHTML=`<div class="groups-empty"><h3>Groups couldn't load</h3><p>${esc(e.message)}</p></div>`;}
+  search.addEventListener('input',render); clearSearch.addEventListener('click',()=>{search.value=''; search.focus(); render();});
+})();
+</script>
+
+<script>
+(async()=>{const rail=document.getElementById('clubPulseRail');if(!rail)return;try{const r=await Api.getCampusPulse();const list=r.clubPulse||[];rail.innerHTML=list.map(c=>`<a class="club-pulse-card" href="groups.html?search=${encodeURIComponent(c.name||'')}"><div class="club-pulse-avatar">${c.logoUrl?`<img src="${esc(c.logoUrl)}" alt="">`:esc((c.name||'C').charAt(0))}</div><strong>${esc(c.shortName||c.name)}</strong><span>${esc(c.category||'Campus')}</span><small>${c.followers||0} followers</small></a>`).join('')||'<div class="groups-empty">Club activity will appear here as students join.</div>';}catch(e){rail.innerHTML='';}})();
+</script>
+</body></html>

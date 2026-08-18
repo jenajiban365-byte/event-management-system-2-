@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create Event - EventHub</title><link rel="stylesheet" href="../css/style.css?v=37">
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+<link rel="stylesheet" href="../css/organizer-mobile-premium.css?v=53">
+<link rel="stylesheet" href="../css/v59-final-ui.css?v=592">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
+</head><body><div id="navbar" class="navbar"></div><main class="container" style="max-width:1000px"><div class="page-header"><div><span class="eyebrow" id="roleEyebrow">EVENT BUILDER</span><h1 id="pageTitle">Create an event</h1><p>Build the event once. EventHub handles registration, bookings and attendee communication.</p></div><a class="btn btn-outline" id="backLink" href="events.html">Back</a></div><div id="alertBox"></div><div class="card create-event-card"><form id="eventForm" class="form-grid"><div class="form-group"><label>Club</label><select id="clubId" class="form-control" required><option value="">Loading clubs…</option></select></div><div class="form-group"><label>Event title</label><input id="title" class="form-control" required placeholder="e.g. Tech Brew — Season 3"></div><div class="form-group full"><label>Description</label><textarea id="description" class="form-control" rows="5" required placeholder="What should students know?"></textarea></div><div class="form-group"><label>Category</label><input id="category" class="form-control" placeholder="AI, Coding, Cultural..." required></div><div class="form-group"><label>Event type</label><select id="eventType" class="form-control"><option value="event">Event</option><option value="workshop">Workshop</option><option value="conference">Conference</option><option value="competition">Competition</option><option value="seminar">Seminar</option><option value="fest">Fest</option><option value="sports">Sports</option></select></div><div class="form-group"><label>Date</label><input id="date" type="date" class="form-control" required></div><div class="form-group"><label>Start time</label><input id="time" type="time" class="form-control" required></div><div class="form-group"><label>End time</label><input id="endTime" type="time" class="form-control"></div><div class="form-group"><label>Registration deadline</label><input id="registrationDeadline" type="date" class="form-control"></div><div class="form-group"><label>Capacity</label><input id="capacity" type="number" min="1" class="form-control" required></div><div class="form-group"><label>Price</label><input id="price" type="number" min="0" class="form-control" value="0"></div><div class="form-group"><label>Eligibility</label><input id="eligibility" class="form-control" value="All students"></div><div class="form-group"><label>Venue / meeting link</label><input id="location" class="form-control" required placeholder="Seminar Hall / Zoom link"></div><div class="form-group"><label>Poster image URL</label><input id="imageUrl" class="form-control" type="url" placeholder="https://..."></div><div class="form-group full"><label class="check-row"><input id="approvalRequired" type="checkbox"> Require organizer approval for registrations</label></div><div class="form-group full"><div class="smart-form-launch-card">
+  <div class="smart-form-launch-copy"><span class="eyebrow">EVENTHUB ORIGINAL</span><h3>Campus Smart Form</h3><p>Create your registration form in a dedicated form builder — like Google Forms, but connected directly to this event, attendee roster, check-in and digital tickets.</p><div class="smart-form-feature-row"><span>✓ Conditional logic</span><span>✓ File uploads</span><span>✓ Campus profile</span><span>✓ Digital ticket</span><span>✓ Response export</span></div></div>
+  <div class="smart-form-launch-actions"><button id="smartFormBuilderLink" class="btn btn-primary" type="button">Create / edit form →</button><button type="button" class="btn btn-outline" id="copySmartFormLink" hidden>Copy form link</button><div id="smartFormLinkText" class="smart-form-link-text" hidden></div></div>
+</div></div></div><div class="action-row full"><a class="btn btn-outline" href="events.html">Cancel</a><button class="btn btn-primary">Submit for approval</button></div></form></div></main><script src="../js/api.js"></script><script src="../js/nav.js"></script><script>
+const currentUser=Session.getUser();
+const isClubHead=currentUser?.role==='club_head';
+if(!Session.isLoggedIn() || !['organizer','admin','club_head'].includes(currentUser?.role)) window.location.href='../login.html';
+if(isClubHead) renderClubHeadNavbar('create-event'); else renderOrganizerNavbar('events');
+const form=document.getElementById('eventForm'), alertBox=document.getElementById('alertBox'), clubId=document.getElementById('clubId');
+const title=document.getElementById('title'), description=document.getElementById('description'), category=document.getElementById('category'), eventType=document.getElementById('eventType'), date=document.getElementById('date'), time=document.getElementById('time'), endTime=document.getElementById('endTime'), registrationDeadline=document.getElementById('registrationDeadline'), capacity=document.getElementById('capacity'), price=document.getElementById('price'), eligibility=document.getElementById('eligibility'), venueInput=document.getElementById('location'), imageUrl=document.getElementById('imageUrl'), approvalRequired=document.getElementById('approvalRequired');
+const pageTitle=document.getElementById('pageTitle'), roleEyebrow=document.getElementById('roleEyebrow'), backLink=document.getElementById('backLink');
+const smartFormBuilderLink=document.getElementById('smartFormBuilderLink'), copySmartFormLink=document.getElementById('copySmartFormLink'), smartFormLinkText=document.getElementById('smartFormLinkText');
+let smartFormLaunching=false;
+let clubs=[];
+function setSmartFormLinks(eventId, enabled=true){
+  if(!eventId) return;
+  const builder=`smart-form-builder.html?event=${encodeURIComponent(eventId)}`;
+  const publicUrl=`${location.origin}/smart-form.html?event=${encodeURIComponent(eventId)}`;
+  smartFormBuilderLink.dataset.builder=builder;
+  smartFormBuilderLink.textContent=enabled?'Edit Campus Smart Form →':'Create Campus Smart Form →';
+  copySmartFormLink.hidden=!enabled;
+  smartFormLinkText.hidden=!enabled;
+  smartFormLinkText.textContent=publicUrl;
+  copySmartFormLink.onclick=async()=>{try{await navigator.clipboard.writeText(publicUrl);copySmartFormLink.textContent='Copied ✓';setTimeout(()=>copySmartFormLink.textContent='Copy form link',1400);}catch(_){showAlert(alertBox,'Copy failed. You can copy the link shown below.');}};
+}
+async function loadOrganizerClubs(){
+  // The organizer console is campus-wide: every active/approved club already
+  // visible in EventHub must be selectable here. Do not depend on a user's
+  // personal club mapping, because older clubs and admin-created clubs may not
+  // have one.
+  let primary=[];
+  try {
+    const r=await Api.getMyClubs();
+    primary=Array.isArray(r?.clubs)?r.clubs:[];
+  } catch (_) {}
+
+  let publicClubs=[];
+  try {
+    const r=await Api.getClubs();
+    publicClubs=Array.isArray(r?.clubs)?r.clubs:[];
+  } catch (_) {}
+
+  const byId=new Map();
+  [...primary,...publicClubs].forEach(c=>{
+    const id=String(c?.id || c?._id || '').trim();
+    const name=String(c?.name || c?.shortName || '').trim();
+    if(id && name) byId.set(id,{...c,id});
+  });
+  clubs=[...byId.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  clubId.disabled=false;
+  clubId.innerHTML=clubs.length
+    ? `<option value="">Select a club…</option>${clubs.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}`
+    : '<option value="">No active clubs found</option>';
+
+  // If the API is reachable but returned no clubs, make the failure explicit
+  // instead of leaving a visually empty select that looks broken.
+  if(!clubs.length){
+    showAlert(alertBox,'No active clubs are available right now. Refresh the Clubs page or activate a club first.');
+  }
+}
+
+async function init(){
+  try{
+    if(isClubHead){
+      const r=await Api.getClubHeadDashboard(); clubs=r.club?[r.club]:[];
+      roleEyebrow.textContent='CLUB HEAD'; backLink.href='club-dashboard.html'; backLink.textContent='Back to my club'; pageTitle.textContent='Create a club event';
+      document.querySelector('.page-header p').textContent='Create an event for your club, then build its Campus Smart Form in a dedicated form studio.';
+      clubId.innerHTML=clubs.length?`<option value="${clubs[0].id || clubs[0]._id}">${escapeHtml(clubs[0].name)}</option>`:'<option value="">No club assigned</option>'; clubId.disabled=true;
+    } else {
+      await loadOrganizerClubs();
+    }
+    const id=new URLSearchParams(location.search).get('id');
+    if(id){
+      if(isClubHead){ const {events}=await Api.getClubHeadEvents(); const e=events.find(x=>x.id===id); if(!e) throw new Error('Event not found.');
+        pageTitle.textContent='Edit club event'; for(const k of ['clubId','title','description','category','eventType','date','time','endTime','registrationDeadline','capacity','price','eligibility','location','imageUrl']){const el=document.getElementById(k);if(el)el.value=e[k]??''} setSmartFormLinks(id, !!e.registrationForm?.enabled);
+      } else { const {events}=await Api.getOrganizerEvents(); const e=events.find(x=>x.id===id); if(!e) throw new Error('Event not found.');
+        pageTitle.textContent='Edit event'; form.dataset.id=id; for(const k of ['clubId','title','description','category','eventType','date','time','endTime','registrationDeadline','capacity','price','eligibility','location','imageUrl']){const el=document.getElementById(k);if(el)el.value=e[k]??''} document.getElementById('approvalRequired').checked=!!e.approvalRequired; setSmartFormLinks(id, !!e.registrationForm?.enabled);
+      }
+    }
+  }catch(e){showAlert(alertBox,e.message)}
+}
+smartFormBuilderLink.onclick=()=>{
+  if(smartFormLaunching)return;
+  if(!form.checkValidity()){
+    form.reportValidity();
+    showAlert(alertBox,'Please complete the required event fields first. The Smart Form will open immediately after the event is saved.');
+    const bad=form.querySelector(':invalid');
+    if(bad) bad.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  smartFormLaunching=true;
+  smartFormBuilderLink.disabled=true;
+  smartFormBuilderLink.textContent='Saving event…';
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+};
+
+form.onsubmit=async e=>{
+  e.preventDefault();
+  if(form.dataset.submitting==='1') return;
+  form.dataset.submitting='1';
+  const submitBtn=form.querySelector('button[type=submit]');
+  if(submitBtn) submitBtn.disabled=true;
+  const payload={clubId:clubId.value,title:title.value.trim(),description:description.value.trim(),category:category.value.trim(),eventType:eventType.value,date:date.value,time:time.value,endTime:endTime.value,registrationDeadline:registrationDeadline.value,capacity:Number(capacity.value),price:Number(price.value||0),eligibility:eligibility.value.trim(),location:venueInput.value.trim(),imageUrl:imageUrl.value.trim(),approvalRequired:document.getElementById('approvalRequired').checked};
+  try{
+    const existingId=form.dataset.id||'';
+    let result;
+    if(isClubHead){result=existingId?await Api.updateClubHeadEvent(existingId,payload):await Api.createClubHeadEvent(payload);}
+    else {result=existingId?await Api.updateOrganizerEvent(existingId,payload):await Api.createOrganizerEvent(payload);}
+    const newId=existingId||result?.event?.id||result?.event?._id||'';
+    if(!newId) throw new Error('Event was saved but its ID was not returned.');
+    window.location.href=`smart-form-builder.html?event=${encodeURIComponent(newId)}&from=event-builder`;
+  }catch(err){
+    form.dataset.submitting=''; smartFormLaunching=false;
+    if(submitBtn) submitBtn.disabled=false;
+    smartFormBuilderLink.disabled=false;
+    smartFormBuilderLink.textContent='Create / edit form →';
+    showAlert(alertBox,err.message);
+  }
+};
+init();
+</script></body></html>

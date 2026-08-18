@@ -109,6 +109,30 @@ describe('PUT /api/users/me', () => {
     expect(res.status).toBe(409);
   });
 
+  it.each(['pixel', 'berry', 'hacker', 'ocean'])('persists the independent chat avatar %s', async (chatAvatarId) => {
+    const user = userDoc({ chatAvatarId: '' });
+    User.findById.mockResolvedValue(user);
+
+    const res = await request(app).put('/api/users/me').send({ chatAvatarId });
+
+    expect(res.status).toBe(200);
+    expect(user.chatAvatarId).toBe(chatAvatarId);
+    expect(user.avatarUrl).toBe('');
+    expect(user.chatAvatarUrl).toBe('');
+    expect(res.body.user.chatAvatarId).toBe(chatAvatarId);
+  });
+
+  it('rejects an unknown chat avatar without changing the normal profile photo', async () => {
+    const user = userDoc({ avatarUrl: 'https://cdn.example.com/profile.jpg', chatAvatarId: '' });
+    User.findById.mockResolvedValue(user);
+
+    const res = await request(app).put('/api/users/me').send({ chatAvatarId: 'not-a-campus-character' });
+
+    expect(res.status).toBe(400);
+    expect(user.chatAvatarId).toBe('');
+    expect(user.avatarUrl).toBe('https://cdn.example.com/profile.jpg');
+  });
+
   it.each([
     'https://cdn.example.com/a.png',
     'data:image/png;base64,iVBORw0KGgo=',

@@ -1,0 +1,30 @@
+EventHub V30 - Final Product Upgrade
+
+Built from the user's V27/V29 project without replacing the existing backend architecture.
+
+Included:
+- Day/light-only UI compatibility preserved.
+- Event creation with start/end time.
+- Registration question builder with short answer, long answer, dropdown and checkbox types.
+- Registration question options and required/optional validation.
+- Server-side validation of custom registration answers.
+- Registration answers stored on bookings.
+- Organizer registration export includes custom question answers.
+- Event lifecycle metadata: registration_open, registration_closed, ongoing, completed.
+- Organizer event list shows lifecycle and time range.
+- Event share flow retained.
+- Booking confirmation emails retained through existing Brevo utility.
+- Event notifications and organizer announcements retained.
+- Event Pass retained and upgraded with QR code generation.
+- Organizer check-in page upgraded with camera QR scanning plus manual code fallback.
+- Club Management duplicate actions cleaned up; Create Club and Assign Club Heads remain separate pages.
+- Old Club Setup page redirects to Club Management.
+- Existing booking capacity, duplicate booking protection and waitlist promotion preserved.
+- Existing auth, Google Sign-In, email verification, password reset, clubs, saved events, notifications, admin and club-head systems preserved.
+
+Validation:
+- Backend JS syntax checked.
+- All inline frontend JS blocks syntax checked.
+- 33 frontend HTML files parsed successfully.
+- No backend test suite was executed because node_modules are not present in this runtime.
+- External QR libraries are loaded from CDN on the Event Pass/check-in pages; manual code check-in remains available as fallback.

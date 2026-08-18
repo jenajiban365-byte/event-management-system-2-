@@ -4,7 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Manage Users - EventHub Admin</title>
-<link rel="stylesheet" href="../css/style.css" />
+<link rel="stylesheet" href="../css/style.css?v=37" />
+
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -38,6 +43,41 @@
   const alertBox = document.getElementById('alertBox');
   const usersBody = document.getElementById('usersBody');
   const currentUser = Session.getUser();
+
+  function pickClub(title) {
+    return new Promise(async (resolve, reject) => {
+      let clubs = [];
+      try { clubs = (await Api.getAdminClubs()).clubs || []; } catch (e) { clubs = []; }
+      clubs = clubs.filter((c) => ['approved', 'active'].includes(c.status));
+      if (!clubs.length) {
+        showAlert(alertBox, 'Create an approved club first, then assign an organizer to it.');
+        reject(new Error('no-clubs'));
+        return;
+      }
+      const scrim = document.createElement('div');
+      scrim.style.cssText = 'position:fixed;inset:0;background:rgba(15,20,28,.5);display:grid;place-items:center;z-index:999;padding:20px';
+      scrim.innerHTML = `<div class="card" style="width:min(420px,100%);padding:24px">
+        <h3 style="margin:0 0 6px">${escapeHtml(title)}</h3>
+        <p class="muted" style="margin:0 0 14px">Pick a primary club for the organizer profile. Organizers can manage the full campus event registry; this club is used as their primary affiliation.</p>
+        <select id="pickClubSelect" class="form-control" style="margin-bottom:16px">
+          ${clubs.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" type="button" id="pickClubCancel">Cancel</button>
+          <button class="btn btn-primary" type="button" id="pickClubOk">Assign</button>
+        </div>
+      </div>`;
+      document.body.appendChild(scrim);
+      const close = () => scrim.remove();
+      scrim.querySelector('#pickClubCancel').addEventListener('click', () => { close(); reject(new Error('cancelled')); });
+      scrim.addEventListener('click', (e) => { if (e.target === scrim) { close(); reject(new Error('cancelled')); } });
+      scrim.querySelector('#pickClubOk').addEventListener('click', () => {
+        const val = scrim.querySelector('#pickClubSelect').value;
+        close();
+        resolve(val);
+      });
+    });
+  }
 
   function statusBadge(status) {
     return status === 'blocked'
@@ -85,7 +125,26 @@
         select.addEventListener('change', async () => {
           const id = select.getAttribute('data-role-select');
           const role = select.value;
-          if (!confirm(`Change this account to ${role === 'organizer' ? 'Organizer' : 'Student'}?`)) {
+
+          if (role === 'organizer') {
+            // An Organizer only sees events/registrations for the club(s)
+            // they're linked to, so we need to know which club before we
+            // can promote them — otherwise they'd be an organizer of nothing.
+            let clubId;
+            try {
+              clubId = await pickClub('Make Organizer of which club?');
+            } catch (e) { load(); return; } // cancelled
+            try {
+              await Api.updateAdminUserRole(id, { role, clubId });
+              load();
+            } catch (err) {
+              showAlert(alertBox, err.message);
+              load();
+            }
+            return;
+          }
+
+          if (!confirm('Change this account back to Student?')) {
             load();
             return;
           }

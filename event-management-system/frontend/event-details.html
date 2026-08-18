@@ -10,7 +10,12 @@
 <meta property="og:type" content="website" />
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#fffaf0" />
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -44,6 +49,7 @@
     try {
       const { event } = await Api.getEvent(eventId);
       renderEvent(event);
+      setupEventMoments(event);
       loadSimilarEvents(event);
     } catch (err) {
       showAlert(alertBox, err.message);
@@ -96,7 +102,11 @@
   }
 
 function renderEvent(event) {
+    const organizerName = event.organizer?.name || event.organizer?.email || 'EventHub Team';
+    const clubName = event.club?.name || event.club?.shortName || '';
     const spotsLeft = event.capacity - event.bookedCount;
+    const hasSmartForm = event.registrationForm?.enabled === true;
+    const needsFullForm = hasSmartForm || (Array.isArray(event.customRegistrationQuestions) && event.customRegistrationQuestions.some(q => q.type === 'file' || (q.showWhen && q.showWhen.questionIndex !== null && q.showWhen.questionIndex !== undefined && q.showWhen.questionIndex !== '')));
     const full = spotsLeft <= 0;
     const loggedIn = Session.isLoggedIn();
     const price = event.price && Number(event.price) > 0 ? `₹${Number(event.price)}` : 'Free';
@@ -136,11 +146,12 @@ function renderEvent(event) {
                 <div><span>Venue</span><strong>${escapeHtml(event.location)}</strong></div>
                 <div><span>Date & time</span><strong>${formatDate(event.date)} • ${escapeHtml(event.time)}</strong></div>
                 <div><span>Availability</span><strong>${Math.max(0, spotsLeft)} / ${event.capacity} spots left</strong></div>
-                <div><span>Organizer</span><strong>${escapeHtml(event.organizer || 'EventHub Team')}</strong></div>
+                <div><span>Organized by</span><strong>${escapeHtml(clubName || organizerName)}</strong></div>
+                <div><span>Event contact</span><strong>${escapeHtml(organizerName)}</strong></div>
               </div>
             </div>
             <div class="event-detail-panel emphasis-panel">
-              <div class="event-detail-panel-title">Booking</div>
+              <div class="event-detail-panel-title">Registration</div>
               <div class="booking-summary">
                 <span>${Math.max(0, spotsLeft)} seats remaining</span>
                 <strong>${price}</strong>
@@ -151,15 +162,26 @@ function renderEvent(event) {
               </div>
             </div>
           </div>
+          ${loggedIn && Array.isArray(event.customRegistrationQuestions) && event.customRegistrationQuestions.length && !needsFullForm ? `<div class="registration-questions-panel"><div class="event-detail-panel-title">Quick registration</div><p class="muted">A few details from the organizer before you book.</p><div id="registrationQuestions" class="registration-questions">${event.customRegistrationQuestions.map((q,i)=>{const type=q.type||'text';const req=q.required !== false?'required':'';let control='';if(type==='textarea') control=`<textarea class="form-control registration-answer" data-question-index="${i}" ${req} placeholder="Your answer"></textarea>`;else if(type==='select') control=`<select class="form-control registration-answer" data-question-index="${i}" ${req}><option value="">Choose an option</option>${(q.options||[]).map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`;else if(type==='checkbox') control=`<label class="check-row"><input type="checkbox" class="registration-answer registration-checkbox" data-question-index="${i}" value="Yes" ${req}> Yes</label>`;else control=`<input class="form-control registration-answer" data-question-index="${i}" ${req} placeholder="Your answer">`;return `<div class="registration-question"><span>${escapeHtml(q.question)}${q.required !== false ? ' *' : ''}</span>${control}</div>`}).join('')}</div></div>` : ''}
           <div class="event-detail-actions">
             <span class="badge ${full ? 'badge-danger' : 'badge-success'}">${full ? 'Fully Booked' : spotsLeft + ' spots left'}</span>
-            ${full ? `<button id="waitlistBtn" class="btn btn-primary" type="button">${loggedIn ? 'Join Waitlist' : 'Login to Join Waitlist'}</button>` : `<button id="bookBtn" class="btn btn-primary">${loggedIn ? 'Book This Event' : 'Login to Book'}</button>`}
+            ${full ? `<button id="waitlistBtn" class="btn btn-primary" type="button">${loggedIn ? 'Join Waitlist' : 'Login to Join Waitlist'}</button>` : needsFullForm && loggedIn ? `<a id="bookBtn" class="btn btn-primary" href="${hasSmartForm ? `smart-form.html?event=${encodeURIComponent(event.id)}` : `event-form.html?id=${encodeURIComponent(event.id)}`}">${hasSmartForm ? 'Open Campus Smart Form →' : 'Open registration form →'}</a>` : `<button id="bookBtn" class="btn btn-primary">${loggedIn ? 'Book This Event' : 'Login to Book'}</button>`}
+            ${loggedIn && !full && !needsFullForm ? `<a class="btn btn-outline" href="${hasSmartForm ? `smart-form.html?event=${encodeURIComponent(event.id)}` : `event-form.html?id=${encodeURIComponent(event.id)}`}">${hasSmartForm ? 'Open Campus Smart Form →' : 'Open full form →'}</a>` : ''}
             <a id="googleCalendarBtn" class="btn btn-outline" href="${escapeHtml(googleCalendarUrl(event))}" target="_blank" rel="noopener">Google Calendar</a>
             <button id="calendarBtn" class="btn btn-outline" type="button">Download .ics</button>
             <button id="saveDetailBtn" class="btn btn-outline save-detail-action" type="button">♡ Save event</button>
             <button id="shareBtn" class="btn btn-outline" type="button">Share event</button>
+            <button id="shareRegistrationBtn" class="btn btn-primary" type="button">Share registration form</button>
           </div>
           ${full && loggedIn ? `<div id="waitlistStatus" style="margin-top:12px;color:var(--text-muted)"></div>` : ''}
+
+          <section class="event-moments-panel" id="eventMomentsPanel">
+            <div class="event-moments-head"><div><span class="event-buddy-kicker">📸 EVENT MOMENTS</span><h2>What happened here?</h2><p>Share a photo or short note with students who were part of this event.</p></div><button id="momentAddBtn" class="btn btn-outline btn-sm" type="button">+ Add a moment</button></div>
+            <div id="momentComposer" class="moment-composer" hidden><textarea id="momentCaption" class="form-control" maxlength="280" placeholder="One line about the moment…"></textarea><div class="moment-upload-row"><label class="btn btn-outline btn-sm moment-file-label">📷 Add photo<input id="momentFile" type="file" accept="image/*" hidden></label><span id="momentFileName">No photo selected</span><button id="momentPostBtn" class="btn btn-primary btn-sm" type="button">Share moment →</button></div></div>
+            <div id="momentRail" class="moment-rail"><div class="pulse-loading">Loading moments…</div></div>
+          </section>
+
+          ${loggedIn ? `<section id="eventBuddyPanel" class="event-buddy-panel" hidden><div class="event-buddy-kicker">🤝 EVENT BUDDY</div><div class="event-buddy-head"><div><h3>You're not going alone.</h3><p>Meet students who are also coming. Only people who opted in appear here.</p></div><span class="event-buddy-spark">✦</span></div><div id="eventBuddyList" class="event-buddy-list"></div></section>` : ''}
         </div>
       </div>
     `;
@@ -169,7 +191,41 @@ function renderEvent(event) {
     const waitlistStatus = document.getElementById('waitlistStatus');
     const calendarBtn = document.getElementById('calendarBtn');
     const shareBtn = document.getElementById('shareBtn');
+    const shareRegistrationBtn = document.getElementById('shareRegistrationBtn');
     const saveBtn = document.getElementById('saveDetailBtn');
+    const buddyPanel = document.getElementById('eventBuddyPanel');
+    const buddyList = document.getElementById('eventBuddyList');
+    async function syncExistingBookingState(){
+      if(!loggedIn || !bookBtn || full) return;
+      try {
+        const mine = await Api.getMyBookings();
+        const existing = (mine.bookings || []).find(b => String(b.event?.id || b.event?._id || b.event) === String(event.id) && b.status !== 'cancelled');
+        if(existing){
+          bookBtn.outerHTML = '<a id="bookBtn" class="btn btn-primary" href="my-bookings.html">✓ Already registered · View pass</a>';
+          const formLinks = document.querySelectorAll('.event-detail-actions a[href*="event-form.html"]');
+          formLinks.forEach(a => { a.textContent='View registration details →'; a.classList.remove('btn-primary'); a.classList.add('btn-outline'); });
+        }
+      } catch(e){ /* registration state is a convenience; don't block event details */ }
+    }
+    syncExistingBookingState();
+    async function loadEventBuddies(){
+      if(!buddyPanel) return;
+      try {
+        const data = await Api.getEventBuddies(event.id);
+        if(!data.buddies?.length){ buddyPanel.hidden=false; buddyList.innerHTML='<div class="event-buddy-empty">No opted-in buddies yet. Turn on Event Buddy in your profile and invite someone after they register. ✨</div>'; return; }
+        buddyPanel.hidden=false;
+        buddyList.innerHTML=data.buddies.slice(0,8).map(b=>{
+          const u=b.user||{};
+          const avatar=u.avatarUrl?`<img src="${escapeHtml(u.avatarUrl)}" alt="">`:escapeHtml((u.name||'U').charAt(0).toUpperCase());
+          const shared=(b.sharedGroups||[]).slice(0,2).map(g=>`<span>${escapeHtml(g.name)}</span>`).join('');
+          return `<article class="event-buddy-card"><div class="event-buddy-avatar">${avatar}</div><div class="event-buddy-copy"><strong>${escapeHtml(u.name||'Student')}</strong><span>${escapeHtml([u.department,u.year].filter(Boolean).join(' · ')||'Student')}</span><small>${escapeHtml(b.connectionHint||'Also attending')}</small>${shared?`<div class="event-buddy-shared">${shared}</div>`:''}</div><button class="btn btn-outline btn-sm buddy-message" data-user="${escapeHtml(u.id||u._id)}">Message →</button></article>`;
+        }).join('');
+        buddyList.querySelectorAll('.buddy-message').forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{const r=await Api.connectToEventBuddy(btn.dataset.user,event.id);location.href=`chat.html?conversation=${encodeURIComponent(r.conversation?.id||r.conversation?._id||'')}`;}catch(e){showToast(e.message,'error');btn.disabled=false;}});
+      } catch(e) { if(e.status!==403 && e.status!==401) console.warn('Event buddy:',e.message); }
+    }
+    loadEventBuddies();
+
+    const registrationQuestions = Array.isArray(event.customRegistrationQuestions) ? event.customRegistrationQuestions : [];
     calendarBtn.addEventListener('click', () => downloadCalendarEvent(event));
     shareBtn.addEventListener('click', async () => {
       try {
@@ -177,6 +233,14 @@ function renderEvent(event) {
         showToast(result === 'shared' ? 'Share sheet opened.' : 'Event link copied to clipboard.');
       } catch (err) {
         if (err.name !== 'AbortError') showToast('Unable to share this event.', 'error');
+      }
+    });
+    shareRegistrationBtn?.addEventListener('click', async () => {
+      try {
+        const result = await shareRegistrationLink(event);
+        showToast(result === 'shared' ? 'Registration share sheet opened.' : 'Smart registration link copied.');
+      } catch (err) {
+        if (err.name !== 'AbortError') showToast('Unable to share the registration form.', 'error');
       }
     });
 
@@ -246,20 +310,41 @@ function renderEvent(event) {
         bookBtn.disabled = true;
         bookBtn.textContent = 'Booking...';
         try {
-          await Api.createBooking(event.id);
+          const registrationAnswers = registrationQuestions.map((q, i) => { const el=document.querySelector(`[data-question-index=\"${i}\"]`); return { question:q.question, answer: el ? (el.type==='checkbox' ? (el.checked ? 'Yes' : '') : String(el.value||'').trim()) : '' }; });
+          if (registrationQuestions.some((q, i) => q.required !== false && !registrationAnswers[i].answer)) { showAlert(alertBox, 'Please answer all required registration questions.'); bookBtn.disabled = false; bookBtn.textContent = 'Book This Event'; return; }
+          await Api.createBooking(event.id, registrationAnswers);
           showAlert(alertBox, 'Booking confirmed! View it under "My Bookings".', 'success');
           loadEvent();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
-          showAlert(alertBox, err.message);
-          bookBtn.disabled = false;
-          bookBtn.textContent = 'Book This Event';
+          if (err.status === 409) {
+            showAlert(alertBox, 'You are already registered for this event. Your registration pass is available in My Bookings.', 'success');
+            bookBtn.textContent = '✓ Already registered';
+            bookBtn.disabled = true;
+            bookBtn.onclick = () => { window.location.href = 'my-bookings.html'; };
+          } else {
+            showAlert(alertBox, err.message);
+            bookBtn.disabled = false;
+            bookBtn.textContent = 'Book This Event';
+          }
         }
       });
     }
   }
 
   loadEvent();
+
+  async function loadEventMoments(eventId){
+    const rail=document.getElementById('momentRail'); if(!rail) return;
+    try{const r=await Api.getEventStories(eventId); const list=r.stories||[]; rail.innerHTML=list.length?list.map(st=>`<article class="moment-card">${st.mediaUrl?`<img src="${escapeHtml(st.mediaUrl)}" alt="Event moment" loading="lazy">`:''}<div class="moment-card-copy"><strong>${escapeHtml(st.author?.name||'Student')}</strong><span>${escapeHtml(st.caption||'A moment from campus.')}</span><small>${new Date(st.createdAt).toLocaleDateString()}</small></div></article>`).join(''):`<div class="pulse-empty">No moments yet. Be the first to share one after attending.</div>`;}catch(e){rail.innerHTML='<div class="pulse-empty">Moments are unavailable right now.</div>';}
+  }
+  function setupEventMoments(event){
+    const add=document.getElementById('momentAddBtn'), composer=document.getElementById('momentComposer'), file=document.getElementById('momentFile'), fileName=document.getElementById('momentFileName'), post=document.getElementById('momentPostBtn');
+    if(!add) return; add.onclick=()=>{composer.hidden=!composer.hidden;}; file?.addEventListener('change',()=>{fileName.textContent=file.files?.[0]?.name||'No photo selected';});
+    post?.addEventListener('click',async()=>{post.disabled=true;try{let media={mediaUrl:'',mediaType:'none'}; if(file?.files?.[0]) media=await Api.uploadEventStoryImage(event.id,file.files[0]); await Api.createEventStory(event.id,{caption:document.getElementById('momentCaption').value,mediaUrl:media.mediaUrl||'',mediaType:media.mediaType||'none'}); document.getElementById('momentCaption').value=''; file.value=''; fileName.textContent='No photo selected'; composer.hidden=true; await loadEventMoments(event.id); showToast('Moment shared ✨');}catch(e){showToast(e.message,'error');}finally{post.disabled=false;}});
+    loadEventMoments(event.id);
+  }
+
 </script>
 </body>
 </html>

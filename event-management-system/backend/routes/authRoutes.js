@@ -27,6 +27,8 @@ function publicUser(user) {
     year: user.year || '',
     studentId: user.studentId || '',
     avatarUrl: user.avatarUrl || '',
+    chatAvatarUrl: user.chatAvatarUrl || '',
+    chatAvatarId: user.chatAvatarId || '',
     emailVerified: user.emailVerified !== false,
     authProvider: user.authProvider || 'local'
   };

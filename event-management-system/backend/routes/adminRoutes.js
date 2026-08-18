@@ -389,16 +389,32 @@ router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    if (role === 'club_head' && !clubId) return res.status(400).json({ message: 'clubId is required when assigning Club Head role.' });
+    // Always start from a clean slate: pull this user out of any club they
+    // were previously linked to as a club head or organizer, then re-link
+    // them below if the new role needs it. Without this, promoting someone
+    // to Organizer without a club left them with zero clubs forever, which
+    // meant they could never create an event or see anything under
+    // Registrations — this is what fixes that.
+    if (user.clubId) await Club.findByIdAndUpdate(user.clubId, { $pull: { clubHeads: user._id } });
+    await Club.updateMany({ organizerIds: user._id }, { $pull: { organizerIds: user._id } });
+
     if (role === 'club_head') {
-      if (user.clubId && String(user.clubId) !== String(clubId)) await Club.findByIdAndUpdate(user.clubId, { $pull: { clubHeads: user._id } });
+      if (!clubId) return res.status(400).json({ message: 'clubId is required when assigning Club Head role.' });
       const club = await Club.findById(clubId);
       if (!club) return res.status(404).json({ message: 'Club not found.' });
       user.role = 'club_head';
       user.clubId = clubId;
       await Club.findByIdAndUpdate(clubId, { $addToSet: { clubHeads: user._id } });
+    } else if (role === 'organizer') {
+      if (!clubId) return res.status(400).json({ message: 'clubId is required when assigning Organizer role.' });
+      const club = await Club.findById(clubId);
+      if (!club) return res.status(404).json({ message: 'Club not found.' });
+      user.role = 'organizer';
+      // Keep both links in sync: User.clubId makes the relationship explicit,
+      // while Club.organizerIds preserves support for multi-organizer clubs and legacy data.
+      user.clubId = clubId;
+      await Club.findByIdAndUpdate(clubId, { $addToSet: { organizerIds: user._id } });
     } else {
-      if (user.clubId) await Club.findByIdAndUpdate(user.clubId, { $pull: { clubHeads: user._id } });
       user.role = role;
       user.clubId = null;
     }

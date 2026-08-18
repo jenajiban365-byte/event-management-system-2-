@@ -240,3 +240,12 @@ free Render instance itself sleeps after inactivity and "wakes up" on the next v
 See [`PORTFOLIO_GUIDE.md`](PORTFOLIO_GUIDE.md) for the implemented improvements,
 resume-ready bullet points, deployment checklist, and a prioritized roadmap for
 adding automated tests, CI/CD, QR check-in, payments, and observability.
+
+
+## EventHub launch flow (V52.1)
+1. Admin/organizer creates an event.
+2. Organizer can immediately see it in Organizer → Registrations, including pending approval state.
+3. Admin approves the event. It then appears in Discover and its registration form becomes available.
+4. Students submit the Campus Smart Form; the organizer roster updates from the same event selector.
+5. Use Export CSV / Print roster for the final attendee sheet.
+6. To intentionally start from a clean events database once, run `npm run clear-events` from `backend`. This is a one-time destructive utility; it is never run automatically on server startup.

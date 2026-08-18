@@ -7,6 +7,7 @@ const Application = require('../models/Application');
 const Announcement = require('../models/Announcement');
 const Notification = require('../models/Notification');
 const { protect, clubHeadOnly } = require('../middleware/authMiddleware');
+const { ensureGroupForClub, publishGroupPost } = require('../utils/group');
 
 const router = express.Router();
 
@@ -55,7 +56,17 @@ router.get('/my-club', async (req, res) => {
     const pendingApplicationsCount = await Application.countDocuments({ club: club._id, status: 'pending' });
 
     // Populate club heads info
-    const clubHeadsInfo = await User.find({ _id: { $in: club.clubHeads } }).select('name email avatarUrl department year');
+    const configuredHeadIds = Array.isArray(club.clubHeads) ? club.clubHeads.map((id) => String(id)) : [];
+    const clubHeadsInfo = await User.find({
+      $or: [
+        { _id: { $in: configuredHeadIds } },
+        { clubId: club._id, role: 'club_head' }
+      ],
+      status: 'active'
+    }).select('name email avatarUrl department year role').lean();
+    const uniqueClubHeads = Array.from(
+      new Map(clubHeadsInfo.map((head) => [String(head._id), head])).values()
+    );
 
     res.json({
       club,
@@ -67,7 +78,7 @@ router.get('/my-club', async (req, res) => {
         opportunitiesCount: opportunities.length,
         pendingApplicationsCount
       },
-      clubHeads: clubHeadsInfo,
+      clubHeads: uniqueClubHeads,
       upcomingEvents,
       pastEvents,
       announcements,
@@ -350,23 +361,17 @@ router.post('/announcements', async (req, res) => {
       createdBy: req.user.id
     });
 
-    // NOTIFICATION RULE: "A followed club posted an important announcement."
-    // Send notification to all followers and members
-    const recipientIds = [...new Set([
-      ...(req.assignedClub.followerIds || []).map(String),
-      ...(req.assignedClub.memberIds || []).map(String)
-    ])];
+    const group = await ensureGroupForClub(req.assignedClub, req.user.id);
+    await publishGroupPost({
+      club: req.assignedClub,
+      authorId: req.user.id,
+      type: 'announcement',
+      title,
+      content,
+      link: `/group.html?id=${group.id}`
+    });
 
-    if (recipientIds.length > 0) {
-      const notifs = recipientIds.map((userId) => ({
-        user: userId,
-        type: 'announcement',
-        title: `Announcement from ${req.assignedClub.name}`,
-        message: `${title}: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`,
-        link: `/clubs.html?id=${req.assignedClub._id}`
-      }));
-      await Notification.insertMany(notifs);
-    }
+    // Campus Groups now own announcement delivery to joined students; this avoids duplicate spam.
 
     res.status(201).json({ message: 'Announcement published successfully.', announcement });
   } catch (err) {
@@ -405,6 +410,13 @@ router.post('/events', async (req, res) => {
     const time = String(req.body.time || '').trim();
     const location = String(req.body.location || '').trim();
     const capacity = Number(req.body.capacity) || 100;
+    const customRegistrationQuestions = Array.isArray(req.body.customRegistrationQuestions) ? req.body.customRegistrationQuestions.filter(q => q && String(q.question || '').trim()).map(q => ({
+      question: String(q.question).trim(),
+      type: ['text','textarea','select','checkbox','email','number','date','url','file'].includes(q.type) ? q.type : 'text',
+      options: Array.isArray(q.options) ? q.options.map(String).map(v=>v.trim()).filter(Boolean) : [],
+      required: q.required !== false,
+      showWhen: q.showWhen && Number.isInteger(Number(q.showWhen.questionIndex)) && Number(q.showWhen.questionIndex) >= 0 ? { questionIndex: Number(q.showWhen.questionIndex), equals: String(q.showWhen.equals || '').trim().slice(0,200) } : { questionIndex: null, equals: '' }
+    })) : [];
 
     if (!title || !description || !date || !time || !location) {
       return res.status(400).json({ message: 'Title, description, date, time, and location are required.' });
@@ -421,24 +433,26 @@ router.post('/events', async (req, res) => {
       capacity,
       price: Number(req.body.price) || 0,
       imageUrl: String(req.body.imageUrl || '').trim(),
+      registrationDeadline: String(req.body.registrationDeadline || '').trim(),
+      eligibility: String(req.body.eligibility || 'All students').trim(),
+      eventType: String(req.body.eventType || 'event').trim(),
+      approvalRequired: Boolean(req.body.approvalRequired),
+      customRegistrationQuestions,
       club: req.assignedClub._id,
       organizer: req.user.id,
       status: 'published',
       publishedAt: new Date()
     });
 
-    // NOTIFICATION RULE: "A followed club created an event."
-    const followerIds = (req.assignedClub.followerIds || []).map(String);
-    if (followerIds.length > 0) {
-      const notifs = followerIds.map((followerId) => ({
-        user: followerId,
-        type: 'event',
-        title: `New Event by ${req.assignedClub.name}`,
-        message: `"${title}" is scheduled for ${date} at ${time}. Register now!`,
-        link: `/event-details.html?id=${event._id}`
-      }));
-      await Notification.insertMany(notifs);
-    }
+    await publishGroupPost({
+      club: req.assignedClub,
+      authorId: req.user.id,
+      type: 'event',
+      title: `New event: ${title}`,
+      content: `"${title}" is scheduled for ${date} at ${time}. Open the registration form to reserve your spot.`,
+      event: event._id,
+      link: `/event-details.html?id=${event._id}`
+    });
 
     res.status(201).json({ message: 'Club event created successfully.', event });
   } catch (err) {
@@ -452,11 +466,19 @@ router.put('/events/:id', async (req, res) => {
   try {
     const event = await Event.findOne({ _id: req.params.id, club: req.assignedClub._id });
     if (!event) return res.status(404).json({ message: 'Club event not found.' });
-    ['title','description','category','date','time','endTime','location','imageUrl'].forEach((field)=>{
+    ['title','description','category','date','time','endTime','location','imageUrl','registrationDeadline','eligibility','eventType'].forEach((field)=>{
       if (req.body[field] !== undefined) event[field] = String(req.body[field]).trim();
     });
     if (req.body.capacity !== undefined) event.capacity = Math.max(1, Number(req.body.capacity) || event.capacity);
     if (req.body.price !== undefined) event.price = Math.max(0, Number(req.body.price) || 0);
+    if (req.body.approvalRequired !== undefined) event.approvalRequired = Boolean(req.body.approvalRequired);
+    if (Array.isArray(req.body.customRegistrationQuestions)) event.customRegistrationQuestions = req.body.customRegistrationQuestions.filter(q => q && String(q.question || '').trim()).map(q => ({
+      question: String(q.question).trim(),
+      type: ['text','textarea','select','checkbox','email','number','date','url','file'].includes(q.type) ? q.type : 'text',
+      options: Array.isArray(q.options) ? q.options.map(String).map(v=>v.trim()).filter(Boolean) : [],
+      required: q.required !== false,
+      showWhen: q.showWhen && Number.isInteger(Number(q.showWhen.questionIndex)) && Number(q.showWhen.questionIndex) >= 0 ? { questionIndex: Number(q.showWhen.questionIndex), equals: String(q.showWhen.equals || '').trim().slice(0,200) } : { questionIndex: null, equals: '' }
+    }));
     if (event.capacity < event.bookedCount) return res.status(400).json({ message: 'Capacity cannot be lower than current bookings.' });
     await event.save();
     res.json({ message: 'Club event updated successfully.', event });
@@ -469,6 +491,55 @@ router.delete('/events/:id', async (req,res)=>{
     if(!event)return res.status(404).json({message:'Club event not found.'});
     await event.deleteOne(); res.json({message:'Club event deleted.'});
   } catch(err){res.status(500).json({message:'Could not delete club event.'});}
+});
+
+
+// -------------------------------------------------------------
+// EVENT REGISTRATIONS + CSV EXPORT
+// -------------------------------------------------------------
+router.get('/events/:id/registrations', async (req, res) => {
+  try {
+    const event = await Event.findOne({ _id: req.params.id, club: req.assignedClub._id });
+    if (!event) return res.status(404).json({ message: 'Club event not found.' });
+    const Booking = require('../models/Booking');
+    const bookings = await Booking.find({ event: event._id, status: { $in: ['confirmed', 'pending'] } })
+      .populate('user', 'name email studentId department year phone avatarUrl')
+      .sort({ createdAt: 1 });
+    res.json({ event, bookings });
+  } catch (err) { res.status(500).json({ message: 'Could not fetch event registrations.' }); }
+});
+
+function csvEscape(value) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+router.get('/events/:id/registrations.csv', async (req, res) => {
+  try {
+    const event = await Event.findOne({ _id: req.params.id, club: req.assignedClub._id });
+    if (!event) return res.status(404).json({ message: 'Club event not found.' });
+    const Booking = require('../models/Booking');
+    const bookings = await Booking.find({ event: event._id, status: { $in: ['confirmed', 'pending'] } })
+      .populate('user', 'name email studentId department year phone')
+      .sort({ createdAt: 1 });
+    const answerQuestions = [];
+    (event.customRegistrationQuestions || []).forEach(q => {
+      const question = String(q.question || '').trim();
+      if (question && !answerQuestions.includes(question)) answerQuestions.push(question);
+    });
+    const headers = ['Name', 'Email', 'Student ID', 'Department', 'Year', 'Phone', 'Registration Status', 'Registered At', ...answerQuestions];
+    const rows = bookings.map(b => {
+      const answerMap = new Map((b.registrationAnswers || []).map(a => [String(a.question || '').trim(), a.answer || '']));
+      return [
+        b.registrationProfile?.name || b.user?.name || '', b.registrationProfile?.email || b.user?.email || '', b.registrationProfile?.studentId || b.user?.studentId || '', b.registrationProfile?.department || b.user?.department || '', b.registrationProfile?.year || b.user?.year || '', b.registrationProfile?.phone || b.user?.phone || '', b.status || '',
+        b.createdAt ? new Date(b.createdAt).toISOString() : '', ...answerQuestions.map(q => answerMap.get(q) || '')
+      ];
+    });
+    const csv = [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${event.title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'event'}-registrations.csv"`);
+    res.send('\ufeff' + csv);
+  } catch (err) { res.status(500).json({ message: 'Could not export registrations.' }); }
 });
 
 // MEMBERS LIST

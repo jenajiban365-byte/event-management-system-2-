@@ -4,9 +4,14 @@ const User = require('../models/User');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
 
+function validChatAvatar(value) {
+  if (!value) return true;
+  return /^(?:https?:\/\/[^\s]+|data:image\/(?:svg\+xml|png|jpeg|jpg|webp);(?:charset=UTF-8;)?(?:base64,[A-Za-z0-9+\/=]+|[^\s]+))$/i.test(value);
+}
+
 function validAvatar(value) {
   if (!value) return true;
-  return /^(https?:\/\/[^\s]+|data:image\/(?:png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+)$/i.test(value);
+  return /^(https?:\/\/[^\s]+|\/api\/media\/[a-f0-9]{24}|data:image\/(?:png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+)$/i.test(value);
 }
 
 router.get('/me', protect, async (req, res) => {
@@ -19,7 +24,7 @@ router.get('/me', protect, async (req, res) => {
 
 router.put('/me', protect, async (req, res) => {
   try {
-    const { name, email, password, currentPassword, avatarUrl } = req.body;
+    const { name, email, password, currentPassword, avatarUrl, chatAvatarUrl, chatAvatarId, eventBuddyOptIn, campusConnectOptIn } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
     if (name !== undefined) {
@@ -36,11 +41,25 @@ router.put('/me', protect, async (req, res) => {
     if (avatarUrl !== undefined) {
       const avatar = String(avatarUrl || '');
       if (!validAvatar(avatar)) return res.status(400).json({ message: 'Avatar must be an image URL or an encoded PNG, JPG, or WebP image.' });
-      if (avatar.length > 2 * 1024 * 1024) {
-  return res.status(400).json({ message: 'Avatar image must be 2 MB or smaller.' });
-}
       user.avatarUrl = avatar;
     }
+    if (chatAvatarUrl !== undefined) {
+      const avatar = String(chatAvatarUrl || '');
+      if (!validChatAvatar(avatar)) return res.status(400).json({ message: 'Chat avatar must be a valid image.' });
+      if (avatar.length > 250000) return res.status(400).json({ message: 'Chat avatar is too large.' });
+      user.chatAvatarUrl = avatar;
+    }
+    if (chatAvatarId !== undefined) {
+      const id = String(chatAvatarId || '').trim().toLowerCase();
+      const allowed = ['kairo','sora','nyx','aria','zane','mira','rei','nova','juno','axel','lyra','kai','aya','neo','skye','riven','eden','yuki','zion','luna','rio','sage','vex','mika','ivy','pixel','skater','cyber','muse','racer','hacker','sunset','mint','indigo','street','dream','volt','berry','ocean','mono'];
+      if (id && !allowed.includes(id)) return res.status(400).json({ message: 'Invalid campus chat avatar.' });
+      user.chatAvatarId = id;
+      // Character avatars are rendered client-side from the stable ID. Keep any
+      // legacy image field empty so it can never accidentally become the main profile photo.
+      if (chatAvatarUrl === undefined) user.chatAvatarUrl = '';
+    }
+    if (eventBuddyOptIn !== undefined) user.eventBuddyOptIn = !!eventBuddyOptIn;
+    if (campusConnectOptIn !== undefined) user.campusConnectOptIn = !!campusConnectOptIn;
     if (password) {
       if (!user.password) return res.status(400).json({ message: 'Set a password using the reset-password flow first.' });
       if (!currentPassword) return res.status(400).json({ message: 'Current password is required to set a new password.' });

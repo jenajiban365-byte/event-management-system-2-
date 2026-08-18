@@ -1,7 +1,7 @@
-const CACHE_NAME = 'eventhub-shell-v4';
+const CACHE_NAME = 'eventhub-shell-v7';
 const APP_SHELL = [
   '/', '/index.html', '/events.html', '/event-details.html',
-  '/css/style.css', '/js/api.js', '/js/nav.js'
+  '/css/style.css?v=37', '/css/eventhub-v61.css?v=61', '/js/api.js', '/js/nav.js', '/js/eh-avatar-studio.js', '/js/eh-emoji.js'
 ];
 
 self.addEventListener('install', (event) => {

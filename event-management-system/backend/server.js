@@ -21,6 +21,11 @@ const clubHeadRoutes = require('./routes/clubHeadRoutes');
 const organizerRoutes = require('./routes/organizerRoutes');
 const savedEventRoutes = require('./routes/savedEventRoutes');
 const geocodeRoutes = require('./routes/geocodeRoutes');
+const groupRoutes = require('./routes/groupRoutes');
+const socialRoutes = require('./routes/socialRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
+const registrationFormRoutes = require('./routes/registrationFormRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +38,7 @@ app.disable('x-powered-by');
 
 app.use(cors());
 app.use(express.json({ limit: '3mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Lightweight security headers without adding a runtime dependency. These
 // protect the public app while keeping Google Sign-In and remote event images
@@ -41,7 +47,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self)');
   next();
 });
 
@@ -61,6 +67,11 @@ app.use('/api/club-head', clubHeadRoutes);
 app.use('/api/organizer', organizerRoutes);
 app.use('/api/saved-events', savedEventRoutes);
 app.use('/api/geocode', geocodeRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/registration-forms', registrationFormRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Event Management API is running.' });

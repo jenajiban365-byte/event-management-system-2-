@@ -4,7 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Club Admin Dashboard - EventHub</title>
-<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/style.css?v=37">
+
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -102,6 +107,9 @@
         <div class="form-group"><label>Capacity</label><input id="eventCapacity" type="number" min="1" value="100" class="form-control"></div>
         <div class="form-group"><label>Price (₹)</label><input id="eventPrice" type="number" min="0" value="0" class="form-control"></div>
         <div class="form-group full"><label>Image URL</label><input id="eventImageUrl" type="url" class="form-control" placeholder="https://..."></div>
+        <div class="form-group"><label>Registration deadline</label><input id="eventRegistrationDeadline" type="date" class="form-control"></div>
+        <div class="form-group"><label>Eligibility</label><input id="eventEligibility" class="form-control" value="All students"></div>
+        <div class="form-group full"><label>Registration form</label><div id="eventQuestionBuilder" class="card" style="padding:14px;background:#f8fbff"></div><button type="button" id="addEventQuestion" class="btn btn-outline btn-sm" style="margin-top:10px">+ Add question</button><small class="muted" style="display:block;margin-top:7px">Build the EventHub form students will see when they register. Required questions are stored with every response.</small></div>
         <div class="form-group full"><label>Description</label><textarea id="eventDescription" class="form-control" rows="3" required></textarea></div>
         <div class="form-group full"><button class="btn btn-primary">Create Club Event</button></div>
       </form>
@@ -218,7 +226,7 @@ function renderEvents(list) {
     <div class="event-card-topline"><span class="badge badge-primary">${escapeHtml(e.category || 'Event')}</span><span class="muted">${escapeHtml(e.date)} ${escapeHtml(e.time || '')}${e.endTime ? '–' + escapeHtml(e.endTime) : ''}</span></div>
     <h3>${escapeHtml(e.title)}</h3><p>📍 ${escapeHtml(e.location)}</p><p>${escapeHtml(e.description || '')}</p>
     <p class="muted">${Number(e.bookedCount)||0}/${Number(e.capacity)||0} booked · ${Number(e.price || 0) === 0 ? 'Free' : '₹' + Number(e.price)}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a href="../event-details.html?id=${e.id}" class="btn btn-outline btn-sm">View Event</a><button class="btn btn-danger btn-sm" data-delete-event="${e.id}">Delete</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a href="../event-details.html?id=${e.id}" class="btn btn-outline btn-sm">View Event</a><a href="club-registrations.html?event=${e.id}" class="btn btn-primary btn-sm">Registrations</a><a href="${Api.getClubHeadRegistrationsCsvUrl(e.id)}" class="btn btn-outline btn-sm">CSV</a><button class="btn btn-danger btn-sm" data-delete-event="${e.id}">Delete</button></div>
   </article>`).join('') : '<div class="empty-state"><p>No club events yet. Create an event above.</p></div>';
   target.querySelectorAll('[data-delete-event]').forEach(btn => btn.onclick = async () => {
     if (!confirm('Delete this club event? Existing bookings will not be restored.')) return;
@@ -271,15 +279,29 @@ document.getElementById('annForm').onsubmit = async event => {
   catch (err) { showAlert(alertBox, err.message); }
 };
 
+
+const eventQuestionBuilder = document.getElementById('eventQuestionBuilder');
+function addEventQuestionRow(question = '', type = 'text', required = true) {
+  const row = document.createElement('div'); row.className = 'form-grid'; row.style.cssText = 'margin-bottom:10px;align-items:end;';
+  row.innerHTML = `<div class="form-group"><label>Question</label><input class="form-control eq-question" value="${escapeHtml(question)}" placeholder="e.g. What is your department?"></div><div class="form-group"><label>Type</label><select class="form-control eq-type"><option value="text">Short answer</option><option value="textarea">Long answer</option><option value="email">Email</option><option value="number">Number</option><option value="date">Date</option><option value="url">Link / URL</option><option value="select">Multiple choice</option><option value="checkbox">Checkbox</option></select></div><div class="form-group" style="display:flex;gap:10px;align-items:center"><label><input type="checkbox" class="eq-required" ${required?'checked':''}> Required</label><button type="button" class="btn btn-danger btn-sm eq-remove">Remove</button></div>`;
+  row.querySelector('.eq-type').value = type;
+  row.querySelector('.eq-remove').onclick = () => row.remove();
+  eventQuestionBuilder.appendChild(row);
+}
+addEventQuestionRow();
+document.getElementById('addEventQuestion').onclick = () => addEventQuestionRow();
+
 document.getElementById('eventForm').onsubmit = async event => {
   event.preventDefault();
   try {
     await Api.createClubHeadEvent({
       title: eventTitle.value.trim(), category: eventCategory.value.trim(), date: eventDate.value,
       time: eventTime.value, endTime: eventEndTime.value, location: eventLocation.value.trim(),
-      capacity: Number(eventCapacity.value), price: Number(eventPrice.value), imageUrl: eventImageUrl.value.trim(), description: eventDescription.value.trim()
+      capacity: Number(eventCapacity.value), price: Number(eventPrice.value), imageUrl: eventImageUrl.value.trim(), description: eventDescription.value.trim(),
+      registrationDeadline: eventRegistrationDeadline.value, eligibility: eventEligibility.value.trim(),
+      customRegistrationQuestions: [...eventQuestionBuilder.querySelectorAll('.form-grid')].map(row => ({ question: row.querySelector('.eq-question')?.value.trim(), type: row.querySelector('.eq-type')?.value || 'text', required: row.querySelector('.eq-required')?.checked !== false })).filter(q => q.question)
     });
-    event.target.reset(); eventCapacity.value=100; eventPrice.value=0; showToast('Club event created and published.'); await loadAll();
+    event.target.reset(); eventCapacity.value=100; eventPrice.value=0; eventEligibility.value='All students'; eventQuestionBuilder.innerHTML=''; addEventQuestionRow(); showToast('Club event created and published.'); await loadAll();
   } catch (err) { showAlert(alertBox, err.message); }
 };
 

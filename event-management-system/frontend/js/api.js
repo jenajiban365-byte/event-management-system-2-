@@ -16,6 +16,9 @@ const Session = {
     localStorage.setItem('ems_token', token);
     localStorage.setItem('ems_user', JSON.stringify(user));
   },
+  setUser(user) {
+    localStorage.setItem('ems_user', JSON.stringify(user || {}));
+  },
   clear() {
     localStorage.removeItem('ems_token');
     localStorage.removeItem('ems_user');
@@ -104,9 +107,10 @@ const Api = {
   replyToSupportTicket: (id, message) => apiRequest(`/support/${id}/reply`, { method: 'POST', body: { message } }),
   updateSupportTicket: (id, status) => apiRequest(`/support/${id}/status`, { method: 'PUT', body: { status } }),
   getNotifications: () => apiRequest('/notifications/my'),
+  getUnreadNotificationCount: () => apiRequest('/notifications/unread-count'),
   markAllNotificationsRead: () => apiRequest('/notifications/read-all', { method: 'PUT' }),
   // The clubs endpoint is public, but include the token when a student is signed in so the backend can return isFollowing correctly after refresh.
-  getClubs: () => apiRequest('/clubs'),
+  getClubs: (query = '') => apiRequest(`/clubs${query}`),
   toggleClubFollow: (id) => apiRequest(`/clubs/${id}/follow`, { method: 'POST' }),
   getClub: (idOrSlug) => apiRequest(`/clubs/${encodeURIComponent(idOrSlug)}`, { auth: !!Session.getToken() }),
   getClubOpportunities: () => apiRequest('/clubs/opportunities', { auth: false }),
@@ -129,6 +133,67 @@ const Api = {
   updateClubHeadEvent: (id,payload) => apiRequest(`/club-head/events/${id}`, { method: 'PUT', body: payload }),
   deleteClubHeadEvent: (id) => apiRequest(`/club-head/events/${id}`, { method: 'DELETE' }),
   getClubHeadMembers: () => apiRequest('/club-head/members'),
+  getGroups: () => apiRequest('/groups'),
+  getGroup: (id) => apiRequest(`/groups/${encodeURIComponent(id)}`),
+  joinGroup: (id) => apiRequest(`/groups/${encodeURIComponent(id)}/join`, { method: 'POST' }),
+  leaveGroup: (id) => apiRequest(`/groups/${encodeURIComponent(id)}/leave`, { method: 'POST' }),
+  messageGroupMember: (groupId, memberId, message) => apiRequest(`/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(memberId)}/message`, { method: 'POST', body: { message } }),
+  getConversations: () => apiRequest('/messages/conversations'),
+  startConversation: (userId, groupId = '') => apiRequest('/messages/start', { method: 'POST', body: { userId, groupId } }),
+  getConversation: (id) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}`),
+  sendMessage: (id, text, extra = {}) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: { text, ...extra } }),
+  uploadChatAttachment: async (conversationId, file) => {
+    const headers = {
+      'Content-Type': file?.type || 'application/octet-stream',
+      'X-EventHub-File-Name': encodeURIComponent(file?.name || 'attachment'),
+      'X-EventHub-Conversation-Id': String(conversationId || '')
+    };
+    if (Session.getToken()) headers.Authorization = `Bearer ${Session.getToken()}`;
+    const res = await fetch('/api/media/chat-attachment', { method: 'POST', headers, body: file });
+    let data = null; try { data = await res.json(); } catch (_) {}
+    if (!res.ok) { const err = new Error(data?.message || `Upload failed with status ${res.status}`); err.status = res.status; throw err; }
+    return data;
+  },
+  uploadRegistrationAttachment: async (eventId, file) => {
+    const headers = {
+      'Content-Type': file?.type || 'application/octet-stream',
+      'X-EventHub-File-Name': encodeURIComponent(file?.name || 'registration-file'),
+      'X-EventHub-Event-Id': String(eventId || '')
+    };
+    if (Session.getToken()) headers.Authorization = `Bearer ${Session.getToken()}`;
+    const res = await fetch('/api/media/registration-attachment', { method: 'POST', headers, body: file });
+    let data = null; try { data = await res.json(); } catch (_) {}
+    if (!res.ok) { const err = new Error(data?.message || `Upload failed with status ${res.status}`); err.status = res.status; throw err; }
+    return data;
+  },
+  syncMessages: (id, after) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
+  editMessage: (messageId, text) => apiRequest(`/messages/messages/${encodeURIComponent(messageId)}`, { method: 'PUT', body: { text } }),
+  deleteMessage: (messageId) => apiRequest(`/messages/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }),
+  reactToMessage: (messageId, emoji) => apiRequest(`/messages/messages/${encodeURIComponent(messageId)}/reactions`, { method: 'POST', body: { emoji } }),
+  getChatDirectory: (q = '') => apiRequest(`/messages/directory${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  bulkUpdateOrganizerRegistrations: (ids, status) => apiRequest('/organizer/registrations/bulk-status', { method: 'PUT', body: { ids, status } }),
+  markConversationRead: (id) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}/read`, { method: 'PUT' }),
+  setTyping: (id, typing = true) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}/typing`, { method: 'POST', body: { typing } }),
+  muteConversation: (id, mute = true) => apiRequest(`/messages/conversations/${encodeURIComponent(id)}/mute`, { method: 'POST', body: { mute } }),
+  shareEventToChat: (conversationId, eventId) => apiRequest(`/messages/conversations/${encodeURIComponent(conversationId)}/share-event`, { method: 'POST', body: { eventId } }),
+  pingPresence: () => apiRequest('/messages/presence', { method: 'POST', body: {} }),
+  getUnreadChatCount: () => apiRequest('/messages/unread-count'),
+  getRegistrationForm: (eventId) => apiRequest(`/registration-forms/${encodeURIComponent(eventId)}`),
+  saveRegistrationForm: (eventId, payload) => apiRequest(`/registration-forms/${encodeURIComponent(eventId)}`, { method: 'PUT', body: payload }),
+  getPublicRegistrationForm: (eventId) => apiRequest(`/registration-forms/public/${encodeURIComponent(eventId)}`),
+  getEventBuddies: (eventId) => apiRequest(`/social/events/${encodeURIComponent(eventId)}/buddies`),
+  getCampusPulse: () => apiRequest('/social/campus-pulse'),
+  getEventStories: (eventId) => apiRequest(`/social/events/${encodeURIComponent(eventId)}/stories`),
+  createEventStory: (eventId, payload) => apiRequest(`/social/events/${encodeURIComponent(eventId)}/stories`, { method:'POST', body:payload }),
+  uploadEventStoryImage: async (eventId, file) => { const token=Session.getToken(); const res=await fetch(`/api/media/event-story`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':file.type||'application/octet-stream','X-EventHub-Event-Id':eventId,'X-EventHub-File-Name':encodeURIComponent(file.name||'moment')},body:file}); const data=await res.json().catch(()=>({})); if(!res.ok) throw new Error(data.message||'Could not upload event photo.'); return data; },
+  getPublicProfile: (userId) => apiRequest(`/social/users/${encodeURIComponent(userId)}`),
+  getSharedGroups: (userId) => apiRequest(`/social/users/${encodeURIComponent(userId)}/shared-groups`),
+  connectToEventBuddy: (userId, eventId) => apiRequest('/messages/start', { method: 'POST', body: { userId, eventId } }),
+  createGroupPost: (id, payload) => apiRequest(`/groups/${encodeURIComponent(id)}/posts`, { method: 'POST', body: payload }),
+  toggleGroupPostPin: (id, postId) => apiRequest(`/groups/${encodeURIComponent(id)}/posts/${encodeURIComponent(postId)}/pin`, { method: 'PUT' }),
+  deleteGroupPost: (id, postId) => apiRequest(`/groups/${encodeURIComponent(id)}/posts/${encodeURIComponent(postId)}`, { method: 'DELETE' }),
+  getClubHeadRegistrations: (eventId) => apiRequest(`/club-head/events/${encodeURIComponent(eventId)}/registrations`),
+  getClubHeadRegistrationsCsvUrl: (eventId) => `/api/club-head/events/${encodeURIComponent(eventId)}/registrations.csv`,
   getAdminClubs: () => apiRequest('/admin/clubs'),
   createAdminClub: (payload) => apiRequest('/admin/clubs', { method: 'POST', body: payload }),
   updateAdminClub: (id,payload) => apiRequest(`/admin/clubs/${id}`, { method: 'PUT', body: payload }),
@@ -162,6 +227,7 @@ const Api = {
   createOrganizerEvent: (payload) => apiRequest('/organizer/events', { method: 'POST', body: payload }),
   updateOrganizerEvent: (id, payload) => apiRequest(`/organizer/events/${id}`, { method: 'PUT', body: payload }),
   getOrganizerRegistrations: (id) => apiRequest(`/organizer/events/${id}/registrations`),
+  getOrganizerRegistrationsCsvUrl: (id) => `/api/organizer/events/${encodeURIComponent(id)}/registrations.csv`,
   updateOrganizerRegistration: (id, status) => apiRequest(`/organizer/registrations/${id}/status`, { method: 'PUT', body: { status } }),
   announceOrganizerEvent: (id, payload) => apiRequest(`/organizer/events/${id}/announce`, { method: 'POST', body: payload }),
   checkInAttendee: (code) => apiRequest('/organizer/check-in', { method: 'POST', body: { code } }),
@@ -175,7 +241,7 @@ const Api = {
   deleteCategory: (id) => apiRequest(`/categories/${id}`, { method: 'DELETE' }),
 
   // Bookings
-  createBooking: (eventId) => apiRequest('/bookings', { method: 'POST', body: { eventId } }),
+  createBooking: (eventId, registrationAnswers = []) => apiRequest('/bookings', { method: 'POST', body: { eventId, registrationAnswers } }),
   getMyBookings: () => apiRequest('/bookings/my'),
   cancelBooking: (id) => apiRequest(`/bookings/${id}/cancel`, { method: 'PUT' }),
   getAllBookings: () => apiRequest('/bookings'),
@@ -189,6 +255,22 @@ const Api = {
   // Users / profile
   getProfile: () => apiRequest('/users/me'),
   updateProfile: (payload) => apiRequest('/users/me', { method: 'PUT', body: payload }),
+  uploadProfilePhoto: async (file) => {
+    const headers = {
+      'Content-Type': file?.type || 'application/octet-stream',
+      'X-EventHub-File-Name': encodeURIComponent(file?.name || 'profile-photo')
+    };
+    if (Session.getToken()) headers.Authorization = `Bearer ${Session.getToken()}`;
+    const res = await fetch('/api/media/avatar', { method: 'POST', headers, body: file });
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) {
+      const err = new Error(data?.message || `Upload failed with status ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
   getAllUsers: () => apiRequest('/users'),
   updateUser: (id, payload) => apiRequest(`/users/${id}`, { method: 'PUT', body: payload }),
   deleteUser: (id) => apiRequest(`/users/${id}`, { method: 'DELETE' }),
@@ -199,6 +281,12 @@ const Api = {
   updateAdminUserRole: (id,payload) => apiRequest(`/admin/users/${id}/role`, { method: 'PUT', body: payload }),
   geocodeAddress: (address) => apiRequest(`/geocode?address=${encodeURIComponent(address)}`)
 };
+
+// Make the shared session/API objects available to page-level modules.
+// Campus Chat avatar studio runs in its own IIFE and accesses these through
+// window, while the rest of api.js intentionally uses the lexical bindings.
+window.Session = Session;
+window.Api = Api;
 
 
 // ---------- Location helpers ----------
@@ -454,6 +542,25 @@ function downloadCalendarEvent(event) {
   document.body.appendChild(link); link.click(); link.remove(); const url = link.href; setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function eventRegistrationUrl(event) {
+  return new URL(event?.registrationForm?.enabled ? `smart-form.html?event=${encodeURIComponent(event.id)}` : `event-form.html?id=${encodeURIComponent(event.id)}`, window.location.href).href;
+}
+
+async function shareRegistrationLink(event) {
+  const url = eventRegistrationUrl(event);
+  const shareData = {
+    title: `Register: ${event.title}`,
+    text: `Register for ${event.title} on EventHub — ${formatDate(event.date)} at ${event.time || ''}.`,
+    url
+  };
+  if (navigator.share) {
+    await navigator.share(shareData);
+    return 'shared';
+  }
+  await navigator.clipboard.writeText(url);
+  return 'copied';
+}
+
 async function shareEvent(event) {
   const shareData = {
     title: event.title,
@@ -517,49 +624,110 @@ function redirectIfLoggedIn() {
 initThemeSupport();
 
 // ---------- Google Sign-In ----------
-// Loads the Google Identity Services script (if needed), then renders a
-// "Continue with Google" button into the given container element.
-// onSuccess receives the parsed { token, user } response from our backend.
+// Google Identity Services must be initialized exactly once per page. Button
+// rendering may happen more than once (for example when the login card changes
+// width or the user changes role), but initialize() must never be called again.
+const googleAuthState = window.__eventHubGoogleAuthState || {
+  initialized: false,
+  initializing: null,
+  clientId: null,
+  callback: null,
+  containers: new Map(),
+  observers: new Map()
+};
+window.__eventHubGoogleAuthState = googleAuthState;
+
+function loadGoogleIdentityServices() {
+  if (window.google?.accounts?.id) return Promise.resolve();
+  if (googleAuthState.loading) return googleAuthState.loading;
+
+  googleAuthState.loading = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true });
+      existing.addEventListener('error', () => reject(new Error('Google Sign-In could not be loaded.')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Google Sign-In could not be loaded.'));
+    document.head.appendChild(script);
+  });
+  return googleAuthState.loading;
+}
+
 async function initGoogleSignIn(containerId, onSuccess, onError, getRequestedRole) {
   try {
     const { googleClientId } = await Api.getPublicConfig();
-    if (!googleClientId) return; // Google Sign-In not configured on the server; just skip it
+    if (!googleClientId) return; // Google Sign-In is optional when not configured.
 
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    function render() {
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: async (response) => {
-          try {
-            const data = await Api.googleLogin(response.credential, typeof getRequestedRole === 'function' ? getRequestedRole() : undefined);
-            onSuccess(data);
-          } catch (err) {
-            onError && onError(err);
-          }
-        }
-      });
-      window.google.accounts.id.renderButton(container, {
-        theme: 'outline',
-        size: 'large',
-        width: Math.min(container.clientWidth || 400, 400),
-        shape: 'rectangular'
-      });
+    googleAuthState.clientId = googleAuthState.clientId || googleClientId;
+    if (googleAuthState.clientId !== googleClientId) {
+      console.error('[Google Auth] Client ID changed during this page lifetime; reload required.');
+      return;
     }
 
-    if (window.google && window.google.accounts) {
-      render();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = render;
-      document.head.appendChild(script);
+    googleAuthState.callback = async (response) => {
+      try {
+        const data = await Api.googleLogin(
+          response.credential,
+          typeof getRequestedRole === 'function' ? getRequestedRole() : undefined
+        );
+        onSuccess(data);
+      } catch (err) {
+        onError && onError(err);
+      }
+    };
+
+    await loadGoogleIdentityServices();
+
+    if (!googleAuthState.initialized) {
+      if (!window.google?.accounts?.id) throw new Error('Google Sign-In is unavailable.');
+      window.google.accounts.id.initialize({
+        client_id: googleAuthState.clientId,
+        callback: (response) => googleAuthState.callback?.(response),
+        auto_select: false,
+        cancel_on_tap_outside: true
+      });
+      googleAuthState.initialized = true;
+      console.info('[Google Auth] Identity Services initialized once.');
     }
+
+    const renderButton = () => {
+      if (!googleAuthState.initialized || !window.google?.accounts?.id || !container.isConnected) return;
+      const width = Math.max(220, Math.min(Math.floor(container.getBoundingClientRect().width || 400), 400));
+      container.innerHTML = '';
+      window.google.accounts.id.renderButton(container, {
+        theme: 'outline', size: 'large', width, shape: 'rectangular', text: 'signin_with'
+      });
+    };
+
+    // Expose ONLY button rendering for role-picker/resize updates. It does not
+    // initialize GIS again.
+    window.__eventHubGoogleRenderers = window.__eventHubGoogleRenderers || {};
+    window.__eventHubGoogleRenderers[containerId] = renderButton;
+    googleAuthState.containers.set(containerId, renderButton);
+
+    if (!googleAuthState.observers.has(containerId) && typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        if (container.offsetWidth > 0) {
+          clearTimeout(container.__googleResizeTimer);
+          container.__googleResizeTimer = setTimeout(renderButton, 80);
+        }
+      });
+      observer.observe(container);
+      googleAuthState.observers.set(containerId, observer);
+    }
+
+    renderButton();
   } catch (err) {
-    // Silently skip Google Sign-In if the config request fails (e.g. offline)
+    console.warn('[Google Auth] Sign-In unavailable:', err.message || err);
   }
 }
 

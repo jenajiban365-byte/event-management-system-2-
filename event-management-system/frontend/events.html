@@ -10,7 +10,13 @@
 <meta property="og:type" content="website" />
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#fffaf0" />
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/style.css?v=37" />
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+<link rel="stylesheet" href="css/eventhub-premium.css?v=56">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -62,6 +68,19 @@
           </select>
         </div>
         <div class="filter-group">
+          <label for="eventTypeFilter">Type</label>
+          <select id="eventTypeFilter" class="form-control filter-select" aria-label="Filter by event type">
+            <option value="">Any type</option>
+            <option value="event">Event</option>
+            <option value="workshop">Workshop</option>
+            <option value="conference">Conference</option>
+            <option value="competition">Competition</option>
+            <option value="seminar">Seminar</option>
+            <option value="fest">Fest</option>
+            <option value="sports">Sports</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label for="sortFilter">Sort</label>
           <select id="sortFilter" class="form-control filter-select" aria-label="Sort events">
             <option value="date">Date (soonest)</option>
@@ -79,6 +98,23 @@
 
   <section class="category-chips-section" aria-labelledby="categoryChipsTitle">
     <div class="category-chips-container" id="categoryChips" role="tablist" aria-label="Event categories"></div>
+  </section>
+
+
+  <section class="campus-pulse" aria-label="Campus pulse">
+    <div class="campus-pulse-head"><div><div class="eyebrow">CAMPUS PULSE</div><h2>What’s happening around you.</h2><p>One calm rail for events, people and communities — no noisy feed.</p></div><span class="campus-pulse-live">● Live</span></div>
+    <div class="pulse-tabs" role="tablist" aria-label="Campus pulse sections">
+      <button class="pulse-tab active" data-pulse="forYou">For you</button><button class="pulse-tab" data-pulse="myWeek">My week</button><button class="pulse-tab" data-pulse="happening">Happening now</button><button class="pulse-tab" data-pulse="people">People</button><button class="pulse-tab" data-pulse="clubs">Club pulse</button>
+    </div>
+    <div id="pulseRail" class="pulse-rail" aria-live="polite"><div class="pulse-loading">Loading campus pulse…</div></div>
+  </section>
+
+  <section class="campus-spotlight" aria-labelledby="campusSpotlightTitle">
+    <div class="campus-spotlight-head">
+      <div><span class="campus-spotlight-kicker">CAMPUS SPOTLIGHT</span><h2 id="campusSpotlightTitle">Good things happening beyond the feed.</h2><p>Official-style campus announcements, workshops and mentorship drops — kept small so Discover still feels like Discover.</p></div>
+      <span class="campus-spotlight-note">Swipe on mobile →</span>
+    </div>
+    <div class="campus-spotlight-rail" id="campusSpotlightRail" aria-live="polite"></div>
   </section>
 
   <section id="resultsSection" class="results-section" aria-labelledby="resultsTitle">
@@ -137,6 +173,7 @@
   const dateFilter = document.getElementById('dateFilter');
   const priceFilter = document.getElementById('priceFilter');
   const availabilityFilter = document.getElementById('availabilityFilter');
+  const eventTypeFilter = document.getElementById('eventTypeFilter');
   const sortFilter = document.getElementById('sortFilter');
   const categoryChips = document.getElementById('categoryChips');
   const resultsSummary = document.getElementById('resultsSummary');
@@ -149,7 +186,77 @@
   const activeFiltersRow = document.getElementById('activeFiltersRow');
   const activeFilterChips = document.getElementById('activeFilterChips');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  const campusSpotlightRail = document.getElementById('campusSpotlightRail');
 
+  const CAMPUS_SPOTLIGHTS = [
+    {
+      id:'sih-workshop-2026',
+      badge:'SIH WORKSHOP',
+      partner:'GDGoC ITER × SIH 2026',
+      title:'Ideate. Create. Impact.',
+      image:'assets/campus/sih-workshop-2026.png',
+      meta:['15 Aug 2026','7:00 PM','Online'],
+      summary:'A practical workshop for students preparing to turn an idea into a strong SIH 2026 submission.',
+      highlights:[['Team formation','Find the right teammates and build strong teams.'],['Problem + solution','Learn how to analyse problems and shape an impactful solution.'],['Technical guidance','Get help with tools, stack and development.'],['Project + pitch','Polish the project and present it clearly.'],['End-to-end support','Guidance from idea to submission and beyond.']],
+      copy:`SIH 2026 ka form toh bhar diya, par aage kya? Roadmap abhi bhi blank hai? 💀⏳
+
+Don’t let a great idea crash with an Error 404! 😂
+
+Get the roadmap from idea lock to final upload, learn from past finalists, and make your pitch judge-ready.
+
+Date: Saturday, 15 Aug 2026
+Time: 7:00 PM
+Venue: Link will be shared in your email IDs.`,
+      external:'https://forms.gle/PWTottEQxw6cZi5f7',
+      social:'https://www.instagram.com/p/Db-Mi2MN5xt/?igsh=dmJmbHBtODlqNnJp'
+    },
+    {
+      id:'sih-mentorship-2026',
+      badge:'MENTORSHIP',
+      partner:'Coding Ninjas ITER × SIH 2026',
+      title:'Great ideas need the right guidance.',
+      image:'assets/campus/sih-mentorship-2026.png',
+      meta:['SIH 2026','Mentorship','Team support'],
+      summary:'A focused mentorship track for problem selection, technical execution, team strategy and pitching.',
+      highlights:[['Expert mentorship','Shape your idea with experienced mentors.'],['Problem solving','Identify real-world problems and build impactful solutions.'],['Technical guidance','Get support with tech stack and project execution.'],['Pitch + presentation','Make the idea clear, sharp and judge-ready.'],['End-to-end support','Stay supported from idea to submission.']],
+      copy:`SIH 2026 announce ho gaya… aur tumhari team abhi bhi: “Bro ek killer idea sochte hain…” 👀
+
+SIH needs the right problem, right approach and right execution. This mentorship track focuses on finding and analysing the right problem statement, building an impactful technical solution, creating a strong team strategy and pitching the idea like a winner.
+
+Because 2 AM panic coding + random Google searches is not a strategy. 💀`,
+      external:'https://forms.gle/EtkfCXXyovn9S3QX6',
+      social:'https://www.instagram.com/cn.10x.iter',
+      community:'https://discord.gg/7EnPAQRjcY'
+    }
+  ];
+
+  function renderCampusSpotlight(){
+    if(!campusSpotlightRail) return;
+    campusSpotlightRail.innerHTML=CAMPUS_SPOTLIGHTS.map(item=>`<article class="campus-spotlight-card">
+      <img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">
+      <div class="campus-spotlight-copy">
+        <div><div class="badge-row"><span class="spotlight-badge">${escapeHtml(item.badge)}</span><span class="spotlight-badge">${escapeHtml(item.partner)}</span></div>
+        <h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.summary)}</p></div>
+        <div><div class="campus-spotlight-meta">${item.meta.map(x=>`<span>${escapeHtml(x)}</span>`).join(' · ')}</div>
+        <div class="campus-spotlight-actions"><button class="btn btn-primary btn-sm" type="button" data-spotlight="${item.id}">View details</button><a class="btn btn-outline btn-sm" href="${item.external}" target="_blank" rel="noopener">Register ↗</a></div></div>
+      </div></article>`).join('');
+    campusSpotlightRail.querySelectorAll('[data-spotlight]').forEach(btn=>btn.addEventListener('click',()=>openSpotlight(btn.dataset.spotlight)));
+  }
+
+  function openSpotlight(id){
+    const item=CAMPUS_SPOTLIGHTS.find(x=>x.id===id); if(!item) return;
+    const modal=document.createElement('div'); modal.className='spotlight-modal-backdrop'; modal.innerHTML=`<div class="spotlight-modal-wrap"><div class="spotlight-modal" role="dialog" aria-modal="true" aria-labelledby="spotlightModalTitle">
+      <button class="spotlight-modal-close" type="button" aria-label="Close">×</button>
+      <div class="spotlight-modal-hero"><img src="${item.image}" alt="${escapeHtml(item.title)}"><div class="spotlight-modal-hero-copy"><span class="spotlight-badge">${escapeHtml(item.partner)}</span><h2 id="spotlightModalTitle">${escapeHtml(item.title)}</h2><p>${escapeHtml(item.summary)}</p></div></div>
+      <div class="spotlight-modal-body"><h3>What you’ll get</h3><div class="spotlight-highlight-grid">${item.highlights.map(([a,b])=>`<div class="spotlight-highlight"><strong>${escapeHtml(a)}</strong><span>${escapeHtml(b)}</span></div>`).join('')}</div><h3>Announcement</h3><div class="spotlight-full-copy">${escapeHtml(item.copy)}</div><div class="campus-spotlight-actions" style="margin-top:18px"><a class="btn btn-primary" href="${item.external}" target="_blank" rel="noopener">Register now ↗</a>${item.community?`<a class="btn btn-outline" href="${item.community}" target="_blank" rel="noopener">Join Discord ↗</a>`:''}<a class="btn btn-outline" href="${item.social}" target="_blank" rel="noopener">Instagram ↗</a></div></div>
+    </div></div>`;
+    document.body.appendChild(modal); document.body.style.overflow='hidden';
+    const close=()=>{modal.remove();document.body.style.overflow='';};
+    modal.querySelector('.spotlight-modal-close').onclick=close; modal.addEventListener('click',e=>{if(e.target===modal)close();});
+    const esc=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',esc);}}; document.addEventListener('keydown',esc);
+  }
+
+  renderCampusSpotlight();
 
   let selectedCategory = '';
   let userLocation = null;
@@ -186,6 +293,7 @@
     if (dateFilter.value) chips.push({ key: 'date', label: FILTER_LABELS.date[dateFilter.value] || dateFilter.value });
     if (priceFilter.value) chips.push({ key: 'price', label: FILTER_LABELS.price[priceFilter.value] });
     if (availabilityFilter.value) chips.push({ key: 'availability', label: FILTER_LABELS.availability[availabilityFilter.value] });
+    if (eventTypeFilter.value) chips.push({ key: 'eventType', label: eventTypeFilter.options[eventTypeFilter.selectedIndex].text });
     if (sortFilter.value !== 'date') chips.push({ key: 'sort', label: FILTER_LABELS.sort[sortFilter.value] });
     if (nearMeActive) chips.push({ key: 'near', label: 'Near me' });
     return chips;
@@ -197,6 +305,7 @@
     if (key === 'date') dateFilter.value = '';
     if (key === 'price') priceFilter.value = '';
     if (key === 'availability') availabilityFilter.value = '';
+    if (key === 'eventType') eventTypeFilter.value = '';
     if (key === 'sort') sortFilter.value = 'date';
     if (key === 'near') { nearMeRequestId += 1; userLocation = null; nearMeActive = false; clearLocationBtn.classList.add('hidden'); }
   }
@@ -249,6 +358,7 @@
     if (searchQuery) params.set('search', searchQuery);
     if (priceFilter.value) params.set('price', priceFilter.value);
     if (availabilityFilter.value) params.set('availability', availabilityFilter.value);
+    if (eventTypeFilter.value) params.set('eventType', eventTypeFilter.value);
     if (sortFilter.value && sortFilter.value !== 'date') params.set('sort', sortFilter.value);
     const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const now = new Date();
@@ -389,7 +499,7 @@
 
   async function loadEvents() {
     renderActiveFilters();
-    const hasIntent = Boolean(searchQuery || selectedCategory || dateFilter.value || priceFilter.value || availabilityFilter.value || sortFilter.value !== 'date' || nearActive);
+    const hasIntent = Boolean(searchQuery || selectedCategory || dateFilter.value || priceFilter.value || availabilityFilter.value || eventTypeFilter.value || sortFilter.value !== 'date' || nearMeActive);
     if (!hasIntent) {
       clearAlert(alertBox);
       resultsSection.classList.remove('hidden-results');
@@ -454,7 +564,7 @@
   }, 300);
 
   clearFiltersBtn.addEventListener('click', () => {
-    ['search','category','date','price','availability','sort','near'].forEach(clearFilter);
+    ['search','category','date','price','availability','eventType','sort','near'].forEach(clearFilter);
     locationStatus.textContent = 'Use your current location only when you want nearby sorting.';
     nearMeBtn.textContent = '📍 Near Me';
     loadEvents();
@@ -470,6 +580,7 @@
   dateFilter.addEventListener('change', loadEvents);
   priceFilter.addEventListener('change', loadEvents);
   availabilityFilter.addEventListener('change', loadEvents);
+  eventTypeFilter.addEventListener('change', loadEvents);
   sortFilter.addEventListener('change', loadEvents);
 
   nearMeBtn.addEventListener('click', async () => {
@@ -509,6 +620,20 @@
   loadCategories();
   loadEvents();
   }
+</script>
+
+<script>
+(async function loadCampusPulse(){
+  const rail=document.getElementById('pulseRail'); if(!rail) return;
+  let pulse={}; let active='forYou';
+  const escP=s=>escapeHtml(String(s||''));
+  const eventCard=e=>`<a class="pulse-card pulse-event" href="event-details.html?id=${encodeURIComponent(e.id||e._id)}"><div class="pulse-card-top"><span>${escP(e.category||'Event')}</span><b>${e.date===new Date().toISOString().slice(0,10)?'TODAY':formatDate(e.date)}</b></div><h3>${escP(e.title)}</h3><p>📍 ${escP(e.location||'Campus')}</p><small>${Math.max(0,(e.capacity||0)-(e.bookedCount||0))} spots left</small></a>`;
+  const personCard=u=>`<button class="pulse-card pulse-person" data-pulse-user="${escP(u.id||u._id)}"><div class="pulse-avatar">${u.avatarUrl?`<img src="${escP(u.avatarUrl)}" alt="">`:escP((u.name||'S').charAt(0))}</div><div><h3>${escP(u.name||'Student')}</h3><p>${escP([u.department,u.year].filter(Boolean).join(' · ')||'EventHub student')}</p><small>Meet through campus</small></div></button>`;
+  const clubCard=c=>`<a class="pulse-card pulse-club" href="club-details.html?id=${encodeURIComponent(c.id||c._id)}"><div class="pulse-avatar">${c.logoUrl?`<img src="${escP(c.logoUrl)}" alt="">`:escP((c.name||'C').charAt(0))}</div><div><h3>${escP(c.shortName||c.name)}</h3><p>${escP(c.category||'Campus community')}</p><small>${c.followers||0} followers</small></div></a>`;
+  function render(){ let arr=[]; if(active==='forYou') arr=pulse.forYou||[]; if(active==='myWeek') arr=pulse.myWeek||[]; if(active==='happening') arr=pulse.happeningNow||[]; if(active==='people') arr=pulse.peopleYouMayKnow||[]; if(active==='clubs') arr=pulse.clubPulse||[]; if(!arr.length){rail.innerHTML=`<div class="pulse-empty">Nothing here yet. Explore an event, join a group and EventHub will make this space smarter.</div>`;return;} rail.innerHTML=arr.map(x=>active==='people'?personCard(x):active==='clubs'?clubCard(x):eventCard(x)).join(''); rail.querySelectorAll('[data-pulse-user]').forEach(b=>b.onclick=async()=>{try{const r=await Api.startConversation(b.dataset.pulseUser); location.href=`chat.html?conversation=${encodeURIComponent(r.conversation?.id||r.conversation?._id||'')}`;}catch(e){showToast(e.message,'error');}}); }
+  try{pulse=await Api.getCampusPulse(); render();}catch(e){rail.innerHTML=`<div class="pulse-empty">Campus pulse is taking a moment to wake up.</div>`;}
+  document.querySelectorAll('.pulse-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.pulse-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');active=t.dataset.pulse;render();}));
+})();
 </script>
 </body>
 </html>

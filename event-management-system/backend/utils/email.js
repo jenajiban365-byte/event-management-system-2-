@@ -54,6 +54,22 @@ const sendPasswordResetEmail = async (name, email, token) => {
   await sendEmail({ to: email, toName: name, subject: 'Reset your EventHub password', htmlContent });
 };
 
+
+const sendBookingConfirmationEmail = async (name, email, event, booking) => {
+  const safeTitle = htmlEscape(event.title);
+  const safeDate = htmlEscape(event.date);
+  const safeTime = htmlEscape(event.time);
+  const safeLocation = htmlEscape(event.location);
+  const safeCode = htmlEscape(booking.checkInCode || '');
+  const htmlContent = baseEmail(
+    'REGISTRATION CONFIRMED',
+    `You're going to ${safeTitle}`,
+    `<p>Hello ${htmlEscape(name)},</p><p>Your EventHub registration is confirmed.</p><div style="margin:20px 0;padding:18px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px"><strong>${safeTitle}</strong><br><span style="color:#52525b">${safeDate} · ${safeTime}<br>${safeLocation}</span>${safeCode ? `<br><br><strong>Check-in code:</strong> ${safeCode}` : ''}</div><p>Keep this email handy on event day. Your check-in code is also available in My Bookings.</p>`,
+    'View My Booking', `${appUrl()}/my-bookings.html`
+  );
+  await sendEmail({ to: email, toName: name, subject: `You're registered: ${event.title}`, htmlContent });
+};
+
 const sendWaitlistPromotedEmail = async (name, email, event) => {
   const url = `${appUrl()}/event-details.html?id=${encodeURIComponent(event.id)}`;
   const safeTitle = htmlEscape(event.title);
@@ -84,4 +100,4 @@ const sendContactFormEmail = async (name, email, subject, message) => {
   });
 };
 
-module.exports = { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendWaitlistPromotedEmail, sendContactFormEmail };
+module.exports = { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendWaitlistPromotedEmail, sendContactFormEmail };

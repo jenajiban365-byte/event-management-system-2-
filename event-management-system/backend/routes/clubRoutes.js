@@ -166,10 +166,19 @@ router.get('/:idOrSlug', async (req, res) => {
     const pastEvents = await Event.find({ club: club._id, status: 'published', date: { $lt: nowStr } }).sort({ date: -1 });
     const announcements = await Announcement.find({ club: club._id }).sort({ createdAt: -1 });
     const opportunities = await Opportunity.find({ club: club._id, status: 'open' }).sort({ createdAt: -1 });
-    const clubHeads = await User.find({ _id: { $in: club.clubHeads || [] }, status: 'active' })
-      .select('name email avatarUrl department year');
+    const configuredHeadIds = Array.isArray(club.clubHeads) ? club.clubHeads.map((id) => String(id)) : [];
+    const clubHeads = await User.find({
+      $or: [
+        { _id: { $in: configuredHeadIds } },
+        { clubId: club._id, role: 'club_head' }
+      ],
+      status: 'active'
+    }).select('name email avatarUrl department year role').lean();
+    const uniqueClubHeads = Array.from(
+      new Map(clubHeads.map((head) => [String(head._id), head])).values()
+    );
     const members = await User.find({ _id: { $in: club.memberIds || [] }, status: 'active' })
-      .select('name email avatarUrl department year');
+      .select('name email avatarUrl department year role');
 
     const cObj = club.toObject();
     cObj.upcomingEventsCount = upcomingEvents.length;
@@ -182,7 +191,7 @@ router.get('/:idOrSlug', async (req, res) => {
       pastEvents,
       announcements,
       opportunities,
-      clubHeads,
+      clubHeads: uniqueClubHeads,
       members
     });
   } catch (err) {

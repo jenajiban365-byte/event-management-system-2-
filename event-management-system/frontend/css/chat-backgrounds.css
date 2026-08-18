@@ -1,0 +1,92 @@
+/* EventHub Chat Background Studio — optional, local-only, no effect on messages/theme/avatar */
+.ehc-bg-studio-scrim{position:fixed;inset:0;z-index:10050;background:rgba(9,16,28,.58);backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px}
+.ehc-bg-studio{width:min(760px,96vw);max-height:min(760px,92vh);overflow:auto;background:#fffdf7;border:1px solid #d8e0e8;border-radius:26px;box-shadow:0 28px 80px -30px rgba(0,0,0,.5);padding:22px}
+.ehc-bg-studio header{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.ehc-bg-studio h3{margin:4px 0 5px;font-size:1.45rem;color:#0d1b2a}
+.ehc-bg-studio p{margin:0;color:#687789;font-size:.84rem;line-height:1.5}
+.ehc-bg-close{width:40px;height:40px;border-radius:13px;border:1px solid #d7dfe7;background:#fff;cursor:pointer;font-size:1.2rem}
+.ehc-bg-kicker{font-size:.65rem;letter-spacing:.15em;font-weight:800;color:#6c5ce7;text-transform:uppercase}
+.ehc-bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.ehc-bg-choice{position:relative;min-width:0;border:1px solid #d9e1e9;background:#fff;border-radius:17px;padding:7px;cursor:pointer;text-align:left;transition:.16s ease;box-shadow:0 5px 16px -14px rgba(13,27,42,.7)}
+.ehc-bg-choice:hover{transform:translateY(-2px);border-color:#7c5cff;box-shadow:0 10px 22px -16px rgba(108,92,231,.55)}
+.ehc-bg-choice.on{border:2px solid #6c5ce7;padding:6px;box-shadow:0 10px 24px -14px rgba(108,92,231,.55)}
+.ehc-bg-preview{display:block;width:100%;height:88px;border-radius:12px;border:1px solid rgba(13,27,42,.08);overflow:hidden;position:relative;flex:none;background-color:#f4f7fb}
+.ehc-bg-preview:after{content:"";position:absolute;inset:auto 8px 8px 8px;height:18px;border-radius:8px;background:rgba(255,255,255,.72);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.ehc-bg-choice strong{display:block;margin:8px 4px 1px;font-size:.78rem;color:#17202b}
+.ehc-bg-choice small{display:block;margin:0 4px 3px;color:#7a8794;font-size:.64rem}
+.ehc-bg-studio footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:17px;padding-top:15px;border-top:1px solid #e2e7ec}
+.ehc-bg-reset{border:1px solid #ccd6df;background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+.ehc-bg-done{border:1px solid #162131;background:#ffb82e;border-radius:12px;padding:10px 17px;font-weight:800;cursor:pointer;box-shadow:3px 4px 0 #162131}
+
+/* Built-in backgrounds. These are CSS-only, so they work offline and on Render. */
+.ehc-bg-default{background:#f4f7fb}
+.ehc-bg-aurora{background:radial-gradient(circle at 15% 20%,rgba(108,92,231,.32),transparent 34%),radial-gradient(circle at 85% 25%,rgba(20,184,166,.34),transparent 35%),radial-gradient(circle at 50% 90%,rgba(255,184,46,.20),transparent 38%),linear-gradient(135deg,#f7f3ff,#eafaf8 55%,#fff8e8)}
+.ehc-bg-chrome{background:radial-gradient(circle at 25% 28%,#fff 0 4%,#9aa6b2 11%,transparent 12%),radial-gradient(circle at 72% 65%,#fff 0 5%,#6f7b88 13%,transparent 14%),linear-gradient(135deg,#e7ebef,#737e8a 42%,#f8fafc 55%,#5f6975 78%,#dce2e7)}
+.ehc-bg-cyber{background-color:#0a1020;background-image:linear-gradient(rgba(0,255,196,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(132,92,255,.13) 1px,transparent 1px),radial-gradient(circle at 20% 20%,rgba(0,255,196,.2),transparent 24%);background-size:28px 28px,28px 28px,100% 100%}
+.ehc-bg-iridescent{background:linear-gradient(125deg,#ffb7d8,#c7b6ff 28%,#a9eaff 50%,#b7f5d4 68%,#ffe5a7 84%,#ffb7d8);background-size:220% 220%;}
+.ehc-bg-pixel{background-color:#16213e;background-image:linear-gradient(90deg,rgba(255,255,255,.05) 50%,transparent 50%),linear-gradient(rgba(255,255,255,.04) 50%,transparent 50%),linear-gradient(180deg,rgba(93,190,255,.2),transparent 50%,rgba(20,184,166,.15));background-size:16px 16px,16px 16px,100% 100%}
+.ehc-bg-terminal{background:#07110b;background-image:repeating-linear-gradient(0deg,rgba(55,255,126,.07) 0,rgba(55,255,126,.07) 1px,transparent 1px,transparent 5px),linear-gradient(90deg,transparent 0 12%,rgba(55,255,126,.08) 12% 12.2%,transparent 12.2% 100%);box-shadow:inset 0 0 70px rgba(55,255,126,.08)}
+.ehc-bg-vaporwave{background:linear-gradient(180deg,#30206d 0 45%,#ed5fa8 46%,#ffb26b 65%,#26184f 66%);background-image:linear-gradient(rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(180deg,#30206d 0 45%,#ed5fa8 46%,#ffb26b 65%,#26184f 66%);background-size:22px 22px,22px 22px,100% 100%;background-position:center bottom,center bottom,0 0}
+.ehc-bg-doodle{background-color:#fff9ed;background-image:radial-gradient(circle,#151c27 1.4px,transparent 1.5px),radial-gradient(circle,#ff5c8a 1.5px,transparent 1.6px),linear-gradient(28deg,transparent 45%,rgba(108,92,231,.13) 46% 54%,transparent 55%);background-size:31px 31px,47px 47px,73px 73px;background-position:4px 7px,15px 19px,0 0}
+.ehc-bg-ocean{background:radial-gradient(circle at 20% 25%,rgba(255,255,255,.42),transparent 15%),radial-gradient(circle at 75% 65%,rgba(20,184,166,.25),transparent 23%),linear-gradient(145deg,#dff7ff,#9fd8ec 48%,#0f6685)}
+.ehc-bg-midnight{background:radial-gradient(circle at 50% 10%,rgba(124,92,255,.26),transparent 28%),radial-gradient(circle at 20% 80%,rgba(0,143,213,.18),transparent 25%),#0b1220;background-image:radial-gradient(circle,rgba(255,255,255,.55) 1px,transparent 1.4px),radial-gradient(circle,rgba(124,92,255,.45) 1px,transparent 1.4px),radial-gradient(circle at 50% 10%,rgba(124,92,255,.26),transparent 28%),#0b1220;background-size:43px 43px,71px 71px,100% 100%,100% 100%}
+.ehc-bg-sunset{background:radial-gradient(circle at 50% 95%,#ffcf6b 0 5%,transparent 6%),linear-gradient(180deg,#2b2059,#7148a9 42%,#ff7a72 68%,#ffd18a)}
+.ehc-bg-sakura{background-color:#fff5fa;background-image:radial-gradient(circle at 18% 25%,rgba(255,92,138,.24) 0 5px,transparent 6px),radial-gradient(circle at 72% 35%,rgba(255,184,46,.2) 0 4px,transparent 5px),radial-gradient(circle at 44% 78%,rgba(124,92,255,.18) 0 5px,transparent 6px);background-size:92px 92px,127px 127px,111px 111px}
+.ehc-bg-blueprint{background-color:#102b55;background-image:linear-gradient(rgba(122,195,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(122,195,255,.14) 1px,transparent 1px),linear-gradient(rgba(122,195,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(122,195,255,.05) 1px,transparent 1px);background-size:36px 36px,36px 36px,9px 9px,9px 9px}
+.ehc-bg-candy{background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.65),transparent 20%),linear-gradient(135deg,#ffd3e4,#d9d2ff 40%,#bdf4ee 70%,#fff0b8)}
+.ehc-bg-noir{background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.08),transparent 22%),linear-gradient(135deg,#0f1720,#1e293b 45%,#080b11);}
+
+/* The stream is the only area affected. Header/composer stay theme-controlled. */
+.ehc-app .ehc-stream[data-chat-bg="chrome"]{background-image:radial-gradient(circle at 15% 18%,rgba(255,255,255,.72) 0 7%,transparent 7.5%),radial-gradient(circle at 78% 65%,rgba(255,255,255,.6) 0 8%,transparent 8.5%),linear-gradient(135deg,#e9edf1,#7d8792 43%,#fafbfc 56%,#66717d 80%,#dce2e7)!important}
+.ehc-app .ehc-stream[data-chat-bg="cyber"]{background-color:#080f1e!important;background-image:linear-gradient(rgba(0,255,196,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(132,92,255,.11) 1px,transparent 1px),radial-gradient(circle at 80% 10%,rgba(0,255,196,.22),transparent 30%)!important;background-size:28px 28px,28px 28px,100% 100%!important}
+.ehc-app .ehc-stream[data-chat-bg="iridescent"]{background:linear-gradient(125deg,#ffb7d8,#c7b6ff 28%,#a9eaff 50%,#b7f5d4 68%,#ffe5a7 84%,#ffb7d8)!important;background-size:220% 220%!important}
+.ehc-app .ehc-stream[data-chat-bg="pixel"]{background-color:#16213e!important;background-image:linear-gradient(90deg,rgba(255,255,255,.05) 50%,transparent 50%),linear-gradient(rgba(255,255,255,.04) 50%,transparent 50%),linear-gradient(180deg,rgba(93,190,255,.2),transparent 50%,rgba(20,184,166,.15))!important;background-size:16px 16px,16px 16px,100% 100%!important}
+.ehc-app .ehc-stream[data-chat-bg="terminal"]{background:#07110b!important;background-image:repeating-linear-gradient(0deg,rgba(55,255,126,.07) 0,rgba(55,255,126,.07) 1px,transparent 1px,transparent 5px),linear-gradient(90deg,transparent 0 12%,rgba(55,255,126,.08) 12% 12.2%,transparent 12.2% 100%)!important}
+.ehc-app .ehc-stream[data-chat-bg="vaporwave"]{background-image:linear-gradient(rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(180deg,#30206d 0 45%,#ed5fa8 46%,#ffb26b 65%,#26184f 66%)!important;background-size:22px 22px,22px 22px,100% 100%!important;background-position:center bottom,center bottom,0 0!important}
+.ehc-app .ehc-stream[data-chat-bg="doodle"]{background-color:#fff9ed!important;background-image:radial-gradient(circle,#151c27 1.4px,transparent 1.5px),radial-gradient(circle,#ff5c8a 1.5px,transparent 1.6px),linear-gradient(28deg,transparent 45%,rgba(108,92,231,.13) 46% 54%,transparent 55%)!important;background-size:31px 31px,47px 47px,73px 73px!important}
+.ehc-app .ehc-stream[data-chat-bg="ocean"]{background:radial-gradient(circle at 20% 25%,rgba(255,255,255,.42),transparent 15%),radial-gradient(circle at 75% 65%,rgba(20,184,166,.25),transparent 23%),linear-gradient(145deg,#dff7ff,#9fd8ec 48%,#0f6685)!important}
+.ehc-app .ehc-stream[data-chat-bg="midnight"]{background-color:#0b1220!important;background-image:radial-gradient(circle,rgba(255,255,255,.55) 1px,transparent 1.4px),radial-gradient(circle,rgba(124,92,255,.45) 1px,transparent 1.4px),radial-gradient(circle at 50% 10%,rgba(124,92,255,.26),transparent 28%)!important;background-size:43px 43px,71px 71px,100% 100%!important}
+.ehc-app .ehc-stream[data-chat-bg="sunset"]{background:linear-gradient(180deg,#2b2059,#7148a9 42%,#ff7a72 68%,#ffd18a)!important}
+.ehc-app .ehc-stream[data-chat-bg="sakura"]{background-color:#fff5fa!important;background-image:radial-gradient(circle at 18% 25%,rgba(255,92,138,.24) 0 5px,transparent 6px),radial-gradient(circle at 72% 35%,rgba(255,184,46,.2) 0 4px,transparent 5px),radial-gradient(circle at 44% 78%,rgba(124,92,255,.18) 0 5px,transparent 6px)!important;background-size:92px 92px,127px 127px,111px 111px!important}
+.ehc-app .ehc-stream[data-chat-bg="blueprint"]{background-color:#102b55!important;background-image:linear-gradient(rgba(122,195,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(122,195,255,.14) 1px,transparent 1px),linear-gradient(rgba(122,195,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(122,195,255,.05) 1px,transparent 1px)!important;background-size:36px 36px,36px 36px,9px 9px,9px 9px!important}
+.ehc-app .ehc-stream[data-chat-bg="candy"]{background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.65),transparent 20%),linear-gradient(135deg,#ffd3e4,#d9d2ff 40%,#bdf4ee 70%,#fff0b8)!important}
+.ehc-app .ehc-stream[data-chat-bg="noir"]{background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.08),transparent 22%),linear-gradient(135deg,#0f1720,#1e293b 45%,#080b11)!important}
+.ehc-app .ehc-stream[data-chat-bg="aurora"]{background:radial-gradient(85% 70% at 100% 0%,rgba(108,92,231,.30),transparent 68%),radial-gradient(75% 60% at 0% 100%,rgba(20,184,166,.24),transparent 68%),linear-gradient(135deg,#f7f3ff,#eafaf8 55%,#fff8e8)!important}
+.ehc-app .ehc-stream[data-chat-bg="default"]{background:var(--ehc-canvas,#f4f7fb)!important}
+
+@media(max-width:700px){
+  .ehc-bg-studio-scrim{padding:8px}
+  .ehc-bg-studio{padding:15px;border-radius:21px;max-height:94vh}
+  .ehc-bg-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .ehc-bg-preview{height:72px}
+  .ehc-bg-studio h3{font-size:1.2rem}
+}
+
+/* Preview fallback: these rules are intentionally simple; JS also paints each preview
+   inline so the thumbnails remain visible even if another stylesheet overrides them. */
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-default{background:#f4f7fb!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-aurora{background:radial-gradient(circle at 15% 20%,rgba(108,92,231,.45),transparent 35%),radial-gradient(circle at 85% 25%,rgba(20,184,166,.45),transparent 35%),linear-gradient(135deg,#f7f3ff,#eafaf8 55%,#fff8e8)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-chrome{background:radial-gradient(circle at 25% 30%,#fff 0 6%,#7b8794 15%,transparent 16%),radial-gradient(circle at 75% 68%,#fff 0 7%,#626e7a 17%,transparent 18%),linear-gradient(135deg,#e7ebef,#7b8794,#fafbfc,#596572)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-cyber{background:linear-gradient(rgba(0,255,196,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(132,92,255,.25) 1px,transparent 1px),#080f1e!important;background-size:18px 18px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-iridescent{background:linear-gradient(125deg,#ffb7d8,#c7b6ff,#a9eaff,#b7f5d4,#ffe5a7)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-pixel{background:linear-gradient(90deg,rgba(255,255,255,.08) 50%,transparent 50%),linear-gradient(rgba(255,255,255,.07) 50%,transparent 50%),#16213e!important;background-size:12px 12px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-terminal{background:repeating-linear-gradient(0deg,rgba(55,255,126,.16) 0 1px,transparent 1px 4px),#07110b!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-vaporwave{background:linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(180deg,#30206d 0 45%,#ed5fa8 46%,#ffb26b 65%,#26184f 66%)!important;background-size:14px 14px,14px 14px,100% 100%!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-doodle{background:radial-gradient(circle,#151c27 1.5px,transparent 2px),radial-gradient(circle,#ff5c8a 2px,transparent 2.5px),#fff9ed!important;background-size:20px 20px,29px 29px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-ocean{background:radial-gradient(circle at 20% 25%,#fff8,transparent 20%),linear-gradient(145deg,#dff7ff,#9fd8ec,#0f6685)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-midnight{background:radial-gradient(circle,#fff 1px,transparent 2px),#0b1220!important;background-size:18px 18px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-sunset{background:linear-gradient(180deg,#2b2059,#7148a9 42%,#ff7a72 68%,#ffd18a)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-sakura{background:radial-gradient(circle,#ff5c8a 0 4px,transparent 5px),#fff5fa!important;background-size:27px 27px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-blueprint{background:linear-gradient(rgba(122,195,255,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(122,195,255,.25) 1px,transparent 1px),#102b55!important;background-size:18px 18px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-candy{background:linear-gradient(135deg,#ffd3e4,#d9d2ff,#bdf4ee,#fff0b8)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-noir{background:linear-gradient(135deg,#0f1720,#1e293b 45%,#080b11)!important}
+
+/* V64 — modern background preview cards */
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-velvet{background:radial-gradient(circle at 78% 18%,rgba(211,157,255,.3),transparent 28%),linear-gradient(145deg,#100d18,#24152e 55%,#08090e)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-roseglass{background:linear-gradient(135deg,#f8dce8,#f1d8e8 38%,#d9dcf8 72%,#f7efe7)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-moonsea{background:linear-gradient(160deg,#071426,#0d2b47 48%,#0b5964)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-matcha{background:linear-gradient(145deg,#eef6df,#d6e9cf 48%,#a9cfb4)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-cosmic{background:radial-gradient(circle,#d9a6ff 1px,transparent 2px),radial-gradient(circle,#78bfff 1px,transparent 2px),#0b0d20!important;background-size:19px 19px,31px 31px!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-liquidchrome{background:linear-gradient(135deg,#d7dde2,#6e7985 42%,#f7f9fb 55%,#626d78 80%,#cbd3da)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-softfocus{background:linear-gradient(135deg,#f6f3ed,#e8e4df 52%,#dce8e6)!important}
+.ehc-bg-choice .ehc-bg-preview.ehc-bg-neonrain{background:radial-gradient(circle at 78% 18%,rgba(255,74,163,.35),transparent 25%),linear-gradient(145deg,#080d18,#111b2f 52%,#0c2231)!important}

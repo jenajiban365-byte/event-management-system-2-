@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clubs - EventHub</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=37">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -93,6 +98,17 @@
 <script>
   requireAuth();
   renderNavbar('clubs');
+
+  async function syncClubsSession() {
+    if (!Session.isLoggedIn() || !Api.me) return;
+    try {
+      const result = await Api.me();
+      if (result?.user) {
+        Session.setSession(Session.getToken(), result.user);
+        renderNavbar('clubs');
+      }
+    } catch (_) {}
+  }
   if (!Session.isLoggedIn()) {
     document.querySelector('main.container').innerHTML = `
       <section class="guest-gate">
@@ -458,15 +474,17 @@
 
 
 
-  const currentUser = Session.getUser();
-  if (currentUser?.role === 'club_head') {
-    document.querySelectorAll('[data-tab="opportunities"],[data-tab="following"],[data-tab="announcements"]').forEach((btn) => btn.remove());
-    document.getElementById('opportunitiesTab')?.remove();
-    document.getElementById('followingTab')?.remove();
-    document.getElementById('announcementsTab')?.remove();
-  }
-
-  loadClubs();
+  (async () => {
+    await syncClubsSession();
+    const latestUser = Session.getUser();
+    if (latestUser?.role === 'club_head') {
+      document.querySelectorAll('[data-tab="opportunities"],[data-tab="following"],[data-tab="announcements"]').forEach((btn) => btn.remove());
+      document.getElementById('opportunitiesTab')?.remove();
+      document.getElementById('followingTab')?.remove();
+      document.getElementById('announcementsTab')?.remove();
+    }
+    loadClubs();
+  })();
   }
 </script>
 </body>

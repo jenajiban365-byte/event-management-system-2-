@@ -63,6 +63,14 @@ async function seedDatabase(){
    if(changed) await legacy.save();
  }
  for(const clubData of INITIAL_CLUBS){let existing=await Club.findOne({name:clubData.name});if(!existing){await Club.create({...clubData,status:'active',createdBy:admin?._id,contactEmail:`${clubData.slug}@soa.ac.in`});}}
+ // Legacy organizer accounts may have Club.organizerIds set while User.clubId
+ // is empty. Backfill the primary club link once so organizer/event/registration
+ // permissions remain connected after an upgrade.
+ const legacyOrganizers=await User.find({role:'organizer',$or:[{clubId:null},{clubId:{$exists:false}}]}).select('_id');
+ for(const organizer of legacyOrganizers){
+   const assigned=await Club.findOne({status:{$in:['approved','active']},organizerIds:organizer._id}).select('_id').sort({createdAt:1});
+   if(assigned) await User.updateOne({_id:organizer._id},{$set:{clubId:assigned._id}});
+ }
  const eventCount=await Event.countDocuments();
  if(eventCount===0){const gdg=await Club.findOne({slug:'gdg-iter'});const robotics=await Club.findOne({slug:'iter-robotics-club'});await Event.insertMany([
  {title:'SOA DevFest 2026',description:'Annual flagship developer conference featuring keynotes on Cloud Native, Web3 and Generative AI.',category:'Coding & Technology',date:'2026-09-15',time:'09:00',location:'ITER Campus Auditorium',capacity:300,bookedCount:0,status:'published',club:gdg?gdg._id:null},

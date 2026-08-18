@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Chat — EventHub</title>
+<meta name="description" content="Private one-to-one campus messaging for EventHub students: reactions, edits, read receipts and live sync.">
+<link rel="stylesheet" href="css/style.css?v=46">
+<link rel="stylesheet" href="css/chat.css?v=80">
+<link rel="stylesheet" href="css/chat-backgrounds.css?v=2">
+
+<link rel="stylesheet" href="css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="css/eventhub-v61.css?v=61">
+<style id="ehc-chat-theme-runtime">
+/* WhatsApp / Instagram style — neutral messenger chrome */
+.ehc-app[data-chat-theme="1"] .ehc-head{
+  background:#f0f2f5 !important;
+  border-bottom:1px solid #d1d7db !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-stream{
+  background:#f3f1ec !important;
+  background-image:none !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-row.mine .ehc-bubble{
+  background:#efe9ff !important;
+  color:#1e1b2e !important;
+  border:1px solid #ddd6fe !important;
+  border-radius:16px 16px 4px 16px !important;
+  box-shadow:0 1px 2px rgba(15,23,42,.06) !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-row.theirs .ehc-bubble{
+  background:#fff !important;
+  color:#111b21 !important;
+  border:0 !important;
+  border-radius:0 8px 8px 8px !important;
+  box-shadow:0 1px 0.5px rgba(11,20,26,.13) !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-composer{
+  background:#f0f2f5 !important;
+  border-top:1px solid #d1d7db !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-send{
+  background:#7756e8 !important;
+  color:#fff !important;
+  border:0 !important;
+  border-radius:14px !important;
+  box-shadow:0 2px 8px rgba(119,86,232,.28) !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-icon-btn,
+.ehc-app[data-chat-theme="1"] .ehc-action-icon,
+.ehc-app[data-chat-theme="1"] .ehc-home-btn,
+.ehc-app[data-chat-theme="1"] .ehc-ghost{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  border-radius:50% !important;
+  color:#54656f !important;
+  width:40px !important;
+  height:40px !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-icon-btn:hover,
+.ehc-app[data-chat-theme="1"] .ehc-action-icon:hover,
+.ehc-app[data-chat-theme="1"] .ehc-home-btn:hover{
+  background:rgba(0,0,0,.06) !important;
+  color:#111b21 !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-newbtn{
+  background:#fff !important;
+  border:1px solid #e9edef !important;
+  border-radius:24px !important;
+  color:#111b21 !important;
+  box-shadow:none !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-newbtn:hover{
+  background:#f0f2f5 !important;
+  border-color:#d1d7db !important;
+  color:#111b21 !important;
+}
+.ehc-app[data-chat-theme="1"] #newFromChat{
+  background:#fff !important;
+  border:1px solid #e9edef !important;
+  border-radius:20px !important;
+  color:#111b21 !important;
+  font-weight:600 !important;
+  box-shadow:none !important;
+  padding:8px 14px !important;
+  width:auto !important;
+  height:auto !important;
+}
+.ehc-app[data-chat-theme="1"] .ehc-stamp{color:#667781 !important; font-size:.65rem !important}
+.ehc-app[data-chat-theme="1"] .ehc-row.mine .ehc-stamp{color:#667781 !important}
+.ehc-app[data-chat-theme="1"] .ehc-text{color:inherit !important}
+
+/* Profile modal — clean Instagram-style */
+.ehc-profile-scrim{
+  background:rgba(11,20,26,.55) !important;
+  backdrop-filter:blur(8px);
+}
+.ehc-profile-modal{
+  background:#fff !important;
+  border-radius:16px !important;
+  border:0 !important;
+  box-shadow:0 16px 48px rgba(11,20,26,.25) !important;
+  max-width:440px !important;
+  overflow:hidden !important;
+}
+.ehc-profile-head{
+  background:#f0f2f5 !important;
+  padding:0 0 20px !important;
+  border-bottom:1px solid #e9edef !important;
+}
+.ehc-profile-cover{
+  height:96px !important;
+  background:linear-gradient(135deg,#667781,#111b21) !important;
+  position:relative !important;
+}
+.ehc-profile-cover-kicker,
+.ehc-profile-orb,
+.ehc-profile-stars{display:none !important}
+.ehc-profile-close{
+  position:absolute !important; top:12px !important; right:12px !important; z-index:2;
+  width:36px !important; height:36px !important; border-radius:50% !important;
+  background:rgba(255,255,255,.2) !important; border:0 !important; color:#fff !important;
+  backdrop-filter:blur(4px);
+}
+.ehc-profile-main{
+  display:flex !important; flex-direction:column !important; align-items:center !important;
+  margin-top:-40px !important; padding:0 20px !important; gap:8px !important;
+  position:relative !important; text-align:center !important;
+}
+.ehc-profile-main .ehc-av,
+.ehc-profile-main .ehc-av.profile-lg{
+  width:88px !important; height:88px !important; border-radius:50% !important;
+  border:4px solid #fff !important; box-shadow:0 2px 8px rgba(0,0,0,.12) !important;
+}
+.ehc-profile-identity{text-align:center !important}
+.ehc-profile-identity h2{
+  margin:6px 0 2px !important; font-size:1.25rem !important; font-weight:700 !important;
+  font-family:Inter,system-ui,sans-serif !important; color:#111b21 !important;
+}
+.ehc-profile-identity p{margin:0 !important; color:#667781 !important; font-size:.85rem !important}
+.ehc-online-pill{
+  display:inline-flex !important; align-items:center !important; gap:6px !important;
+  background:#e7fce3 !important; color:#0b7a3b !important; border-radius:999px !important;
+  padding:3px 10px !important; font-size:.7rem !important; font-weight:600 !important;
+  border:0 !important;
+}
+.ehc-online-pill i{width:6px;height:6px;border-radius:50%;background:#25d366;display:inline-block}
+.ehc-profile-message{
+  margin-top:8px !important;
+  background:#7756e8 !important; color:#fff !important; border:0 !important;
+  border-radius:12px !important; padding:10px 28px !important; font-weight:600 !important;
+  box-shadow:none !important; cursor:pointer !important;
+}
+.ehc-profile-message:hover{background:#6546d8 !important}
+.ehc-profile-body{padding:16px 20px 24px !important; background:#fff !important}
+.ehc-profile-intro h3{
+  font-family:Inter,system-ui,sans-serif !important; font-size:1.05rem !important;
+  color:#111b21 !important; margin:4px 0 6px !important;
+}
+.ehc-profile-intro p{color:#667781 !important; font-size:.85rem !important; margin:0 !important}
+.ehc-profile-stats{
+  display:grid !important; grid-template-columns:repeat(4,1fr) !important; gap:8px !important;
+  margin:16px 0 !important;
+}
+.ehc-profile-stats > div{
+  background:#f0f2f5 !important; border:0 !important; border-radius:12px !important;
+  padding:12px 8px !important; text-align:center !important; box-shadow:none !important;
+}
+.ehc-profile-stats b{display:block; font-size:1.1rem; color:#111b21}
+.ehc-profile-stats span{font-size:.65rem; color:#667781; text-transform:uppercase; letter-spacing:.04em}
+.ehc-profile-tabs{
+  display:flex !important; gap:6px !important; flex-wrap:wrap !important; margin-bottom:14px !important;
+  border-bottom:1px solid #e9edef !important; padding-bottom:10px !important;
+}
+.ehc-profile-tabs button{
+  border:0 !important; background:transparent !important; color:#667781 !important;
+  border-radius:999px !important; padding:7px 12px !important; font-size:.8rem !important;
+  font-weight:600 !important; cursor:pointer !important; box-shadow:none !important;
+}
+.ehc-profile-tabs button.on{
+  background:#e9edef !important; color:#111b21 !important;
+}
+.ehc-profile-section h3{
+  font-family:Inter,system-ui,sans-serif !important; font-size:.95rem !important; color:#111b21 !important;
+}
+.ehc-profile-section p{color:#667781 !important; font-size:.8rem !important}
+
+/* Avatar selection pulse animation */
+.eh-avatar-studio-v66 .eh-avatar-choice.on{
+  animation: ehAvatarPop .28s ease;
+}
+@keyframes ehAvatarPop{
+  0%{transform:scale(.92)}
+  60%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+.ehc-av img, .eh-avatar-art img{
+  transition: transform .25s ease, filter .25s ease;
+}
+.ehc-item:hover .ehc-av img,
+.ehc-av.ring:hover img{
+  transform: scale(1.05);
+}
+
+/* Profile: sticky header must not cover scroll content */
+.ehc-profile-modal,
+.ehc-profile-drawer{
+  display:flex !important;
+  flex-direction:column !important;
+  max-height:min(92vh,860px) !important;
+  overflow:hidden !important;
+}
+.ehc-profile-head{
+  position:relative !important;
+  flex:0 0 auto !important;
+  z-index:2 !important;
+}
+.ehc-profile-body{
+  flex:1 1 auto !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+  padding-top:12px !important;
+  max-height:none !important;
+}
+.ehc-profile-tabs{
+  position:sticky !important;
+  top:0 !important;
+  z-index:3 !important;
+  background:#fff !important;
+  padding-top:6px !important;
+  margin-bottom:8px !important;
+}
+.ehc-list-filters{display:flex;gap:6px;padding:0 0 8px;flex-wrap:wrap}
+.ehc-filter-chip{
+  border:1px solid #e5e7eb;background:#f8fafc;color:#64748b;border-radius:999px;
+  padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit
+}
+.ehc-filter-chip.on{background:#7c5cfc;color:#fff;border-color:#7c5cfc}
+.ehc-item.pinned{border-left:3px solid #7c5cfc}
+.ehc-quick-replies{
+  display:flex;gap:6px;overflow-x:auto;padding:0 0 8px;max-width:100%;
+  -webkit-overflow-scrolling:touch
+}
+.ehc-quick-reply{
+  flex:0 0 auto;border:1px solid #e5e7eb;background:#fff;border-radius:999px;
+  padding:6px 12px;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer;font-family:inherit
+}
+.ehc-quick-reply:hover{border-color:#7c5cfc;color:#5b21b6;background:#f5f3ff}
+.ehc-link-card{
+  display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;
+  border:1px solid rgba(0,0,0,.08);border-radius:12px;background:rgba(255,255,255,.75);
+  text-decoration:none;color:inherit;max-width:100%
+}
+.ehc-link-card-body{min-width:0;display:grid}
+.ehc-link-card-body b{font-size:.8rem}
+.ehc-link-card-body small{font-size:.68rem;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ehc-link-card-go{margin-left:auto;font-weight:800;opacity:.5}
+.ehc-seen{display:block;font-size:.6rem;font-weight:600;opacity:.75;margin-top:1px}
+.ehc-tool.on{color:#f59e0b}
+.ehc-mute-menu{
+  position:absolute;right:0;top:100%;margin-top:6px;z-index:50;
+  background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.12);
+  display:flex;flex-direction:column;min-width:150px;overflow:hidden
+}
+.ehc-mute-menu button{
+  border:0;background:none;text-align:left;padding:10px 14px;font-size:.8rem;font-weight:600;
+  cursor:pointer;font-family:inherit;color:#111827
+}
+.ehc-mute-menu button:hover{background:#f3f4f6}
+.ehc-forward-scrim{
+  position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px
+}
+.ehc-forward-modal{
+  width:min(400px,96vw);max-height:80vh;background:#fff;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 24px 60px rgba(0,0,0,.25)
+}
+.ehc-forward-modal header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e5e7eb}
+.ehc-forward-close{border:0;background:#f3f4f6;width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:1.1rem}
+.ehc-forward-list{overflow-y:auto;padding:8px}
+.ehc-forward-item{
+  width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;padding:10px;border-radius:12px;
+  cursor:pointer;text-align:left;font-family:inherit
+}
+.ehc-forward-item:hover{background:#f8fafc}
+.ehc-forward-item span{display:grid;min-width:0}
+.ehc-forward-item b{font-size:.88rem}
+.ehc-forward-item small{font-size:.72rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ehc-group-hint{
+  margin:8px 12px;padding:10px 12px;border-radius:12px;background:#f5f3ff;border:1px solid #ddd6fe;
+  font-size:.78rem;color:#5b21b6;line-height:1.4
+}
+
+</style>
+  <link rel="stylesheet" href="css/mobile-v63.css?v=63.1">
+<link rel="stylesheet" href="css/chat-modern-v64.css?v=68">
+</head>
+<body class="eh-page-chat chat-page">
+<div id="navbar"></div>
+
+<main class="ehc">
+
+
+  <section class="ehc-app" id="chatApp" data-view="list" aria-label="EventHub chat">
+    <aside class="ehc-panel ehc-side">
+      <div class="ehc-side-brand">
+        <a href="index.html" class="ehc-brand-link" aria-label="EventHub home">
+          <span class="ehc-brand-mark">▤</span><span>EventHub</span>
+        </a>
+        <span class="ehc-brand-status"><i></i> Campus chat</span>
+      </div>
+      <div class="ehc-side-head">
+        <div class="ehc-side-title">
+          <div><span class="ehc-kicker">Your chats</span><h2>Conversations</h2></div>
+          <span class="ehc-count" id="chatCount">0</span>
+        </div>
+        <div class="ehc-search"><input id="convSearch" type="search" placeholder="Search conversations" aria-label="Search conversations"></div>
+        <div class="ehc-list-filters">
+          <button type="button" class="ehc-filter-chip on" id="filterAll" data-filter="all">All</button>
+          <button type="button" class="ehc-filter-chip" id="filterUnread" data-filter="unread">Unread</button>
+          <button type="button" class="ehc-filter-chip" id="filterStarred" data-filter="starred">★ Saved</button>
+        </div>
+        <button class="ehc-newbtn" id="newChatBtn" type="button">＋ Start a new chat</button>
+      </div>
+      <div id="conversationList" class="ehc-list"><div class="ehc-skel"></div><div class="ehc-skel"></div><div class="ehc-skel"></div></div>
+    </aside>
+
+    <section class="ehc-panel ehc-main" id="chatMain" aria-live="polite"></section>
+  </section>
+</main>
+
+<script src="js/api.js?v=63"></script>
+<script src="js/nav.js"></script>
+<script src="js/eh-avatar-studio.js?v=67"></script>
+<script src="js/eh-chat-camera.js?v=62"></script>
+<script src="js/eh-emoji.js?v=70"></script>
+<script src="js/eh-chat-backgrounds.js?v=2"></script>
+<script src="js/eh-chat-extras.js?v=1"></script>
+<script>
+(function(){
+  'use strict';
+  if(!Session.isLoggedIn()){location.href='login.html?redirect=chat.html';return;}
+
+  const esc = window.escapeHtml || (v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  let me = Session.getUser() || {};
+  const myId = String(me.id || me._id || '');
+
+  const app   = document.getElementById('chatApp');
+  const list  = document.getElementById('conversationList');
+  const main  = document.getElementById('chatMain');
+  const count = document.getElementById('chatCount');
+  // The immersive messenger has no global hero stats; keep the same internal
+  // bookkeeping without requiring visible stat elements.
+  const statChats = { textContent: '' };
+  const statUnread = { textContent: '' };
+  const statLive = { textContent: '' };
+  const searchInput = document.getElementById('convSearch');
+
+  const EMOJIS = ['😀','😃','😄','😁','😆','😅','😂','🤣','🙂','😉','😊','😇','🥰','😍','🤩','😘','😋','😛','🤔','🤗','🤝','🙌','👏','👍','👎','🙏','💪','👀','🔥','✨','💯','🎉','🥳','🎯','🚀','💡','📚','☕','🍕','🏀','⚽','🎧','🎤','🎨','💜','❤️','💚','💛','😭','😴','😎','🤓','😢','🥹','😤','🫡','🫶','⭐','🌙','🌈'];
+  const QUICK_REACTIONS = ['👍','❤️','😂','🔥','🎉','🙏','😮','😢','👏','💯','✨','👀','🙌','😎','🤝','💜'];
+  const QUICK_REPLIES = ['On my way 🚶','Sounds good 👍','Let’s meet at the venue','Can’t make it today','See you there! 🎉'];
+
+  const ICON = {
+    back:'<path d=\"M19 12H5M12 19l-7-7 7-7\"/>',
+    home:'<path d=\"m3 10 9-7 9 7\"/><path d=\"M5 9v11h14V9M9 20v-6h6v6\"/>',
+    calendar:'<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"3\"/><path d=\"M16 2v4M8 2v4M3 9h18\"/>',
+    palette:'<path d=\"M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 1.3-3.05A1.8 1.8 0 0 1 15.8 15H17a4 4 0 0 0 4-4c0-4.42-4.03-8-9-8Z\"/><circle cx=\"7.5\" cy=\"11\" r=\"1\"/><circle cx=\"9\" cy=\"7.5\" r=\"1\"/><circle cx=\"13\" cy=\"6.5\" r=\"1\"/>',
+    mute:'<path d=\"M11 5 6 9H3v6h3l5 4V5Z\"/><path d=\"m16 9 5 6M21 9l-5 6\"/>',
+    search:'<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m21 21-4.3-4.3\"/>',
+    mic:'<path d=\"M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z\"/><path d=\"M19 10v1a7 7 0 0 1-14 0v-1\"/><line x1=\"12\" x2=\"12\" y1=\"19\" y2=\"22\"/>',
+    bell:'<path d=\"M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4\"/>',
+    up:'<path d=\"M12 19V5M6 11l6-6 6 6\"/>',
+    plus:'<path d=\"M12 5v14M5 12h14\"/>',
+    camera:'<path d=\"M4 7h3l2-2h6l2 2h3v12H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/>',
+    smile:'<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01\"/>',
+    send:'<path d=\"m22 2-7 20-4-9-9-4Z\"/><path d=\"M22 2 11 13\"/>',
+    x:'<path d=\"m6 6 12 12M18 6 6 18\"/>',
+    edit:'<path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z\"/>',
+    reply:'<path d=\"M9 17 4 12l5-5\"/><path d=\"M4 12h10a6 6 0 0 1 6 6v1\"/>',
+    image:'<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\"/><circle cx=\"8.5\" cy=\"10\" r=\"1.5\"/><path d=\"m4 17 5-5 4 4 2-2 5 5\"/>',
+    refresh:'<path d=\"M20 11a8 8 0 1 0 1 4\"/><path d=\"M20 4v7h-7\"/>',
+    switch:'<path d=\"M7 7h13l-3-3M17 17H4l3 3\"/>',
+    rotate:'<path d=\"M3 12a9 9 0 0 0 15.5 6.2L21 16\"/><path d=\"M21 12A9 9 0 0 0 5.5 5.8L3 8\"/><path d=\"M3 8h5M21 16h-5\"/>',
+    check:'<path d=\"m5 12 4 4L19 6\"/>',
+    sparkle:'<path d=\"m12 3-1.5 6.5L4 11l6.5 1.5L12 19l1.5-6.5L20 11l-6.5-1.5Z\"/>',
+    close:'<path d=\"m6 6 12 12M18 6 6 18\"/>',
+    trash:'<path d=\"M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 14h10l1-14\"/>'
+  };
+  const icon=(name, cls='eh-icon', size=18)=>`<svg class=\"${cls}\" width=\"${size}\" height=\"${size}\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">${ICON[name]||ICON.sparkle}</svg>`;
+
+  let conversations = [];
+  let filtered = [];
+  let activeId = new URLSearchParams(location.search).get('conversation') || '';
+  let activeConv = null;
+  let messages = [];
+  let lastSync = null;
+  let editingId = null;
+  let replyingToId = null;
+  let selectedAttachment = null;
+  let pollTimer = null;
+  let stickToBottom = true;
+
+  /* ---------------- helpers ---------------- */
+  const initials = n => String(n || 'S').trim().charAt(0).toUpperCase();
+  const savedChatAvatar = () => String(me.chatAvatarId || '');
+  const avatar = (u, cls = '') => {
+    const isMe = u && idOf(u) === myId;
+    const id = String((u && u.chatAvatarId) || (isMe ? (me.chatAvatarId || '') : ''));
+    const url = id && window.EHAvatarStudio ? window.EHAvatarStudio.avatarDataUrl(id) : '';
+    return `<div class="ehc-av ${cls}">${url ? `<img src="${esc(url)}" alt="" loading="lazy">` : esc(initials(u && u.name))}</div>`;
+  };
+  const idOf = o => String((o && (o.id || o._id)) || '');
+  const other = c => (c.participants || []).find(p => idOf(p) !== myId) || (c.participants || [])[0] || { name: 'Student' };
+  const timeOf = d => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const CHAT_THEME = {
+    nova:['#6c5ce7','#efeaff'], pixel:['#ff5c8a','#ffe8f0'], skater:['#20b486','#dff7ef'], cyber:['#16a6ff','#dff2ff'],
+    muse:['#ff7a45','#fff0ea'], racer:['#ffb11b','#fff2c7'], hacker:['#7c5cff','#e7e3ff'], sunset:['#ff6b6b','#ffe3d6'],
+    mint:['#34c6b1','#dffaf5'], indigo:['#4f63ff','#e8ebff'], street:['#ff9f43','#fff0d9'], dream:['#9b7cff','#eee7ff'],
+    volt:['#e8b400','#fff5ce'], berry:['#e84d8a','#ffe2f0'], ocean:['#008fd5','#dff4ff'], mono:['#394452','#e7ebef']
+  };
+  const chatThemeVars = (id, fallback=['#6c5ce7','#efeaff']) => {
+    const t = CHAT_THEME[String(id || '').toLowerCase()] || fallback;
+    return `--ehc-theme-accent:${t[0]};--ehc-theme-soft:${t[1]};`;
+  };
+  const dualChatThemeVars = (mineId, otherId) => {
+    const mine = CHAT_THEME[String(mineId || '').toLowerCase()] || CHAT_THEME.pixel;
+    const theirs = CHAT_THEME[String(otherId || '').toLowerCase()] || CHAT_THEME.nova;
+    return `--ehc-mine-accent:${mine[0]};--ehc-mine-soft:${mine[1]};--ehc-other-accent:${theirs[0]};--ehc-other-soft:${theirs[1]};--ehc-mine:linear-gradient(135deg,${mine[0]},color-mix(in srgb,${mine[0]} 72%,#111827));--ehc-brand:${mine[0]};--ehc-brand-2:${mine[0]};`;
+  };
+  function applyActiveChatTheme(otherUser){
+    const vars = dualChatThemeVars(me.chatAvatarId, otherUser?.chatAvatarId);
+    app.setAttribute('style', vars);
+    app.dataset.chatTheme = '1';
+  }
+  function clearActiveChatTheme(){
+    app.removeAttribute('style');
+    delete app.dataset.chatTheme;
+  }
+
+  function relTime(d){
+    if(!d) return '';
+    const t = new Date(d), diff = (Date.now() - t.getTime()) / 1000;
+    if(diff < 60) return 'now';
+    if(diff < 3600) return Math.floor(diff / 60) + 'm';
+    if(diff < 86400) return Math.floor(diff / 3600) + 'h';
+    if(diff < 604800) return Math.floor(diff / 86400) + 'd';
+    return t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function dayLabel(d){
+    const t = new Date(d), today = new Date(), y = new Date(Date.now() - 86400000);
+    const same = (a, b) => a.toDateString() === b.toDateString();
+    if(same(t, today)) return 'Today';
+    if(same(t, y)) return 'Yesterday';
+    return t.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+  function subtitle(u){
+    return [u.department, u.year && `${u.year} year`].filter(Boolean).join(' · ') || 'EventHub student';
+  }
+  function setLive(text){
+    statLive.textContent = text || '';
+    if(!text) return;
+    // Connection status only — no toast
+    if(text === 'Live' || text === 'Offline') return;
+    let toast = document.getElementById('ehcLiveToast');
+    if(!toast){
+      toast = document.createElement('div');
+      toast.id = 'ehcLiveToast';
+      toast.className = 'ehc-live-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.classList.add('on');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove('on'), 4000);
+  }
+
+  // A blocked microphone is a per-site Chrome/Edge/Firefox setting, not
+  // something the app can fix in JS — once someone clicks "Block" on the
+  // permission prompt, the browser remembers that for this exact origin
+  // until a person manually changes it. A 4-second toast isn't enough time
+  // to read and follow multi-step browser-settings instructions, so this
+  // shows a real, dismissible panel instead, with a copyable settings link.
+  function showMicBlockedHelp(){
+    if(document.getElementById('ehcMicHelp')) return;
+    const scrim = document.createElement('div');
+    scrim.className = 'ehc-scrim';
+    scrim.id = 'ehcMicHelp';
+    const settingsUrl = `chrome://settings/content/siteDetails?site=${encodeURIComponent(location.origin)}`;
+    scrim.innerHTML = `<div class="ehc-modal" role="dialog" aria-modal="true" aria-labelledby="micHelpTitle">
+      <header>
+        <span class="ehc-kicker" style="color:var(--ehc-brand)">Voice notes</span>
+        <h3 id="micHelpTitle">🎤 Microphone is blocked for this site</h3>
+        <p>This isn't an EventHub bug — at some point "Block" was chosen on the mic permission prompt, and the browser now remembers that choice for <b>${esc(location.origin)}</b> specifically. Only changing the browser setting below will fix it; reloading or retrying won't.</p>
+      </header>
+      <div class="ehc-mic-help-steps">
+        <div class="ehc-mic-help-step"><b>1.</b> Click the 🔒 (or ⓘ) icon at the left edge of the address bar.</div>
+        <div class="ehc-mic-help-step"><b>2.</b> Find <b>Microphone</b> in the site settings list and set it to <b>Allow</b> (or click <b>Reset permissions</b>).</div>
+        <div class="ehc-mic-help-step"><b>3.</b> Reload this page, then click the mic button again — the browser will re-prompt you.</div>
+      </div>
+      <div class="ehc-mic-help-copy">
+        <input id="micHelpUrl" type="text" readonly value="${esc(settingsUrl)}" aria-label="Chrome site settings link">
+        <button type="button" id="micHelpCopy" class="ehc-ghost">Copy link</button>
+      </div>
+      <p class="ehc-mic-help-note">Chrome and Edge block pages from opening <code>chrome://</code> links directly — paste the copied link into a new address bar tab to jump straight to this site's permissions.</p>
+      <footer><button class="ehc-ghost" type="button" id="micHelpClose">Got it</button></footer>
+    </div>`;
+    document.body.appendChild(scrim);
+    const close = () => scrim.remove();
+    scrim.addEventListener('click', e => { if(e.target === scrim) close(); });
+    scrim.querySelector('#micHelpClose').addEventListener('click', close);
+    scrim.querySelector('#micHelpCopy').addEventListener('click', async () => {
+      const input = scrim.querySelector('#micHelpUrl');
+      input.select();
+      try{
+        await navigator.clipboard.writeText(input.value);
+        const btn = scrim.querySelector('#micHelpCopy');
+        const original = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => { btn.textContent = original; }, 1800);
+      }catch(_){ document.execCommand('copy'); }
+    });
+  }
+
+  /* ---------------- conversation list ---------------- */
+  let listFilterMode = 'all'; // all | unread | starred
+  function applyFilter(){
+    const q = (searchInput.value || '').trim().toLowerCase();
+    let base = conversations.slice();
+    if (window.EHChatExtras) base = EHChatExtras.sortWithPins(base);
+    if (listFilterMode === 'unread') base = base.filter(c => (c.unreadCount || 0) > 0);
+    if (listFilterMode === 'starred') base = base.filter(c => window.EHChatExtras && EHChatExtras.isPinned(idOf(c)));
+    filtered = !q ? base : base.filter(c => {
+      const u = other(c);
+      return [u.name, u.department, c.lastMessage].some(v => String(v || '').toLowerCase().includes(q));
+    });
+  }
+
+  function renderList(){
+    applyFilter();
+    const unreadTotal = conversations.reduce((n, c) => n + (c.unreadCount || 0), 0);
+    count.textContent = String(conversations.length);
+    statChats.textContent = String(conversations.length);
+    statUnread.textContent = String(unreadTotal);
+    document.title = unreadTotal ? `(${unreadTotal}) Campus Chat — EventHub` : 'Campus Chat — EventHub';
+
+    const meAvatarId = String(me.chatAvatarId || '');
+    const meAvatar = meAvatarId && window.EHAvatarStudio ? EHAvatarStudio.avatarDataUrl(meAvatarId) : '';
+    const meCard = `<div class="eh-mecard" id="ehMeCard">
+      <button type="button" class="eh-avatar-hit" id="ehMeAvatar" aria-label="Change your avatar"><div class="ehc-av ring">${meAvatar ? `<img src="${esc(meAvatar)}" alt="">` : esc(initials(me.name))}</div><span class="eh-cam-dot">${icon('camera','eh-icon',12)}</span></button>
+      <div class="eh-mecard-body"><b>You</b><small>${meAvatar ? 'Your chat character is live' : 'Pick a campus character'}</small></div>
+      <button type="button" class="eh-chip-btn" id="ehMeShoot">${meAvatar ? 'Change' : 'Pick avatar'}</button>
+    </div>`;
+    if(!filtered.length){
+      list.innerHTML = meCard + `<div class="ehc-small-empty"><span class="eh-empty-icon">${icon('sparkle','eh-icon',22)}</span><strong>${conversations.length ? 'No matches' : 'No conversations yet'}</strong><p>${conversations.length ? 'Try a different name.' : 'Start a chat with someone from your campus groups.'}</p></div>`;
+      wireMeCard();
+      return;
+    }
+    list.innerHTML = meCard + filtered.map(c => {
+      const u = other(c), id = idOf(c);
+      const mine = c.lastMessageBy && String(c.lastMessageBy) === myId;
+      const senderLabel = mine ? 'You' : (u.name || 'Student');
+      const pinned = window.EHChatExtras && EHChatExtras.isPinned(id);
+      return `<button type="button" class="ehc-item ${id === String(activeId) ? 'active' : ''} ${c.unreadCount ? 'unread' : ''} ${pinned ? 'pinned' : ''}" data-conversation="${esc(id)}">
+        ${avatar(u)}
+        <span><strong>${pinned ? '📌 ' : ''}${esc(u.name || 'Student')}</strong><span class="ehc-snippet"><b class="ehc-snippet-who">${esc(senderLabel)}:</b> ${esc(c.lastMessage || 'Say hello 👋')}</span></span>
+        <span class="ehc-meta"><time>${esc(relTime(c.lastMessageAt))}</time>${c.unreadCount ? `<b class="ehc-dot">${c.unreadCount > 9 ? '9+' : c.unreadCount}</b>` : ''}</span>
+      </button>`;
+    }).join('');
+    list.querySelectorAll('[data-conversation]').forEach(b => b.addEventListener('click', () => openConversation(b.dataset.conversation)));
+    wireMeCard();
+  }
+
+  function wireMeCard(){
+    const open = () => window.EHAvatarStudio && EHAvatarStudio.open({ onSaved: function(idOrUrl){
+      // Studio already persisted Session; refresh local me + UI
+      const user = Session.getUser() || {};
+      me = user;
+      me.chatAvatarId = user.chatAvatarId || '';
+      me.chatAvatarUrl = user.chatAvatarUrl || '';
+      renderList();
+      if (activeConv) renderChat();
+      document.dispatchEvent(new CustomEvent('eh:chat-avatar-changed', {
+        detail: { id: me.chatAvatarId, url: me.chatAvatarUrl || (window.EHAvatarStudio && me.chatAvatarId ? EHAvatarStudio.avatarDataUrl(me.chatAvatarId) : '') }
+      }));
+    }});
+    document.getElementById('ehMeAvatar')?.addEventListener('click', open);
+    document.getElementById('ehMeShoot')?.addEventListener('click', open);
+  }
+
+  /* ---------------- empty state ---------------- */
+  function renderWelcome(){
+    clearActiveChatTheme();
+    main.innerHTML = `<div class="ehc-empty">
+      <div class="ehc-orb">✦</div>
+      <span class="ehc-kicker" style="color:var(--ehc-brand)">Campus connect</span>
+      <h2>Start with a hello.</h2>
+      <p>Pick a conversation on the left, or start a new chat with anyone from the campus groups you’ve joined.</p>
+      <button class="ehc-cta" type="button" id="emptyNewChat">Find people →</button>
+    </div>`;
+    const b = document.getElementById('emptyNewChat');
+    if(b) b.addEventListener('click', openDirectory);
+  }
+
+  /* ---------------- chat rendering ---------------- */
+  function attachmentHtml(m){
+    if(!m.attachment || !m.attachment.url) return '';
+    const a = m.attachment;
+    if(a.type === 'image') return `<a class="ehc-photo" href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(a.name || 'photo')} in a new tab">
+      <span class="ehc-photo-frame"><img src="${esc(a.url)}" alt="${esc(a.name || 'Photo')}" loading="lazy"></span>
+    </a>`;
+    const ct = String(a.contentType || '').toLowerCase();
+    const isAudio = ct.startsWith('audio/') || /\.(webm|m4a|mp3|ogg|wav)$/i.test(a.name || '') || /voice-note/i.test(a.name || '');
+    if(isAudio){
+      return `<div class="ehc-voice"><span>🎤</span><audio controls preload="metadata" src="${esc(a.url)}"></audio><small>${esc(a.name || 'Voice note')}</small></div>`;
+    }
+    const size = a.size ? `${(Number(a.size)/1024/1024).toFixed(1)} MB` : 'File';
+    return `<a class="ehc-file" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ehc-file-icon">${icon('image','eh-icon',17)}</span><span><b>${esc(a.name || 'Attachment')}</b><small>${esc(size)}</small></span><span class="ehc-file-arrow">↗</span></a>`;
+  }
+
+  function eventShareHtml(text){
+    const lines=String(text||'').split('\n').map(x=>x.trim());
+    if(!lines[0]?.startsWith('📅 ') || !lines[3]?.startsWith('Open: event-details.html?id=')) return '';
+    const title=lines[0].slice(2).trim(); const meta=lines[1]||''; const place=lines[2]||''; const href=lines[3].slice(5).trim();
+    return `<div class="ehc-event-share"><div class="ehc-event-share-top"><span>${icon('calendar','eh-icon',16)}</span><small>EVENTHUB EVENT</small></div><strong>${esc(title)}</strong><p>${esc(meta)}</p><p>${esc(place)}</p><a href="${esc(href)}">View event →</a></div>`;
+  }
+
+  function replyHtml(m){
+    const r = m.replyTo;
+    if(!r) return '';
+    const who = r.sender?.name || 'Message';
+    const preview = r.deletedAt ? 'This message was deleted' : (r.text || (r.attachment?.type === 'image' ? '📷 Photo' : r.attachment ? `📎 ${r.attachment.name || 'Attachment'}` : 'Message'));
+    return `<div class="ehc-reply-preview"><span class="ehc-reply-line"></span><span><b>${esc(who)}</b><small>${esc(preview)}</small></span></div>`;
+  }
+
+  function messageHtml(m, prev){
+    const senderId = idOf(m.sender);
+    const mine = senderId === myId;
+    const deleted = !!m.deletedAt;
+    const start = !prev || idOf(prev.sender) !== senderId || (new Date(m.createdAt) - new Date(prev.createdAt)) > 5 * 60 * 1000;
+    const u = m.sender || {};
+    const groups = {};
+    (m.reactions || []).forEach(r => { (groups[r.emoji] = groups[r.emoji] || []).push(String(r.user)); });
+    const reactions = Object.keys(groups).map(e => `<button type="button" class="ehc-reaction ${groups[e].includes(myId) ? 'on' : ''}" data-react="${esc(idOf(m))}" data-emoji="${esc(e)}">${e} ${groups[e].length}</button>`).join('');
+    const starred = window.EHChatExtras && EHChatExtras.isStarred(idOf(m));
+    const tools = !deleted
+      ? `<span class="ehc-tools">
+          <button class="ehc-tool" title="Reply" aria-label="Reply" data-reply="${esc(idOf(m))}">${icon('reply','eh-icon',14)}</button>
+          <button class="ehc-tool" title="React" aria-label="React" data-openreact="${esc(idOf(m))}">${icon('smile','eh-icon',14)}</button>
+          <button class="ehc-tool" title="Copy" aria-label="Copy" data-copy="${esc(idOf(m))}">⎘</button>
+          <button class="ehc-tool ${starred ? 'on' : ''}" title="${starred ? 'Unsave' : 'Save'}" aria-label="Save message" data-star="${esc(idOf(m))}">${starred ? '★' : '☆'}</button>
+          <button class="ehc-tool" title="Forward" aria-label="Forward" data-forward="${esc(idOf(m))}">↗</button>
+          ${mine ? `<button class="ehc-tool" title="Edit" aria-label="Edit" data-edit="${esc(idOf(m))}">${icon('edit','eh-icon',14)}</button><button class="ehc-tool danger" title="Delete" aria-label="Delete" data-delete="${esc(idOf(m))}">${icon('trash','eh-icon',14)}</button>` : ''}
+        </span>` : '';
+    const seen = (mine && m.readAt && window.EHChatExtras) ? EHChatExtras.seenLabel(m.readAt) : '';
+    const tick = mine && !deleted ? `<span class="ehc-tick ${m.readAt ? 'read' : ''}" title="${esc(seen)}">${m.pending ? '🕓' : (m.readAt ? '✓✓' : '✓')}${seen ? `<span class="ehc-seen">${esc(seen)}</span>` : ''}</span>` : '';
+    const hasPhoto = !!(m.attachment && m.attachment.type === 'image' && m.attachment.url);
+    const eventCard = !deleted ? eventShareHtml(m.text) : '';
+    const bubbleClass = hasPhoto && !m.text && !m.replyTo ? 'ehc-bubble ehc-photo-bubble' : 'ehc-bubble';
+    const body = deleted ? `<div class="ehc-bubble deleted-text">This message was deleted<span class="ehc-stamp">${esc(timeOf(m.createdAt))}</span></div>` :
+      `<div class="${bubbleClass}">${replyHtml(m)}${eventCard || attachmentHtml(m)}${!eventCard && m.text ? `<div class="ehc-text">${esc(m.text)}</div>${(window.EHChatExtras && EHChatExtras.linkPreviewHtml(m.text)) || ''}` : ''}<span class="ehc-stamp">${m.editedAt ? '<i>edited</i>' : ''}${esc(timeOf(m.createdAt))}${tick}</span></div>`;
+    return `<div class="ehc-row ${mine ? 'mine' : 'theirs'} ${deleted ? 'deleted' : ''} ${start ? 'start' : ''} ${m.pending ? 'ehc-pending' : ''}" data-message="${esc(idOf(m))}">
+      ${mine ? '' : (start ? avatar(u, 'sm') : '<span class="ehc-avslot"></span>')}
+      <div class="ehc-message-stack">
+        ${start ? `<div class="ehc-sender">${esc(mine ? 'You' : (u.name || 'Student'))}</div>` : ''}
+        ${body}
+        ${reactions ? `<div class="ehc-reactions">${reactions}</div>` : ''}
+      </div>
+      ${tools}
+    </div>`;
+  }
+
+  function streamHtml(){
+    if(!messages.length){
+      const u = other(activeConv);
+      return `<div class="ehc-empty" style="min-height:320px;background:transparent"><div class="ehc-orb">${icon('sparkle','eh-icon',28)}</div><h2>You found each other.</h2><p>Send the first message to ${esc(u.name || 'them')} and take it from there.</p></div>`;
+    }
+    let html = '', lastDay = '';
+    messages.forEach((m, i) => {
+      const day = dayLabel(m.createdAt);
+      if(day !== lastDay){ html += `<div class="ehc-day">${esc(day)}</div>`; lastDay = day; }
+      html += messageHtml(m, day === dayLabel((messages[i - 1] || {}).createdAt || 0) ? messages[i - 1] : null);
+    });
+    return html;
+  }
+
+  async function openChatProfile(){
+    const baseUser = other(activeConv);
+    const items = messages.filter(m => m.attachment && m.attachment.url && !m.deletedAt);
+    const photos = items.filter(m => m.attachment.type === 'image');
+    const files = items.filter(m => m.attachment.type !== 'image');
+    const links = messages.flatMap(m => {
+      const matches = String(m.text || '').match(/https?:\/\/[^\s<]+/g) || [];
+      return matches.map(url => ({ url, date: m.createdAt }));
+    });
+    const safeUrl = v => esc(String(v || ''));
+    const mediaCard = m => {
+      const a = m.attachment;
+      if(a.type === 'image') return `<a class="ehc-media-card ehc-media-photo" href="${safeUrl(a.url)}" target="_blank" rel="noopener"><img src="${safeUrl(a.url)}" alt="${safeUrl(a.name || 'Photo')}" loading="lazy"><span>${safeUrl(a.name || 'Photo')}</span></a>`;
+      const isPdf = String(a.contentType||'').toLowerCase()==='application/pdf' || /\.pdf$/i.test(a.name||'');
+      return `<a class="ehc-media-card ehc-media-file ${isPdf?'pdf':''}" href="${safeUrl(a.url)}" target="_blank" rel="noopener"><strong>${isPdf?'PDF':'FILE'}</strong><span>${safeUrl(a.name || 'Attachment')}</span><small>${a.size ? `${(Number(a.size)/1024/1024).toFixed(1)} MB` : 'Open file ↗'}</small></a>`;
+    };
+
+    let profile = { user: baseUser, sharedGroups: [] };
+    try { profile = await apiRequest(`/social/users/${encodeURIComponent(idOf(baseUser))}`); } catch(e) { /* conversation data is enough for fallback */ }
+    const u = profile.user || baseUser;
+    const sharedGroups = Array.isArray(profile.sharedGroups) ? profile.sharedGroups : [];
+    const drawer = document.createElement('div');
+    drawer.className = 'ehc-profile-scrim';
+    drawer.innerHTML = `<div class="ehc-profile-modal" role="dialog" aria-modal="true" aria-label="${safeUrl(u.name||'Student')} profile">
+      <header class="ehc-profile-head">
+        <button type="button" class="ehc-profile-close" aria-label="Close profile">×</button>
+        <div class="ehc-profile-cover"><span class="ehc-profile-cover-kicker">EVENTHUB · CAMPUS CONNECTION</span><div class="ehc-profile-orb"></div><div class="ehc-profile-stars">✦　·　✦　·　✧</div></div>
+        <div class="ehc-profile-main">${avatar(u,'profile-lg')}<div class="ehc-profile-identity"><span class="ehc-online-pill"><i></i> Campus student</span><h2 style="color:#fff!important">${safeUrl(u.name||'Student')}</h2><p style="color:rgba(255,255,255,.9)!important">${safeUrl(subtitle(u))}</p></div><button type="button" class="ehc-profile-message" id="profileMessageBtn">Message</button></div>
+      </header>
+      <div class="ehc-profile-body">
+        <div class="ehc-profile-intro"><div><span class="ehc-kicker">CAMPUS PROFILE</span><h3>Someone you met on EventHub.</h3><p>Connect through events, groups and shared interests — privately, without exposing phone numbers.</p></div></div>
+        <div class="ehc-profile-stats"><div data-jump-tab="all" role="button" tabindex="0"><b>${messages.length}</b><span>messages</span></div><div data-jump-tab="photos" role="button" tabindex="0"><b>${photos.length}</b><span>photos</span></div><div data-jump-tab="files" role="button" tabindex="0"><b>${files.length}</b><span>files</span></div><div data-jump-tab="groups" role="button" tabindex="0"><b>${sharedGroups.length}</b><span>shared groups</span></div></div>
+        <div class="ehc-profile-tabs" role="tablist"><button class="on" data-media-tab="all">Overview</button><button data-media-tab="photos">Photos</button><button data-media-tab="files">Files</button><button data-media-tab="links">Links</button><button data-media-tab="groups">Groups</button></div>
+        <section class="ehc-profile-content" id="profileMediaContent">
+          <div class="ehc-profile-overview" id="profileOverview">
+            <div class="ehc-profile-section"><span class="ehc-kicker">SHARED SPACE</span><h3>Your conversation vault</h3><p>Everything you have exchanged stays organised here.</p></div>
+            <div class="ehc-media-grid">${items.slice(-6).reverse().map(mediaCard).join('') || '<div class="ehc-profile-empty">No shared media yet.<br><span>Send a photo or file and it will appear here.</span></div>'}</div>
+            <div class="ehc-profile-section"><span class="ehc-kicker">SHARED GROUPS</span><h3>You already have something in common.</h3><p>Groups you both belong to appear here.</p></div>
+            <div class="ehc-shared-groups">${sharedGroups.map(g=>`<a class="ehc-shared-group" href="group.html?id=${encodeURIComponent(g.id)}"><span class="ehc-group-mark">✦</span><span><b>${safeUrl(g.name)}</b><small>${safeUrl(g.category || 'Campus group')}</small></span><strong>↗</strong></a>`).join('') || '<div class="ehc-profile-empty">No shared groups yet.<br><span>Join the same campus group to discover a common space.</span></div>'}</div>
+          </div>
+          <div class="ehc-media-grid" id="profileMediaGrid" hidden></div>
+          <div class="ehc-profile-links" id="profileLinks" hidden>${links.map(x=>`<a href="${safeUrl(x.url)}" target="_blank" rel="noopener">🔗 <span>${safeUrl(x.url)}</span><b>↗</b></a>`).join('') || '<div class="ehc-profile-empty">No links shared yet.</div>'}</div>
+          <div class="ehc-shared-groups" id="profileGroups" hidden>${sharedGroups.map(g=>`<a class="ehc-shared-group" href="group.html?id=${encodeURIComponent(g.id)}"><span class="ehc-group-mark">✦</span><span><b>${safeUrl(g.name)}</b><small>${safeUrl(g.category || 'Campus group')}</small></span><strong>↗</strong></a>`).join('') || '<div class="ehc-profile-empty">No shared groups yet.</div>'}</div>
+        </section>
+      </div>
+    </div>`;
+    document.body.appendChild(drawer);
+    const close=()=>drawer.remove();
+    drawer.querySelector('.ehc-profile-close').addEventListener('click',close);
+    drawer.addEventListener('click',e=>{if(e.target===drawer)close();});
+    drawer.querySelector('#profileMessageBtn').addEventListener('click', close);
+    const overview=drawer.querySelector('#profileOverview'), grid=drawer.querySelector('#profileMediaGrid'), linkBox=drawer.querySelector('#profileLinks'), groupBox=drawer.querySelector('#profileGroups');
+    function showMediaTab(kind){
+      drawer.querySelectorAll('[data-media-tab]').forEach(x=>x.classList.toggle('on', x.dataset.mediaTab===kind));
+      // hide every panel first
+      [overview, grid, linkBox, groupBox].forEach(el => {
+        if(!el) return;
+        el.hidden = true;
+        el.style.setProperty('display', 'none', 'important');
+      });
+      if(kind === 'all' && overview){
+        overview.hidden = false;
+        overview.style.setProperty('display', 'block', 'important');
+      } else if((kind === 'photos' || kind === 'files') && grid){
+        grid.hidden = false;
+        grid.style.setProperty('display', 'grid', 'important');
+        if(kind==='photos') grid.innerHTML = photos.map(mediaCard).join('') || '<div class="ehc-profile-empty">No photos in this chat yet.</div>';
+        if(kind==='files') grid.innerHTML = files.map(mediaCard).join('') || '<div class="ehc-profile-empty">No files in this chat yet.</div>';
+      } else if(kind === 'links' && linkBox){
+        linkBox.hidden = false;
+        linkBox.style.setProperty('display', 'grid', 'important');
+      } else if(kind === 'groups' && groupBox){
+        groupBox.hidden = false;
+        groupBox.style.setProperty('display', 'grid', 'important');
+      }
+    }
+    drawer.querySelectorAll('[data-media-tab]').forEach(tab=>tab.addEventListener('click',()=>showMediaTab(tab.dataset.mediaTab)));
+    drawer.querySelectorAll('[data-jump-tab]').forEach(stat=>stat.addEventListener('click',()=>showMediaTab(stat.dataset.jumpTab)));
+    // Preload photos grid so first click is instant
+    if(grid && photos.length) grid.innerHTML = photos.map(mediaCard).join('');
+  }
+
+  function presenceLabel(u){
+    if(!u || !u.lastActiveAt) return 'Campus chat';
+    const diff = (Date.now() - new Date(u.lastActiveAt).getTime()) / 1000;
+    if(diff < 90) return '● Online now';
+    if(diff < 3600) return `Active ${Math.floor(diff / 60)}m ago`;
+    if(diff < 86400) return `Active ${Math.floor(diff / 3600)}h ago`;
+    return 'Offline';
+  }
+
+  function renderChat(){
+    if (!activeConv || !Array.isArray(activeConv.participants)) {
+      renderWelcome();
+      return;
+    }
+    const u = other(activeConv);
+    applyActiveChatTheme(u);
+    const typing = !!(activeConv && activeConv.isTyping);
+    const muted = !!(activeConv && activeConv.muted);
+    main.innerHTML = `
+      <div class="ehc-head">
+        <button class="ehc-ghost ehc-back" type="button" id="backBtn" aria-label="Back">${icon('back')}</button>
+        ${avatar(u, 'lg')}
+        <button type="button" class="ehc-head-person ehc-person-trigger" id="openChatProfile" aria-label="Open profile and shared media"><h2>${esc(u.name || 'Student')}</h2><p id="chatPresence">${typing ? `<span class="ehc-typing">${esc((u.name||'Someone').split(' ')[0])} is typing…</span>` : esc(presenceLabel(u))}</p><small>View profile · shared media</small></button>
+        <div class="ehc-head-actions">
+          <a class="ehc-home-btn" href="index.html" title="Return to EventHub home" aria-label="Return to EventHub home">${icon('home','eh-icon',17)}<b>Home</b></a>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="shareEventBtn" title="Share one of your registered events" aria-label="Share event">${icon('calendar')}</button>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="chatBgBtn" title="Change chat background" aria-label="Change chat background">${icon('palette')}</button>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="pinChatBtn" title="Pin chat" aria-label="Pin chat">📌</button>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="muteBtn" title="${muted ? 'Unmute' : 'Mute'}" aria-label="${muted ? 'Unmute' : 'Mute'}">${icon(muted ? 'bell' : 'mute')}</button>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="chatSearchBtn" title="Search in chat" aria-label="Search in chat">${icon('search')}</button>
+          <button class="ehc-ghost ehc-action-icon" type="button" id="scrollTop" title="Jump to start" aria-label="Jump to start">${icon('up')}</button>
+          <button class="ehc-ghost" type="button" id="newFromChat">＋ New chat</button>
+        </div>
+      </div>
+      <div class="ehc-chat-search" id="chatSearchBar"><input type="search" id="chatSearchInput" placeholder="Search messages in this chat…" aria-label="Search messages"></div>
+      <div class="eh-study-status" id="studyStatusBar" title="Your campus status">
+        <button type="button" data-status="free" class="on">💬 Free</button>
+        <button type="button" data-status="studying">📚 Studying</button>
+        <button type="button" data-status="class">🏫 In class</button>
+        <button type="button" data-status="busy">🔇 Busy</button>
+      </div>
+      <div id="stream" class="ehc-stream">${streamHtml()}</div>
+      <form id="composer" class="ehc-composer">
+        ${window.EHChatExtras ? EHChatExtras.quickRepliesHtml() : ''}
+        <div id="editNote" class="ehc-editnote" hidden>${icon('edit','eh-icon',14)} Editing message <button type="button" id="cancelEdit">Cancel</button></div>
+        <div id="replyNote" class="ehc-replynote" hidden><span>${icon('reply','eh-icon',14)} <b>Replying to <span id="replyName">message</span></b><small id="replyPreview"></small></span><button type="button" id="cancelReply" aria-label="Cancel reply">${icon('x', 'eh-icon', 14)}</button></div>
+        <div id="attachmentPreview" class="ehc-attachment-preview" hidden></div>
+        <div class="ehc-inputrow">
+          <input id="fileInput" type="file" hidden>
+          <button type="button" class="ehc-icon-btn ehc-attach-btn" id="attachBtn" aria-label="Attach a photo or file" title="Attach photo or file">${icon('plus')}</button>
+          <button type="button" class="ehc-icon-btn ehc-camera-btn" id="cameraBtn" aria-label="Take a photo" title="Camera">${icon('camera')}</button>
+          <div class="ehc-emoji-wrap">
+            <button type="button" class="ehc-icon-btn" id="emojiToggle" aria-expanded="false" aria-label="Emoji picker">${icon('smile')}</button>
+            <div class="ehc-picker" id="emojiPicker" hidden aria-hidden="true"></div>
+          </div>
+          <textarea id="input" class="ehc-ta" rows="1" maxlength="2000" placeholder="Write a message…" autocomplete="off"></textarea>
+          <button type="button" class="ehc-icon-btn ehc-voice-btn" id="voiceBtn" aria-label="Voice note" title="Hold to record voice note">${icon('mic')}</button>
+          <button class="ehc-send" id="sendBtn" type="submit" aria-label="Send">${icon('send','eh-icon',19)}</button>
+        </div>
+        <div class="ehc-hint">
+          <div class="ehc-quick">${QUICK_REPLIES.map(q => `<button type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+          <span><b>Enter</b> send · <b>Shift+Enter</b> new line</span>
+        </div>
+      </form>`;
+    if(window.EHChatBackgrounds){
+      const userKey = myId || me.email || me.name || 'student';
+      window.EHChatBackgrounds.apply(app, document.getElementById('stream'), userKey, window.EHChatBackgrounds.current(userKey, activeId), activeId);
+    }
+    wireChat();
+  }
+
+  function patchStream(){
+    const stream = document.getElementById('stream');
+    if(!stream) return renderChat();
+    const atBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 90;
+    stream.innerHTML = streamHtml();
+    wireStream();
+    if(atBottom || stickToBottom) stream.scrollTop = stream.scrollHeight;
+  }
+
+  function wireStream(){
+    const stream = document.getElementById('stream');
+    if(!stream) return;
+    stream.querySelectorAll('[data-react]').forEach(b => b.addEventListener('click', () => react(b.dataset.react, b.dataset.emoji)));
+    stream.querySelectorAll('[data-openreact]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openReactBar(b, b.dataset.openreact); }));
+    stream.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => startEdit(b.dataset.edit)));
+    stream.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', () => removeMessage(b.dataset.delete)));
+    stream.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => startReply(b.dataset.reply)));
+    stream.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+      const msg = messages.find(m => String(idOf(m)) === String(b.dataset.copy));
+      const text = msg ? (msg.text || (msg.attachment && msg.attachment.url) || '') : '';
+      const ok = window.EHChatExtras ? await EHChatExtras.copyText(text) : false;
+      setLive(ok ? 'Copied' : 'Nothing to copy');
+    }));
+    stream.querySelectorAll('[data-star]').forEach(b => b.addEventListener('click', () => {
+      if (!window.EHChatExtras) return;
+      const on = EHChatExtras.toggleStar(b.dataset.star);
+      setLive(on ? 'Message saved ★' : 'Removed from saved');
+      patchStream();
+    }));
+    stream.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardPicker(b.dataset.forward)));
+  }
+
+  async function openForwardPicker(messageId) {
+    const msg = messages.find(m => String(idOf(m)) === String(messageId));
+    if (!msg) return;
+    const text = msg.text || (msg.attachment ? ('Shared: ' + (msg.attachment.name || 'attachment')) : '');
+    if (!text && !msg.attachment) { setLive('Nothing to forward'); return; }
+    const scrim = document.createElement('div');
+    scrim.className = 'ehc-forward-scrim';
+    const rows = conversations.map(c => {
+      const u = other(c);
+      return `<button type="button" class="ehc-forward-item" data-fwd="${esc(idOf(c))}">${avatar(u)}<span><b>${esc(u.name||'Student')}</b><small>${esc(c.lastMessage||'')}</small></span></button>`;
+    }).join('') || '<p class="ehc-profile-empty">No other chats yet</p>';
+    scrim.innerHTML = `<div class="ehc-forward-modal" role="dialog"><header><b>Forward to…</b><button type="button" class="ehc-forward-close" aria-label="Close">×</button></header><div class="ehc-forward-list">${rows}</div></div>`;
+    document.body.appendChild(scrim);
+    const close = () => scrim.remove();
+    scrim.querySelector('.ehc-forward-close')?.addEventListener('click', close);
+    scrim.addEventListener('click', e => { if (e.target === scrim) close(); });
+    scrim.querySelectorAll('[data-fwd]').forEach(btn => btn.addEventListener('click', async () => {
+      const targetId = btn.dataset.fwd;
+      close();
+      try {
+        const body = { text: text.startsWith('Forwarded:') ? text : ('Forwarded: ' + text) };
+        if (msg.attachment && msg.attachment.url) {
+          // text-only forward of caption; attachment re-upload not always available
+          body.text = (body.text + ' ' + (msg.attachment.url || '')).trim();
+        }
+        await Api.sendMessage(targetId, body.text || text);
+        setLive('Forwarded');
+        await refreshList();
+      } catch (err) {
+        setLive(err.message || 'Forward failed');
+      }
+    }));
+  }
+
+  function openReactBar(anchor, messageId){
+    document.querySelectorAll('.ehc-reactbar').forEach(el => el.remove());
+    const row = anchor.closest('.ehc-row');
+    const bar = document.createElement('div');
+    bar.className = 'ehc-reactbar ehc-reactbar-wide';
+    bar.innerHTML = QUICK_REACTIONS.map(e => `<button type="button" data-emoji="${e}" title="React ${e}">${e}</button>`).join('') +
+      `<button type="button" class="ehc-react-more" title="More emoji">＋</button>`;
+    row.style.position = 'relative';
+    row.appendChild(bar);
+    bar.querySelectorAll('button[data-emoji]').forEach(b => b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      // keep bar open so students can add multiple reactions
+      react(messageId, b.dataset.emoji);
+    }));
+    const more = bar.querySelector('.ehc-react-more');
+    if(more) more.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      bar.remove();
+      const input = document.getElementById('messageInput');
+      const toggle = document.getElementById('emojiToggle');
+      if(window.EHEmoji && toggle){
+        // temporary pick mode: next emoji becomes a reaction
+        window.__ehReactTarget = messageId;
+        toggle.click();
+      }
+    });
+    setTimeout(() => document.addEventListener('click', function close(e){
+      if(!bar.contains(e.target)){ bar.remove(); document.removeEventListener('click', close); }
+    }), 0);
+  }
+
+  async function react(messageId, emoji){
+    try{
+      const r = await Api.reactToMessage(messageId, emoji);
+      const i = messages.findIndex(m => idOf(m) === String(messageId));
+      if(i >= 0 && r.message) messages[i] = r.message;
+      patchStream();
+    }catch(e){ setLive(e.message); }
+  }
+
+  function startReply(messageId){
+    const m = messages.find(x => idOf(x) === String(messageId));
+    if(!m || m.deletedAt) return;
+    replyingToId = String(messageId);
+    editingId = null;
+    const note = document.getElementById('replyNote');
+    const editNote = document.getElementById('editNote');
+    if(note){
+      note.hidden = false;
+      document.getElementById('replyName').textContent = m.sender?.name || 'message';
+      document.getElementById('replyPreview').textContent = m.text || (m.attachment?.type === 'image' ? '📷 Photo' : `📎 ${m.attachment?.name || 'Attachment'}`);
+    }
+    if(editNote) editNote.hidden = true;
+    const input = document.getElementById('input');
+    input.focus();
+  }
+
+  function startEdit(messageId){
+    const m = messages.find(x => idOf(x) === String(messageId));
+    if(!m) return;
+    editingId = String(messageId);
+    replyingToId = null;
+    selectedAttachment = null;
+    const input = document.getElementById('input');
+    input.value = m.text;
+    input.focus();
+    autoGrow(input);
+    document.getElementById('editNote').hidden = false;
+    const rn = document.getElementById('replyNote'); if(rn) rn.hidden = true;
+  }
+
+  function cancelEdit(){
+    editingId = null;
+    replyingToId = null;
+    const note = document.getElementById('editNote');
+    if(note) note.hidden = true;
+    const input = document.getElementById('input');
+    if(input){ input.value = ''; autoGrow(input); }
+    const rn = document.getElementById('replyNote'); if(rn) rn.hidden = true;
+    selectedAttachment = null;
+    const ap = document.getElementById('attachmentPreview'); if(ap){ ap.hidden = true; ap.innerHTML = ''; }
+    const fi = document.getElementById('fileInput'); if(fi) fi.value = '';
+  }
+
+  async function removeMessage(messageId){
+    if(!confirm('Delete this message for everyone?')) return;
+    try{
+      await Api.deleteMessage(messageId);
+      const m = messages.find(x => idOf(x) === String(messageId));
+      if(m){ m.deletedAt = new Date().toISOString(); m.text = 'This message was deleted'; m.reactions = []; }
+      patchStream();
+      refreshList();
+    }catch(e){ setLive(e.message); }
+  }
+
+  function autoGrow(el){
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }
+
+  function openEventSharePicker(){
+    const scrim=document.createElement('div');
+    scrim.className='ehc-scrim';
+    scrim.innerHTML=`<div class="ehc-modal ehc-share-modal" role="dialog" aria-modal="true"><header><span class="ehc-kicker">CAMPUS SHARE</span><h3>Send an event to this chat</h3><p>Share a real EventHub event card instead of pasting a random form link.</p></header><div id="shareEventList" class="ehc-people"><div class="ehc-skel"></div><div class="ehc-skel"></div></div><footer><button class="ehc-ghost" type="button" id="shareEventClose">Close</button></footer></div>`;
+    document.body.appendChild(scrim);
+    const close=()=>scrim.remove();
+    scrim.addEventListener('click',e=>{if(e.target===scrim)close();});
+    scrim.querySelector('#shareEventClose').onclick=close;
+    const listEl=scrim.querySelector('#shareEventList');
+    Api.getMyBookings().then(({bookings=[]})=>{
+      const upcoming=bookings.filter(b=>b.status!=='cancelled' && b.event && b.event.status==='published').slice(0,30);
+      if(!upcoming.length){ listEl.innerHTML='<div class="ehc-small-empty"><strong>No registered events yet</strong><p>Register for an event and you can share it here.</p><a class="ehc-cta" href="events.html">Discover events</a></div>'; return; }
+      listEl.innerHTML=upcoming.map(b=>{const e=b.event||{};return `<button type="button" class="ehc-person ehc-share-event-row" data-event="${esc(e.id||e._id||'')}"><span class="ehc-share-event-icon">${icon('calendar','eh-icon',18)}</span><span><strong>${esc(e.title||'Event')}</strong><span>${esc([e.date,e.time,e.location].filter(Boolean).join(' · '))}</span></span><b>Send →</b></button>`}).join('');
+      listEl.querySelectorAll('[data-event]').forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await Api.shareEventToChat(activeId,btn.dataset.event);close();await syncActive();patchStream();}catch(e){alert(e.message);btn.disabled=false;}});
+    }).catch(e=>{listEl.innerHTML=`<div class="ehc-small-empty"><strong>Couldn’t load your events</strong><p>${esc(e.message)}</p></div>`});
+  }
+
+  function wireChat(){
+    const stream = document.getElementById('stream');
+    const input = document.getElementById('input');
+    const form = document.getElementById('composer');
+    const picker = document.getElementById('emojiPicker');
+    const toggle = document.getElementById('emojiToggle');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const attachBtn = document.getElementById('attachBtn');
+    const fileInput = document.getElementById('fileInput');
+    const attachmentPreview = document.getElementById('attachmentPreview');
+
+    stream.scrollTop = stream.scrollHeight;
+    stream.addEventListener('scroll', () => { stickToBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 90; });
+    wireStream();
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      activeId = '';
+      activeConv = null;
+      messages = [];
+      editingId = null;
+      replyingToId = null;
+      selectedAttachment = null;
+      app.dataset.view = 'list';
+      document.body.classList.remove('ehc-chat-open');
+      history.replaceState({}, '', 'chat.html');
+      renderWelcome();
+      renderList();
+    });
+    document.getElementById('scrollTop').addEventListener('click', () => { stream.scrollTop = 0; });
+    document.getElementById('newFromChat').addEventListener('click', openDirectory);
+    document.getElementById('openChatProfile').addEventListener('click', openChatProfile);
+    document.getElementById('cancelEdit').addEventListener('click', cancelEdit);
+    document.getElementById('cancelReply').addEventListener('click', cancelEdit);
+    const shareEventBtn = document.getElementById('shareEventBtn');
+    if(shareEventBtn) shareEventBtn.addEventListener('click', openEventSharePicker);
+    const chatBgBtn = document.getElementById('chatBgBtn');
+    if(chatBgBtn && window.EHChatBackgrounds){
+      const userKey = myId || me.email || me.name || 'student';
+      chatBgBtn.addEventListener('click', () => window.EHChatBackgrounds.open({userId:userKey, conversationId:activeId, app:app, stream:document.getElementById('stream')}));
+    }
+    const muteBtn = document.getElementById('muteBtn');
+    if(muteBtn) muteBtn.addEventListener('click', (e) => {
+      if(!activeId) return;
+      e.stopPropagation();
+      document.querySelectorAll('.ehc-mute-menu').forEach(x => x.remove());
+      const currentlyMuted = !!(activeConv && activeConv.muted) || (window.EHChatExtras && EHChatExtras.isMutedNow(activeId, false));
+      const menu = document.createElement('div');
+      menu.className = 'ehc-mute-menu';
+      menu.innerHTML = currentlyMuted
+        ? `<button type="button" data-mute-ms="0">Unmute</button>`
+        : `<button type="button" data-mute-ms="3600000">Mute 1 hour</button>
+           <button type="button" data-mute-ms="28800000">Mute 8 hours</button>
+           <button type="button" data-mute-ms="604800000">Mute 1 week</button>
+           <button type="button" data-mute-ms="forever">Mute forever</button>`;
+      muteBtn.parentElement.style.position = 'relative';
+      muteBtn.parentElement.appendChild(menu);
+      const closeMenu = () => menu.remove();
+      setTimeout(() => document.addEventListener('click', closeMenu, { once: true }), 0);
+      menu.querySelectorAll('[data-mute-ms]').forEach(btn => btn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const v = btn.dataset.muteMs;
+        try {
+          if (v === '0') {
+            await Api.muteConversation(activeId, false);
+            if (window.EHChatExtras) EHChatExtras.setMuteUntil(activeId, 0);
+            if (activeConv) activeConv.muted = false;
+            setLive('Chat unmuted');
+          } else if (v === 'forever') {
+            await Api.muteConversation(activeId, true);
+            if (window.EHChatExtras) EHChatExtras.setMuteUntil(activeId, 0);
+            if (activeConv) activeConv.muted = true;
+            setLive('Chat muted');
+          } else {
+            await Api.muteConversation(activeId, true);
+            if (window.EHChatExtras) EHChatExtras.setMuteUntil(activeId, Number(v));
+            if (activeConv) activeConv.muted = true;
+            const label = v === '3600000' ? '1 hour' : v === '28800000' ? '8 hours' : '1 week';
+            setLive('Muted for ' + label);
+          }
+          const local = conversations.find(c => idOf(c) === String(activeId));
+          if (local) local.muted = !!(activeConv && activeConv.muted);
+          muteBtn.innerHTML = icon((activeConv && activeConv.muted) ? 'bell' : 'mute');
+          muteBtn.title = (activeConv && activeConv.muted) ? 'Unmute' : 'Mute';
+        } catch (err) { setLive(err.message || 'Mute failed'); }
+        closeMenu();
+      }));
+    });
+
+    // Pin chat
+    const pinBtn = document.getElementById('pinChatBtn');
+    if (pinBtn && window.EHChatExtras) {
+      const pinned = EHChatExtras.isPinned(activeId);
+      pinBtn.classList.toggle('on', pinned);
+      pinBtn.title = pinned ? 'Unpin chat' : 'Pin chat';
+      pinBtn.addEventListener('click', () => {
+        const on = EHChatExtras.togglePin(activeId);
+        pinBtn.classList.toggle('on', on);
+        pinBtn.title = on ? 'Unpin chat' : 'Pin chat';
+        setLive(on ? 'Chat pinned' : 'Chat unpinned');
+        renderList();
+      });
+    }
+
+    // Quick replies
+    document.querySelectorAll('[data-quick]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('input');
+        if (!input) return;
+        input.value = btn.dataset.quick || '';
+        input.focus();
+        autoGrow(input);
+      });
+    });
+
+    
+    // In-chat search
+    const chatSearchBtn = document.getElementById('chatSearchBtn');
+    const chatSearchBar = document.getElementById('chatSearchBar');
+    const chatSearchInput = document.getElementById('chatSearchInput');
+    if(chatSearchBtn && chatSearchBar && chatSearchInput){
+      chatSearchBtn.addEventListener('click', () => {
+        chatSearchBar.classList.toggle('on');
+        if(chatSearchBar.classList.contains('on')) chatSearchInput.focus();
+        else { chatSearchInput.value=''; document.querySelectorAll('.ehc-row.ehc-search-hit').forEach(el=>el.classList.remove('ehc-search-hit')); }
+      });
+      chatSearchInput.addEventListener('input', () => {
+        const q = chatSearchInput.value.trim().toLowerCase();
+        document.querySelectorAll('.ehc-row[data-message]').forEach(row => {
+          const t = (row.textContent || '').toLowerCase();
+          const hit = q && t.includes(q);
+          row.classList.toggle('ehc-search-hit', !!hit);
+          row.style.display = (!q || hit) ? '' : 'none';
+        });
+      });
+    }
+
+    // Study status (local campus identity)
+    const statusBar = document.getElementById('studyStatusBar');
+    if(statusBar){
+      const key = 'eh_study_status_' + (myId || 'me');
+      const saved = localStorage.getItem(key) || 'free';
+      statusBar.querySelectorAll('[data-status]').forEach(btn => {
+        btn.classList.toggle('on', btn.dataset.status === saved);
+        btn.addEventListener('click', () => {
+          statusBar.querySelectorAll('[data-status]').forEach(x => x.classList.remove('on'));
+          btn.classList.add('on');
+          localStorage.setItem(key, btn.dataset.status);
+          const labels = { free:'💬 Free to chat', studying:'📚 Studying', class:'🏫 In class', busy:'🔇 Busy' };
+          setLive(labels[btn.dataset.status] || 'Status updated');
+        });
+      });
+    }
+
+    // Voice notes — click to start, click again to stop (reliable)
+    const voiceBtn = document.getElementById('voiceBtn');
+    if(voiceBtn && navigator.mediaDevices && window.MediaRecorder){
+      let mediaRecorder = null, chunks = [], recording = false, activeStream = null;
+      voiceBtn.title = 'Click to record voice note';
+      voiceBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if(editingId) return;
+        if(recording && mediaRecorder){
+          mediaRecorder.stop();
+          recording = false;
+          voiceBtn.classList.remove('recording');
+          voiceBtn.setAttribute('aria-pressed','false');
+          const banner = document.getElementById('ehcVoiceBanner');
+          if(banner) banner.hidden = true;
+          setLive('Voice note ready — press Send');
+          return;
+        }
+        try{
+          // Prefer explicit mic device; fall back to default
+          let constraints = { audio: { echoCancellation: true, noiseSuppression: true } };
+          try {
+            if (navigator.permissions && navigator.permissions.query) {
+              const st = await navigator.permissions.query({ name: 'microphone' });
+              if (st.state === 'denied') {
+                showMicBlockedHelp();
+                return;
+              }
+            }
+          } catch (_) {}
+          activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+          chunks = [];
+          const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+          mediaRecorder = mime ? new MediaRecorder(activeStream, { mimeType: mime }) : new MediaRecorder(activeStream);
+          mediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size) chunks.push(ev.data); };
+          mediaRecorder.onstop = () => {
+            try{ activeStream && activeStream.getTracks().forEach(t => t.stop()); }catch(_){}
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            if(blob.size < 400){ setLive('Recording too short'); return; }
+            const ext = (blob.type || '').includes('mp4') ? 'm4a' : 'webm';
+            const file = new File([blob], 'voice-note-'+Date.now()+'.'+ext, { type: blob.type || 'audio/webm' });
+            selectedAttachment = file;
+            const preview = document.getElementById('attachmentPreview');
+            if(preview){
+              preview.hidden = false;
+              const url = URL.createObjectURL(blob);
+              preview.innerHTML = `<span class="ehc-preview-file">🎤</span><span><b>Voice note</b><small>${(file.size/1024).toFixed(0)} KB</small></span><audio controls src="${url}" style="height:28px;max-width:140px"></audio><button type="button" id="removeAttachment" aria-label="Remove">×</button>`;
+              document.getElementById('removeAttachment')?.addEventListener('click', () => { selectedAttachment=null; preview.hidden=true; preview.innerHTML=''; });
+            }
+          };
+          mediaRecorder.start(250);
+          recording = true;
+          voiceBtn.classList.add('recording');
+          voiceBtn.setAttribute('aria-pressed','true');
+          let banner = document.getElementById('ehcVoiceBanner');
+          if(!banner){
+            banner = document.createElement('div');
+            banner.id = 'ehcVoiceBanner';
+            banner.className = 'ehc-voice-banner';
+            const form = document.getElementById('composer');
+            if(form) form.prepend(banner);
+          }
+          banner.innerHTML = '🔴 Recording voice note… <b>click mic again to stop</b>';
+          banner.hidden = false;
+          setLive('Recording… click mic again to stop');
+        }catch(err){
+          console.error(err);
+          const name = (err && err.name) || '';
+          if(name === 'NotAllowedError' || name === 'PermissionDeniedError'){
+            showMicBlockedHelp();
+          } else if(name === 'NotFoundError'){
+            setLive('No microphone found on this device');
+          } else if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
+            setLive('Voice notes need HTTPS (or localhost)');
+          } else {
+            setLive('Mic error: ' + (err.message || name || 'unknown') + ' — check browser mic permission');
+          }
+        }
+      });
+    } else if(voiceBtn){
+      voiceBtn.addEventListener('click', () => setLive('Voice notes need Chrome/Edge/Firefox + mic permission'));
+    }
+
+attachBtn.addEventListener('click', () => { if(!editingId) fileInput.click(); });
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if(!file) return;
+      selectedAttachment = file;
+      attachmentPreview.hidden = false;
+      const isImage = file.type.startsWith('image/');
+      const size = file.size ? `${(file.size/1024/1024).toFixed(1)} MB` : '';
+      attachmentPreview.innerHTML = `${isImage ? `<img src="${URL.createObjectURL(file)}" alt="">` : '<span class="ehc-preview-file">📎</span>'}<span><b>${esc(file.name)}</b><small>${esc(size || 'Ready to send')}</small></span><button type="button" id="removeAttachment" aria-label="Remove attachment">×</button>`;
+      document.getElementById('removeAttachment').addEventListener('click', () => { selectedAttachment=null; fileInput.value=''; attachmentPreview.hidden=true; attachmentPreview.innerHTML=''; });
+    });
+
+    input.focus();
+    let typingTimer = null;
+    let typingSent = false;
+    const sendTyping = (on) => {
+      if(!activeId) return;
+      if(on && typingSent) return;
+      if(!on && !typingSent) return;
+      typingSent = on;
+      Api.setTyping(activeId, on).catch(() => {});
+    };
+    input.addEventListener('input', () => {
+      autoGrow(input);
+      sendTyping(true);
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => sendTyping(false), 2500);
+    });
+    input.addEventListener('blur', () => { clearTimeout(typingTimer); sendTyping(false); });
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); form.requestSubmit(); }
+      if(e.key === 'Escape'){ if(editingId || replyingToId) cancelEdit(); }
+    });
+
+    if (window.EHEmoji) EHEmoji.attach({
+      button: toggle,
+      anchor: toggle,
+      onPick: (value, meta) => {
+        if(window.__ehReactTarget){
+          const mid = window.__ehReactTarget;
+          window.__ehReactTarget = null;
+          react(mid, value);
+          return;
+        }
+        if(meta && meta.type === 'sticker'){
+          // send sticker as message text (emoji sticker)
+          input.value = value;
+          input.focus();
+          form.requestSubmit();
+          return;
+        }
+        if(meta && meta.type === 'gif' && meta.url){
+          // send GIF as image attachment via URL message
+          input.value = meta.url;
+          input.focus();
+          form.requestSubmit();
+          return;
+        }
+        input.value += value;
+        input.focus();
+        autoGrow(input);
+      }
+    });
+    if (cameraBtn) cameraBtn.addEventListener('click', () => { if(!editingId && window.EHChatCamera) EHChatCamera.open(); });
+    if(!window.__ehCameraListenerBound){
+      window.__ehCameraListenerBound=true;
+      document.addEventListener('eh:camera-captured', function(ev){
+        const file = ev.detail && ev.detail.file;
+        if(!file || !document.getElementById('composer')) return;
+        selectedAttachment = file;
+        const ap=document.getElementById('attachmentPreview');
+        const fi=document.getElementById('fileInput');
+        if(ap){ ap.hidden=false; const src=URL.createObjectURL(file); ap.innerHTML=`<img src="${src}" alt=""><span><b>${esc(file.name)}</b><small>Camera photo · ready to send</small></span><button type="button" id="removeAttachment" aria-label="Remove attachment">×</button>`; document.getElementById('removeAttachment').onclick=()=>{selectedAttachment=null;ap.hidden=true;ap.innerHTML='';}; }
+        if(fi) fi.value='';
+      });
+    }
+    form.querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', () => { input.value=b.dataset.quick; input.focus(); autoGrow(input); }));
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      const file = selectedAttachment;
+      if(!text && !file) return;
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      attachBtn.disabled = true;
+      try{
+        if(editingId){
+          if(file) throw new Error('Attachments cannot be added while editing a message. Send it as a new message instead.');
+          const r = await Api.editMessage(editingId, text);
+          const i = messages.findIndex(m => idOf(m) === editingId);
+          if(i >= 0 && r.message) messages[i] = r.message;
+          cancelEdit(); patchStream();
+        }else{
+          const replyTarget = replyingToId ? (messages.find(m=>idOf(m)===replyingToId)||null) : null;
+          const localObjectUrl = file && file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+          const optimistic = {
+            _id:'tmp-'+Date.now(),
+            sender:{_id:myId,name:me.name,chatAvatarId:me.chatAvatarId},
+            text,
+            attachment: file ? { url: localObjectUrl || '', id:'local-'+Date.now(), type:file.type.startsWith('image/') ? 'image' : 'file', name:file.name, size:file.size, contentType:file.type } : null,
+            replyTo: replyTarget,
+            createdAt:new Date().toISOString(),
+            pending:true,
+            reactions:[]
+          };
+          // Show the message immediately, like a real messenger. The upload continues in the background.
+          messages.push(optimistic);
+          input.value=''; autoGrow(input); selectedAttachment=null; fileInput.value=''; attachmentPreview.hidden=true; attachmentPreview.innerHTML=''; replyingToId=null;
+          const rn=document.getElementById('replyNote'); if(rn) rn.hidden=true;
+          stickToBottom=true; patchStream();
+
+          let attachment = null;
+          try{
+            if(file){
+              const uploaded = await Api.uploadChatAttachment(activeId, file);
+              attachment = uploaded.attachment;
+              if(localObjectUrl) URL.revokeObjectURL(localObjectUrl);
+            }
+            const r = await Api.sendMessage(activeId, text, { attachment, replyTo: replyTarget ? idOf(replyTarget) : null });
+            await Api.markConversationRead(activeId);
+            const local=conversations.find(c=>idOf(c)===String(activeId)); if(local) local.unreadCount=0;
+            document.querySelectorAll('[data-nav-chat-badge]').forEach(b=>{b.textContent='0';b.hidden=true;});
+            const i=messages.findIndex(m=>idOf(m)===idOf(optimistic));
+            if(i>=0) messages.splice(i,1,r.message||{...optimistic,attachment,pending:false});
+            patchStream();
+          }catch(uploadOrSendErr){
+            if(localObjectUrl) URL.revokeObjectURL(localObjectUrl);
+            messages=messages.filter(m=>idOf(m)!==idOf(optimistic));
+            patchStream();
+            throw uploadOrSendErr;
+          }
+        }
+        refreshList();
+      }catch(err){
+        messages=messages.filter(m=>!m.pending); patchStream(); setLive(err.message); alert(err.message);
+      }finally{
+        btn.disabled=false; btn.textContent='↗'; attachBtn.disabled=false;
+        const el=document.getElementById('input'); if(el) el.focus();
+      }
+    });
+  }
+
+  /* ---------------- data ---------------- */
+  async function openConversation(id){
+    activeId = String(id);
+    app.dataset.view = 'chat';
+    document.body.classList.add('ehc-chat-open');
+    editingId = null;
+    stickToBottom = true;
+    renderList();
+    main.innerHTML = `<div class="ehc-empty"><div class="ehc-orb">${icon('sparkle','eh-icon',24)}</div><p>Opening conversation…</p></div>`;
+    try{
+      const r = await Api.getConversation(activeId);
+      activeConv = r.conversation;
+      messages = r.messages || [];
+      lastSync = new Date().toISOString();
+      renderChat();
+      history.replaceState({}, '', `chat.html?conversation=${encodeURIComponent(activeId)}`);
+      await Api.markConversationRead(activeId);
+      const item = conversations.find(c => idOf(c) === activeId);
+      if(item) item.unreadCount = 0;
+      renderList();
+      if (typeof refreshChatBadge === 'function') refreshChatBadge();
+    }catch(e){
+      main.innerHTML = `<div class="ehc-empty"><div class="ehc-orb ehc-orb-alert">${icon('x','eh-icon',24)}</div><h2>Couldn’t open this chat</h2><p>${esc(e.message)}</p></div>`;
+    }
+  }
+
+  async function refreshList(){
+    try{
+      const r = await Api.getConversations();
+      conversations = r.conversations || [];
+      renderList();
+      setLive('Live');
+    }catch(e){ setLive('Offline'); }
+  }
+
+  async function syncActive(){
+    if(!activeId) return;
+    try{
+      const r = await Api.syncMessages(activeId, lastSync);
+      lastSync = r.serverTime || new Date().toISOString();
+      let changed = false;
+      (r.messages || []).forEach(m => {
+        const i = messages.findIndex(x => idOf(x) === idOf(m));
+        if(i >= 0){ messages[i] = m; } else { messages.push(m); }
+        changed = true;
+      });
+      if(changed){
+        messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        patchStream();
+        await Api.markConversationRead(activeId);
+        if (typeof refreshChatBadge === 'function') refreshChatBadge();
+      }
+      // Typing indicator without full re-render
+      if(activeConv) activeConv.isTyping = !!r.isTyping;
+      const presenceEl = document.getElementById('chatPresence');
+      if(presenceEl){
+        const u = other(activeConv || {});
+        presenceEl.innerHTML = r.isTyping
+          ? `<span class="ehc-typing">${esc((u.name||'Someone').split(' ')[0])} is typing…</span>`
+          : esc(presenceLabel(u));
+      }
+    }catch(e){ /* keep the UI calm on transient errors */ }
+  }
+
+  /* ---------------- new chat directory ---------------- */
+  function openDirectory(){
+    const scrim = document.createElement('div');
+    scrim.className = 'ehc-scrim';
+    scrim.innerHTML = `<div class="ehc-modal" role="dialog" aria-modal="true">
+      <header>
+        <span class="ehc-kicker" style="color:var(--ehc-brand)">New conversation</span>
+        <h3>Message someone on campus</h3>
+        <p>You can chat with anyone from the groups you’ve joined.</p>
+        <div class="ehc-search"><input id="dirSearch" type="search" placeholder="Search by name" aria-label="Search people"></div>
+      </header>
+      <div class="ehc-people" id="dirPeople"><div class="ehc-skel"></div><div class="ehc-skel"></div></div>
+      <footer><button class="ehc-ghost" type="button" id="dirClose">Close</button></footer>
+    </div>`;
+    document.body.appendChild(scrim);
+    const close = () => scrim.remove();
+    scrim.addEventListener('click', e => { if(e.target === scrim) close(); });
+    scrim.querySelector('#dirClose').addEventListener('click', close);
+
+    const people = scrim.querySelector('#dirPeople');
+    const search = scrim.querySelector('#dirSearch');
+    let t = null;
+
+    async function loadPeople(q){
+      try{
+        const r = await Api.getChatDirectory(q || '');
+        const rows = r.people || [];
+        if(!rows.length){
+          people.innerHTML = `<div class="ehc-small-empty"><strong>Nobody here yet</strong><p>Join a campus group to unlock private chats.</p><a class="ehc-cta" href="groups.html">Browse groups</a></div>`;
+          return;
+        }
+        people.innerHTML = rows.map(p => `<button type="button" class="ehc-person" data-person="${esc(p.id)}">
+          ${avatar(p)}<span><strong>${esc(p.name)}</strong><span>${esc(subtitle(p))}</span></span></button>`).join('');
+        people.querySelectorAll('[data-person]').forEach(b => b.addEventListener('click', async () => {
+          b.disabled = true;
+          try{
+            const r2 = await Api.startConversation(b.dataset.person);
+            close();
+            await refreshList();
+            await openConversation(idOf(r2.conversation));
+          }catch(err){ alert(err.message); b.disabled = false; }
+        }));
+      }catch(e){
+        people.innerHTML = `<div class="ehc-small-empty"><strong>Directory unavailable</strong><p>${esc(e.message)}</p></div>`;
+      }
+    }
+    search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => loadPeople(search.value.trim()), 250); });
+    loadPeople('');
+    setTimeout(() => search.focus(), 50);
+  }
+
+  /* ---------------- boot ---------------- */
+  searchInput.addEventListener('input', renderList);
+  document.getElementById('newChatBtn').addEventListener('click', openDirectory);
+  document.querySelectorAll('.ehc-filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      listFilterMode = btn.dataset.filter || 'all';
+      document.querySelectorAll('.ehc-filter-chip').forEach(x => x.classList.toggle('on', x === btn));
+      renderList();
+    });
+  });
+
+  (async function boot(){
+    renderWelcome();
+    try{
+      // Server is the source of truth for the chat character. This makes the
+      // avatar survive logout/login and prevents one browser account leaking into another.
+      try {
+        const profile = await Api.getProfile();
+        if (profile && profile.user) {
+          me = profile.user;
+          if (Session.setUser) Session.setUser(me);
+        }
+      } catch (_) {}
+      const r = await Api.getConversations();
+      conversations = r.conversations || [];
+      renderList();
+      setLive('Live');
+      if(activeId && conversations.some(c => idOf(c) === String(activeId))) await openConversation(activeId);
+      else { activeId = ''; document.body.classList.remove('ehc-chat-open'); renderWelcome(); }
+    }catch(e){
+      list.innerHTML = `<div class="ehc-small-empty"><strong>Chat is unavailable</strong><p>${esc(e.message)}</p></div>`;
+      setLive('Offline');
+    }
+    pollTimer = setInterval(async () => {
+      if(document.hidden) return;
+      await refreshList();
+      await syncActive();
+      Api.pingPresence().catch(() => {});
+    }, 4000);
+    window.addEventListener('beforeunload', () => clearInterval(pollTimer));
+  })();
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin Dashboard - EventHub</title>
-<link rel="stylesheet" href="../css/style.css" />
+<link rel="stylesheet" href="../css/style.css?v=37" />
+
+<link rel="stylesheet" href="../css/eventhub-premium.css?v=48">
+<link rel="stylesheet" href="../css/mobile-polish.css?v=52">
+<link rel="stylesheet" href="../css/eventhub-v61.css?v=61">
+  <link rel="stylesheet" href="../css/mobile-v63.css?v=63.1">
 </head>
 <body>
 <div id="navbar" class="navbar"></div>
@@ -70,8 +75,8 @@
         <div class="stat-card"><div class="label">Active Bookings</div><div class="value">${totals.activeBookings}</div></div>
         <div class="stat-card"><div class="label">Total Clubs</div><div class="value">${totals.totalClubs}</div></div>
         <div class="stat-card"><div class="label">Club Heads</div><div class="value">${totals.totalClubHeads}</div></div>
-        <div class="stat-card"><div class="label">Pending Club Requests</div><div class="value">${totals.pendingClubRequests}</div></div>
-        <div class="stat-card"><div class="label">Pending Event Approvals</div><div class="value">${totals.pendingEvents}</div></div>
+        <a class="stat-card stat-card-link" href="clubs.html"><div class="label">Pending Club Requests</div><div class="value">${totals.pendingClubRequests}</div>${totals.pendingClubRequests > 0 ? '<span class="stat-card-cta">Review →</span>' : ''}</a>
+        <a class="stat-card stat-card-link" href="pending-events.html"><div class="label">Pending Event Approvals</div><div class="value">${totals.pendingEvents}</div>${totals.pendingEvents > 0 ? '<span class="stat-card-cta">Review →</span>' : ''}</a>
       `;
 
       recentBookingsBody.innerHTML = recentBookings.length
